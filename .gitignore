@@ -1,6 +1,7 @@
-# Ignore build outputs from performing a nix-build or `nix build` command
+nix-*/
+
+.DS_Store
+.direnv/
 result
 result-*
 
-# Ignore automatically generated direnv output
-.direnv

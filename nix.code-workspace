@@ -1,0 +1,64 @@
+{
+  "folders": [
+    {
+      "name": "Nix",
+      "path": "."
+    },
+    {
+      "name": "Nix Config",
+      "path": "./nix-config"
+    },
+    {
+      "name": "Nix Presets",
+      "path": "./nix-presets"
+    },
+    {
+      "name": "Nix Hardware",
+      "path": "./nix-hardware"
+    },
+    {
+      "name": "Nix DevShells",
+      "path": "./nix-devshells"
+    },
+    {
+      "name": "Nix Packages",
+      "path": "./nix-packages"
+    },
+    {
+      "name": "Nix Templates",
+      "path": "./nix-templates"
+    },
+    {
+      "name": "Nix Secrets",
+      "path": "./nix-secrets"
+    }
+  ],
+  "settings": {
+    "editor.formatOnSave": true,
+    "files.watcherExclude": {
+      "**/result": true,
+      "**/result-*": true,
+      "**/.direnv": true
+    },
+    "files.exclude": {
+      "**/.git": true,
+      "**/.DS_Store": true,
+      "**/*.direnv": true,
+      "**/result": true,
+      "**/result-*": true,
+      "nix-config": true,
+      "nix-presets": true,
+      "nix-hardware": true,
+      "nix-devshells": true,
+      "nix-packages": true,
+      "nix-templates": true,
+      "nix-secrets": true
+    },
+    "[nix]": {
+      "editor.defaultFormatter": "jnoortheen.nix-ide"
+    },
+    "nix.enableLanguageServer": true,
+    "nix.serverPath": "nixd",
+    "nix.formatterPath": "nixfmt"
+  }
+}
