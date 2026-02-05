@@ -1163,8 +1163,8 @@
         "treefmt-nix": "treefmt-nix_6"
       },
       "locked": {
-        "lastModified": 1770318213,
-        "narHash": "sha256-f5P73zv0+XHxOChLBX09tgv3AqMXoX92iizv0wfwVpc=",
+        "lastModified": 1770321210,
+        "narHash": "sha256-DyLaVo0L4BbSYIG02D5EI7RnwxY1KxnSVF46nf16N0E=",
         "path": "/home/martin/Develop/github.com/kleinbem/nix/nix-config",
         "type": "path"
       },
@@ -1213,8 +1213,8 @@
         "treefmt-nix": "treefmt-nix_7"
       },
       "locked": {
-        "lastModified": 1770316748,
-        "narHash": "sha256-uDbSOhgM5VROEY+7WCzAfO9+ljsqswqQ+2YnmkcNhko=",
+        "lastModified": 1770318021,
+        "narHash": "sha256-ZJEcSYFfQTI+gLCZ2fzmJL//nLH7AlbQGgiE1OkA/H8=",
         "path": "/home/martin/Develop/github.com/kleinbem/nix/nix-devshells",
         "type": "path"
       },
