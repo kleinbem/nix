@@ -48,11 +48,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1770167382,
-        "narHash": "sha256-Y4whrHNKNTGU7Br6XU1SmpAQZtQmP+DRjfG0xJ1Z/yw=",
+        "lastModified": 1770214004,
+        "narHash": "sha256-qIBP+6T74hr+Rl4+fHUSkKjBHtGbEZKejUUhRIReaRY=",
         "owner": "cachix",
         "repo": "devenv",
-        "rev": "195375e3f0a3c3ac4f12b21d3f59a7ddb209bd1f",
+        "rev": "b91e1b24ff6f7bddcdbb00e5834ed457a4126bf2",
         "type": "github"
       },
       "original": {
@@ -313,18 +313,14 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1770205422,
-        "narHash": "sha256-O+YWJopH4B8bOgRbWOHcgV6om9xdhmmVsApKpwQK/Fw=",
-        "ref": "refs/heads/main",
-        "rev": "c0089e57f7b24ac1ac03e463ac7d71e6714fbc8e",
-        "revCount": 2,
-        "type": "git",
-        "url": "file:./nix-devshells"
+        "path": "./nix-devshells",
+        "type": "path"
       },
       "original": {
-        "type": "git",
-        "url": "file:./nix-devshells"
-      }
+        "path": "./nix-devshells",
+        "type": "path"
+      },
+      "parent": []
     },
     "nix2container": {
       "inputs": {

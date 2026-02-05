@@ -56,4 +56,20 @@ diagnose:
 clean:
     nix-collect-garbage -d
 
+# --- Waydroid Automation ---
+
+# Install Google Apps & Magisk for Waydroid
+waydroid-setup:
+    @echo "🤖 Checking Waydroid Status..."
+    @if ! systemctl is-active waydroid-container >/dev/null; then echo "❌ Waydroid service is not running. Run 'just switch-local' first."; exit 1; fi
+    @if [ ! -d "/var/lib/waydroid/images" ]; then echo "⚠️  Initializing Waydroid..."; sudo waydroid init; fi
+    @echo "📦 Preparing Setup Script..."
+    mkdir -p .tools
+    if [ ! -d ".tools/waydroid_script" ]; then git clone https://github.com/casualsnek/waydroid_script .tools/waydroid_script; fi
+    @echo "🚀 Installing Google Apps (GAPPS), LibHoudini, and Magisk..."
+    @echo "📝 Note: You may be asked for sudo password."
+    cd .tools/waydroid_script && nix-shell -p python3 --run "python3 -m venv venv && . venv/bin/activate && pip install -r requirements.txt && sudo env PATH=\$PATH python3 main.py install gapps libhoudini magisk"
+    @echo "✅ Setup Complete! Your Android ID for registration is:"
+    @sudo waydroid shell sqlite3 /data/data/com.google.android.gms/databases/gservices.db "select value from main where name = \"android_id\";" || echo "Could not read ID yet (start Waydroid first)."
+
 

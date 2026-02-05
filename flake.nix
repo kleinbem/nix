@@ -6,7 +6,7 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
 
     # Import Local Devshell to keep tools consistent
-    nix-devshells.url = "git+file:./nix-devshells";
+    nix-devshells.url = "path:./nix-devshells";
   };
 
   outputs =
