@@ -4,28 +4,30 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
+    devenv.url = "github:cachix/devenv";
 
     # Import Local Devshell to keep tools consistent
-    nix-devshells.url = "path:./nix-devshells";
+    nix-devshells.url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-devshells";
+    nix-devshells.inputs.devenv.follows = "devenv";
+    nix-devshells.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
     inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [
+        inputs.devenv.flakeModule
+      ];
       systems = [ "x86_64-linux" ];
 
       perSystem =
         { pkgs, system, ... }:
         {
-          devShells.default = pkgs.mkShell {
-            inputsFrom = [ inputs.nix-devshells.devShells.${system}.default ];
+          devenv.shells.default = {
+            imports = [ inputs.nix-devshells.devenvModules.default ];
 
-            # just, lazygit, gh are now inherited from nix-devshells
-
-            shellHook = ''
-              echo "🚀 Meta-Workspace Loaded"
-              echo "Type 'just' to see available commands."
-            '';
+            # FORCE the root to be the current directory (mutable)
+            devenv.root = "/home/martin/Develop/github.com/kleinbem/nix";
           };
 
           formatter = inputs.nix-devshells.formatter.${system};

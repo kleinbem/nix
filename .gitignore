@@ -1,7 +1,18 @@
 nix-*/
 
-.DS_Store
+# Environment State
 .direnv/
+.devenv/
+.tools/
+
+# Build Results
 result
 result-*
+
+# OS Metadata
+.DS_Store
+
+# Editors
+.idea/
+*.swp
 
