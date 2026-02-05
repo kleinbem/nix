@@ -7,9 +7,17 @@
     devenv.url = "github:cachix/devenv";
 
     # Import Local Devshell to keep tools consistent
-    nix-devshells.url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-devshells";
-    nix-devshells.inputs.devenv.follows = "devenv";
-    nix-devshells.inputs.nixpkgs.follows = "nixpkgs";
+    nix-devshells = {
+      url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-devshells";
+      inputs.devenv.follows = "devenv";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # Import NixOS Config to expose systems at root
+    nix-config = {
+      url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-config";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -20,8 +28,12 @@
       ];
       systems = [ "x86_64-linux" ];
 
+      flake = {
+        inherit (inputs.nix-config) nixosConfigurations;
+      };
+
       perSystem =
-        { pkgs, system, ... }:
+        { system, ... }:
         {
           devenv.shells.default = {
             imports = [ inputs.nix-devshells.devenvModules.default ];
