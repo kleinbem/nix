@@ -1213,8 +1213,8 @@
         "treefmt-nix": "treefmt-nix_7"
       },
       "locked": {
-        "lastModified": 1770318021,
-        "narHash": "sha256-ZJEcSYFfQTI+gLCZ2fzmJL//nLH7AlbQGgiE1OkA/H8=",
+        "lastModified": 1770381809,
+        "narHash": "sha256-Nwt22D7Qx1N2OTo8SCQGo8h06ZTIsXcnhTn1QZITprE=",
         "path": "/home/martin/Develop/github.com/kleinbem/nix/nix-devshells",
         "type": "path"
       },

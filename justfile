@@ -58,18 +58,26 @@ clean:
 
 # --- Waydroid Automation ---
 
-# Install Google Apps & Magisk for Waydroid
+# Install Google Apps & Magisk for Waydroid (Phase 1: Installation)
+# Run the automated Waydroid installer (wipes data, installs GApps/Magisk)
 waydroid-setup:
-    @echo "🤖 Checking Waydroid Status..."
-    @if ! systemctl is-active waydroid-container >/dev/null; then echo "❌ Waydroid service is not running. Run 'just switch-local' first."; exit 1; fi
-    @if [ ! -d "/var/lib/waydroid/images" ]; then echo "⚠️  Initializing Waydroid..."; sudo waydroid init; fi
-    @echo "📦 Preparing Setup Script..."
-    mkdir -p .tools
-    if [ ! -d ".tools/waydroid_script" ]; then git clone https://github.com/casualsnek/waydroid_script .tools/waydroid_script; fi
-    @echo "🚀 Installing Google Apps (GAPPS), LibHoudini, and Magisk..."
-    @echo "📝 Note: You may be asked for sudo password."
-    cd .tools/waydroid_script && nix-shell -p python3 --run "python3 -m venv venv && . venv/bin/activate && pip install -r requirements.txt && sudo env PATH=\$PATH python3 main.py install gapps libhoudini magisk"
-    @echo "✅ Setup Complete! Your Android ID for registration is:"
-    @sudo waydroid shell sqlite3 /data/data/com.google.android.gms/databases/gservices.db "select value from main where name = \"android_id\";" || echo "Could not read ID yet (start Waydroid first)."
+    ./scripts/waydroid-full-setup.sh
+
+# Configure Waydroid Post-Install (Phase 2: Resolution & Fixes)
+# Run this AFTER rebooting or restarting waydroid service
+waydroid-configure:
+    ./scripts/waydroid-configure.sh
+
+# Update only the Play Integrity Fix module
+waydroid-update-pif:
+    ./scripts/update-play-integrity.sh
+
+# Enable YubiKey passthrough (FIDO/U2F) for Waydroid
+waydroid-yubikey-on:
+    ./scripts/waydroid-yubikey.sh enable
+
+# Disable YubiKey passthrough (return it to the host)
+waydroid-yubikey-off:
+    ./scripts/waydroid-yubikey.sh disable
 
 

@@ -31,6 +31,10 @@
     {
       "name": "Nix Secrets",
       "path": "./nix-secrets"
+    },
+    {
+      "name": "Nix Waydroid Setup",
+      "path": "./nix-waydroid-setup"
     }
   ],
   "settings": {
