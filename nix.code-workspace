@@ -33,8 +33,16 @@
       "path": "./nix-secrets"
     },
     {
+      "name": "Nix Redroid Setup",
+      "path": "./nix-redroid-setup"
+    },
+    {
       "name": "Nix Waydroid Setup",
       "path": "./nix-waydroid-setup"
+    },
+    {
+      "name": "Nix Android Emulator Setup",
+      "path": "./nix-android-emulator-setup"
     }
   ],
   "settings": {
@@ -50,13 +58,7 @@
       "**/*.direnv": true,
       "**/result": true,
       "**/result-*": true,
-      "nix-config": true,
-      "nix-presets": true,
-      "nix-hardware": true,
-      "nix-devshells": true,
-      "nix-packages": true,
-      "nix-templates": true,
-      "nix-secrets": true
+      "nix-*": true
     },
     "[nix]": {
       "editor.defaultFormatter": "jnoortheen.nix-ide"

@@ -1,5 +1,5 @@
 # Meta-Workspace Justfile
-REPOS := "nix-config nix-devshells nix-hardware nix-presets nix-templates nix-packages"
+REPOS := "nix-config nix-devshells nix-hardware nix-presets nix-templates nix-packages nix-android-emulator-setup"
 
 default:
     @just --list
@@ -81,3 +81,13 @@ waydroid-yubikey-off:
     ./scripts/waydroid-yubikey.sh disable
 
 
+
+# --- Android Emulator Operations ---
+
+# Launch the Android Daily Driver Emulator
+launch-android *args:
+    nix run ./nix-android-emulator-setup#android-desktop -- {{args}}
+
+# Simulate a fingerprint touch (ID defaults to 1)
+fingerprint id="1":
+    simulate-fingerprint {{id}}
