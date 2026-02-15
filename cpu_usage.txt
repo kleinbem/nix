@@ -1,0 +1,20 @@
+top - 14:47:25 up  2:54,  2 users,  load average: 66.04, 41.37, 22.31
+Tasks: 583 total,  43 running, 538 sleeping,   0 stopped,   2 zombie
+%Cpu(s):  0.0 us,  9.9 sy, 87.1 ni,  2.0 id,  0.0 wa,  1.0 hi,  0.0 si,  0.0 st 
+MiB Mem :  63915.7 total,   7095.6 free,  44819.9 used,  27901.6 buff/cache     
+MiB Swap:  42197.5 total,  42183.4 free,     14.1 used.  19095.8 avail Mem 
+
+    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+ 104943 martin    32  12 1392.5g 319892 163096 R 100.0   0.5   0:16.39 chrome
+   2501 martin    32  12 3340920  94392  42004 R  76.9   0.1   0:14.22 .cosmic+
+ 105153 martin    32  12 1392.5g 451360 201504 R  69.2   0.7   0:38.98 chrome
+ 105015 martin    32  12 1392.5g 588320 187984 R  46.2   0.9   2:19.03 chrome
+   6175 martin    32  12   49.7g   1.8g 386860 R  38.5   2.8  17:13.45 chrome
+ 105033 martin    32  12 1392.5g 686576 244592 S  38.5   1.0   0:53.81 chrome
+ 104949 martin    32  12 1392.5g 447100 202636 R  30.8   0.7   0:31.69 chrome
+ 104970 martin    32  12 1392.5g 452304 180764 S  30.8   0.7   0:38.67 chrome
+ 105160 martin    32  12 1392.5g 430608 191732 S  30.8   0.7   0:32.79 chrome
+   6224 martin    32  12   50.9g 700372 400844 R  23.1   1.1   8:57.56 chrome
+ 105181 martin    32  12 1392.5g 409328 182408 S  23.1   0.6   0:31.22 chrome
+ 109177 martin    32  12   11776   5688   3576 R  23.1   0.0   0:00.05 top
+   2222 martin    32  12 3810392   1.9g 140316 R  15.4   3.0   8:52.92 .cosmic+

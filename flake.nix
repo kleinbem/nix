@@ -18,6 +18,11 @@
       url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-config";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    nix2container = {
+      url = "github:nlewo/nix2container";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -29,7 +34,7 @@
       systems = [ "x86_64-linux" ];
 
       flake = {
-        inherit (inputs.nix-config) nixosConfigurations;
+        inherit (inputs.nix-config) nixosConfigurations diskoConfigurations;
       };
 
       perSystem =

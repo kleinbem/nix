@@ -1,5 +1,5 @@
 # Meta-Workspace Justfile
-REPOS := "nix-config nix-devshells nix-hardware nix-presets nix-templates nix-packages nix-android-emulator-setup"
+REPOS := "nix-config nix-devshells nix-hardware nix-presets nix-templates nix-packages"
 
 default:
     @just --list
@@ -26,6 +26,10 @@ switch:
 # Switch System with Local Overrides
 switch-local:
     cd nix-config && just switch-local
+
+# Boot System with Local Overrides (No Activation)
+boot-local:
+    cd nix-config && just boot-local
 
 # Update All Flake Locks
 update-all:
@@ -86,7 +90,7 @@ waydroid-yubikey-off:
 
 # Launch the Android Daily Driver Emulator
 launch-android *args:
-    nix run ./nix-android-emulator-setup#android-desktop -- {{args}}
+    nix run ./nix-presets#launch-android-daily-driver -- {{args}}
 
 # Simulate a fingerprint touch (ID defaults to 1)
 fingerprint id="1":

@@ -32,18 +32,6 @@
       "name": "Nix Secrets",
       "path": "./nix-secrets"
     },
-    {
-      "name": "Nix Redroid Setup",
-      "path": "./nix-redroid-setup"
-    },
-    {
-      "name": "Nix Waydroid Setup",
-      "path": "./nix-waydroid-setup"
-    },
-    {
-      "name": "Nix Android Emulator Setup",
-      "path": "./nix-android-emulator-setup"
-    }
   ],
   "settings": {
     "editor.formatOnSave": true,
