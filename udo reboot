@@ -1,0 +1,64 @@
+[0;1;32m●[0m usbguard.service - USBGuard daemon
+     Loaded: loaded (]8;;file://nixos-nvme/etc/systemd/system/usbguard.service\/etc/systemd/system/usbguard.service]8;;\; [0;1;32menabled[0m; preset: ignored)
+     Active: [0;1;32mactive (running)[0m since Sun 2026-02-22 17:08:34 GMT; 16s ago
+ Invocation: ff35f8880c2a4cb1b11aa03357355e02
+    Process: 107473 ExecStartPre=/nix/store/cphdydrp1i80kjx0ywjjn7j1q0y2m8my-unit-script-usbguard-pre-start/bin/usbguard-pre-start (code=exited, status=0/SUCCESS)
+   Main PID: 107532 (usbguard-daemon)
+         IP: 0B in, 0B out
+         IO: 0B read, 0B written
+      Tasks: 3[0;38;5;245m (limit: 76639)[0m
+     Memory: 2.1M (peak: 2.7M)
+        CPU: 142ms
+     CGroup: /system.slice/usbguard.service
+             └─[0;38;5;245m107532 /nix/store/gr1lmyvyp690cacnvkv2pwvmbv35m1i4-usbguard-1.1.4/bin/usbguard-daemon -P -k -c /nix/store/1sn2yrd5b94mqghbw27jfbj31fmlvxba-usbguard-daemon-conf[0m
+
+Feb 22 17:08:34 nixos-nvme usbguard-daemon[107532]: [1771780114.600] (A) uid=0 pid=107532 result='SUCCESS' device.rule='allow id 047d:00f2 serial "5319a8e4c642" name "VeriMark DT Fingerprint Key" hash "boiaZsTdXSfuBXZijvePqHpqDEu/PzF+tHzXreuScIk=" parent-hash "jEP/6WzviqdJ5VSeTUY8PatCNBKeaREvo2OqdplND/o=" via-port "3-6" with-interface { 03:00:00 ff:00:00 } with-connect-type "hotplug"' device.system_name='/devices/pci0000:00/0000:00:14.0/usb3/3-6' type='Device.Present'
+Feb 22 17:08:34 nixos-nvme usbguard-daemon[107532]: [1771780114.600] (A) uid=0 pid=107532 result='SUCCESS' device.system_name='/devices/pci0000:00/0000:00:14.0/usb3/3-6' target.new='allow' device.rule='allow id 047d:00f2 serial "5319a8e4c642" name "VeriMark DT Fingerprint Key" hash "boiaZsTdXSfuBXZijvePqHpqDEu/PzF+tHzXreuScIk=" parent-hash "jEP/6WzviqdJ5VSeTUY8PatCNBKeaREvo2OqdplND/o=" via-port "3-6" with-interface { 03:00:00 ff:00:00 } with-connect-type "hotplug"' target.old='allow' type='Policy.Device.Update'
+Feb 22 17:08:34 nixos-nvme usbguard-daemon[107532]: [1771780114.600] (A) uid=0 pid=107532 result='SUCCESS' device.rule='allow id 05e3:0610 serial "" name "USB2.0 Hub" hash "p0xurg8ayXbgrHAmFBL5BElzY8M/rvDA/w3li6d/wtw=" parent-hash "jEP/6WzviqdJ5VSeTUY8PatCNBKeaREvo2OqdplND/o=" via-port "3-7" with-interface { 09:00:01 09:00:02 } with-connect-type "hotplug"' device.system_name='/devices/pci0000:00/0000:00:14.0/usb3/3-7' type='Device.Present'
+Feb 22 17:08:34 nixos-nvme usbguard-daemon[107532]: [1771780114.600] (A) uid=0 pid=107532 result='SUCCESS' device.system_name='/devices/pci0000:00/0000:00:14.0/usb3/3-7' target.new='allow' device.rule='allow id 05e3:0610 serial "" name "USB2.0 Hub" hash "p0xurg8ayXbgrHAmFBL5BElzY8M/rvDA/w3li6d/wtw=" parent-hash "jEP/6WzviqdJ5VSeTUY8PatCNBKeaREvo2OqdplND/o=" via-port "3-7" with-interface { 09:00:01 09:00:02 } with-connect-type "hotplug"' target.old='allow' type='Policy.Device.Update'
+Feb 22 17:08:34 nixos-nvme usbguard-daemon[107532]: [1771780114.600] (A) uid=0 pid=107532 result='SUCCESS' device.rule='allow id 8087:0026 serial "" name "" hash "Z5csNGxiUukPPZwSHPyUqpVCNagsfOSSNL2CfXhw4IY=" parent-hash "jEP/6WzviqdJ5VSeTUY8PatCNBKeaREvo2OqdplND/o=" via-port "3-10" with-interface { e0:01:01 e0:01:01 e0:01:01 e0:01:01 e0:01:01 e0:01:01 e0:01:01 e0:01:01 } with-connect-type "hardwired"' device.system_name='/devices/pci0000:00/0000:00:14.0/usb3/3-10' type='Device.Present'
+Feb 22 17:08:34 nixos-nvme usbguard-daemon[107532]: [1771780114.600] (A) uid=0 pid=107532 result='SUCCESS' device.system_name='/devices/pci0000:00/0000:00:14.0/usb3/3-10' target.new='allow' device.rule='allow id 8087:0026 serial "" name "" hash "Z5csNGxiUukPPZwSHPyUqpVCNagsfOSSNL2CfXhw4IY=" parent-hash "jEP/6WzviqdJ5VSeTUY8PatCNBKeaREvo2OqdplND/o=" via-port "3-10" with-interface { e0:01:01 e0:01:01 e0:01:01 e0:01:01 e0:01:01 e0:01:01 e0:01:01 e0:01:01 } with-connect-type "hardwired"' target.old='allow' type='Policy.Device.Update'
+Feb 22 17:08:34 nixos-nvme usbguard-daemon[107532]: [1771780114.600] (A) uid=0 pid=107532 result='SUCCESS' device.rule='allow id 0bda:0153 serial "20120926571200000" name "USB2.0-CRW" hash "i+5HMh02/kFG+T5++3ZEqlg+cDP5rFC0SqmOX3413GM=" parent-hash "p0xurg8ayXbgrHAmFBL5BElzY8M/rvDA/w3li6d/wtw=" via-port "3-7.1" with-interface 08:06:50 with-connect-type "unknown"' device.system_name='/devices/pci0000:00/0000:00:14.0/usb3/3-7/3-7.1' type='Device.Present'
+Feb 22 17:08:34 nixos-nvme usbguard-daemon[107532]: [1771780114.600] (A) uid=0 pid=107532 result='SUCCESS' device.system_name='/devices/pci0000:00/0000:00:14.0/usb3/3-7/3-7.1' target.new='allow' device.rule='allow id 0bda:0153 serial "20120926571200000" name "USB2.0-CRW" hash "i+5HMh02/kFG+T5++3ZEqlg+cDP5rFC0SqmOX3413GM=" parent-hash "p0xurg8ayXbgrHAmFBL5BElzY8M/rvDA/w3li6d/wtw=" via-port "3-7.1" with-interface 08:06:50 with-connect-type "unknown"' target.old='allow' type='Policy.Device.Update'
+Feb 22 17:08:34 nixos-nvme usbguard-daemon[107532]: [1771780114.600] (A) uid=0 pid=107532 result='SUCCESS' device.rule='allow id 0495:3048 serial "" name "ESS USB DAC" hash "3a9ddhWxIYUvgqp3cbr7KDV3XRpL/jQ3pJVeMp2dvdE=" parent-hash "p0xurg8ayXbgrHAmFBL5BElzY8M/rvDA/w3li6d/wtw=" via-port "3-7.2" with-interface { 01:01:00 01:02:00 01:02:00 01:02:00 01:02:00 01:02:00 01:02:00 03:00:00 } with-connect-type "unknown"' device.system_name='/devices/pci0000:00/0000:00:14.0/usb3/3-7/3-7.2' type='Device.Present'
+Feb 22 17:08:34 nixos-nvme usbguard-daemon[107532]: [1771780114.600] (A) uid=0 pid=107532 result='SUCCESS' device.system_name='/devices/pci0000:00/0000:00:14.0/usb3/3-7/3-7.2' target.new='allow' device.rule='allow id 0495:3048 serial "" name "ESS USB DAC" hash "3a9ddhWxIYUvgqp3cbr7KDV3XRpL/jQ3pJVeMp2dvdE=" parent-hash "p0xurg8ayXbgrHAmFBL5BElzY8M/rvDA/w3li6d/wtw=" via-port "3-7.2" with-interface { 01:01:00 01:02:00 01:02:00 01:02:00 01:02:00 01:02:00 01:02:00 03:00:00 } with-connect-type "unknown"' target.old='allow' type='Policy.Device.Update'
+
+[0;1;31m×[0m container@n8n.service - Container 'n8n'
+     Loaded: loaded (]8;;file://nixos-nvme/etc/systemd/system/container@n8n.service\/etc/systemd/system/container@n8n.service]8;;\; [0;1;32menabled[0m; preset: ignored)
+     Active: [0;1;31mfailed[0m (Result: exit-code) since Sun 2026-02-22 17:08:36 GMT; 14s ago
+   Duration: 10h 1min 6.887s
+ Invocation: 57f507749fca46bcae3c774ecac50dc8
+    Process: 107903 ExecStartPre=/nix/store/siv106a59p26z519i3gk5v0xhgqyc04v-unit-script-container_n8n-pre-start/bin/container_n8n-pre-start (code=exited, status=0/SUCCESS)
+    Process: 107922 ExecStart=/nix/store/y6frr84rvdy2pf630hyrr7grfhjr089a-unit-script-container_n8n-start/bin/container_n8n-start [0;1;31m(code=exited, status=1/FAILURE)[0m
+   Main PID: 107922 (code=exited, status=1/FAILURE)
+     Status: "[0;1;36mTerminating...[0m"
+      Error: code: 5 (Input/output error)
+         IP: 0B in, 0B out
+         IO: 0B read, 0B written
+   Mem peak: 3.2M
+        CPU: 34ms
+
+Feb 22 17:08:36 nixos-nvme systemd[1]: container@n8n.service: Scheduled restart job, restart counter is at 5.
+Feb 22 17:08:36 nixos-nvme systemd[1]: [0;1;38:5:185m[0;1;39m[0;1;38:5:185mcontainer@n8n.service: Start request repeated too quickly.[0m
+Feb 22 17:08:36 nixos-nvme systemd[1]: [0;1;38:5:185m[0;1;39m[0;1;38:5:185mcontainer@n8n.service: Failed with result 'exit-code'.[0m
+Feb 22 17:08:36 nixos-nvme systemd[1]: [0;1;31m[0;1;39m[0;1;31mFailed to start Container 'n8n'.[0m
+
+[0;1;31m×[0m container@open-webui.service - Container 'open-webui'
+     Loaded: loaded (]8;;file://nixos-nvme/etc/systemd/system/container@open-webui.service\/etc/systemd/system/container@open-webui.service]8;;\; [0;1;32menabled[0m; preset: ignored)
+     Active: [0;1;31mfailed[0m (Result: exit-code) since Sun 2026-02-22 17:08:36 GMT; 14s ago
+   Duration: 10h 1min 6.828s
+ Invocation: c07bd5560e2e460daaf28e383d9b3fb9
+    Process: 107904 ExecStartPre=/nix/store/qik2y3cd9060hhh3drmhbxwy51426qka-unit-script-container_open-webui-pre-start/bin/container_open-webui-pre-start (code=exited, status=0/SUCCESS)
+    Process: 107924 ExecStart=/nix/store/00w6iw9dlkqg81bzcs1nqwrm6dyggw5g-unit-script-container_open-webui-start/bin/container_open-webui-start [0;1;31m(code=exited, status=1/FAILURE)[0m
+   Main PID: 107924 (code=exited, status=1/FAILURE)
+     Status: "[0;1;36mTerminating...[0m"
+      Error: code: 5 (Input/output error)
+         IP: 0B in, 0B out
+         IO: 0B read, 0B written
+   Mem peak: 3.2M
+        CPU: 34ms
+
+Feb 22 17:08:36 nixos-nvme systemd[1]: container@open-webui.service: Scheduled restart job, restart counter is at 5.
+Feb 22 17:08:36 nixos-nvme systemd[1]: [0;1;38:5:185m[0;1;39m[0;1;38:5:185mcontainer@open-webui.service: Start request repeated too quickly.[0m
+Feb 22 17:08:36 nixos-nvme systemd[1]: [0;1;38:5:185m[0;1;39m[0;1;38:5:185mcontainer@open-webui.service: Failed with result 'exit-code'.[0m
+Feb 22 17:08:36 nixos-nvme systemd[1]: [0;1;31m[0;1;39m[0;1;31mFailed to start Container 'open-webui'.[0m

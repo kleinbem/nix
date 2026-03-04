@@ -1,0 +1,70 @@
+[2026-02-18T11:51:06.945Z] info: kubernetes.yaml was copied to the config folder
+[2026-02-18T11:51:17.459Z] info: docker.yaml was copied to the config folder
+[2026-02-18T11:53:17.704Z] warn: Failed to update prerender cache for /en [Error: EACCES: permission denied, mkdir '/var/cache/homepage-dashboard'] {
+  errno: -13,
+  code: 'EACCES',
+  syscall: 'mkdir',
+  path: '/var/cache/homepage-dashboard'
+}
+[2026-02-18T11:53:18.205Z] info: proxmox.yaml was copied to the config folder
+[2026-02-18T11:53:18.233Z] info: custom.js was copied to the config folder
+[2026-02-18T11:53:18.610Z] warn: Failed to update prerender cache for /en [Error: EACCES: permission denied, mkdir '/var/cache/homepage-dashboard'] {
+  errno: -13,
+  code: 'EACCES',
+  syscall: 'mkdir',
+  path: '/var/cache/homepage-dashboard'
+}
+[2026-02-18T11:56:00.036Z] warn: Failed to update prerender cache for /en [Error: EACCES: permission denied, mkdir '/var/cache/homepage-dashboard'] {
+  errno: -13,
+  code: 'EACCES',
+  syscall: 'mkdir',
+  path: '/var/cache/homepage-dashboard'
+}
+[2026-02-18T11:58:01.593Z] warn: Failed to update prerender cache for /en [Error: EACCES: permission denied, mkdir '/var/cache/homepage-dashboard'] {
+  errno: -13,
+  code: 'EACCES',
+  syscall: 'mkdir',
+  path: '/var/cache/homepage-dashboard'
+}
+[2026-02-18T11:58:02.558Z] warn: Failed to update prerender cache for /en [Error: EACCES: permission denied, mkdir '/var/cache/homepage-dashboard'] {
+  errno: -13,
+  code: 'EACCES',
+  syscall: 'mkdir',
+  path: '/var/cache/homepage-dashboard'
+}
+[2026-02-18T11:59:44.568Z] warn: Failed to update prerender cache for /en [Error: EACCES: permission denied, mkdir '/var/cache/homepage-dashboard'] {
+  errno: -13,
+  code: 'EACCES',
+  syscall: 'mkdir',
+  path: '/var/cache/homepage-dashboard'
+}
+[2026-02-18T11:59:44.885Z] warn: Failed to update prerender cache for /en [Error: EACCES: permission denied, mkdir '/var/cache/homepage-dashboard'] {
+  errno: -13,
+  code: 'EACCES',
+  syscall: 'mkdir',
+  path: '/var/cache/homepage-dashboard'
+}
+[2026-02-18T12:02:06.337Z] warn: Failed to update prerender cache for /en [Error: EACCES: permission denied, mkdir '/var/cache/homepage-dashboard'] {
+  errno: -13,
+  code: 'EACCES',
+  syscall: 'mkdir',
+  path: '/var/cache/homepage-dashboard'
+}
+[2026-02-18T16:27:58.962Z] warn: Failed to update prerender cache for /en [Error: EACCES: permission denied, mkdir '/var/cache/homepage-dashboard'] {
+  errno: -13,
+  code: 'EACCES',
+  syscall: 'mkdir',
+  path: '/var/cache/homepage-dashboard'
+}
+[2026-02-18T20:29:29.717Z] warn: Failed to update prerender cache for /en [Error: EACCES: permission denied, mkdir '/var/cache/homepage-dashboard'] {
+  errno: -13,
+  code: 'EACCES',
+  syscall: 'mkdir',
+  path: '/var/cache/homepage-dashboard'
+}
+[2026-02-18T20:29:30.169Z] warn: Failed to update prerender cache for /en [Error: EACCES: permission denied, mkdir '/var/cache/homepage-dashboard'] {
+  errno: -13,
+  code: 'EACCES',
+  syscall: 'mkdir',
+  path: '/var/cache/homepage-dashboard'
+}

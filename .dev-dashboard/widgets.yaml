@@ -1,0 +1,16 @@
+- search:
+    focus: true
+    provider: google
+    show_suggestions: true
+    target: _blank
+- openmeteo:
+    label: Watergrasshill
+    latitude: 52.02
+    longitude: -8.34
+    timezone: Europe/Dublin
+    units: metric
+- datetime:
+    format:
+      dateStyle: short
+      timeStyle: short
+    text_size: xl

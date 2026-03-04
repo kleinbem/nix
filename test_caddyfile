@@ -1,0 +1,56 @@
+{
+    debug
+}
+
+https: //10.85.46.107 {
+    tls internal
+    reverse_proxy 10.85.46.103: 80
+}
+
+https: //10.85.46.107:3000 {
+    tls internal
+    reverse_proxy 10.85.46.100: 3030
+}
+
+https: //10.85.46.107:5678 {
+    tls internal
+    reverse_proxy 10.85.46.99: 5678
+}
+
+https: //10.85.46.107:4444 {
+    tls internal
+    reverse_proxy 10.85.46.101: 4444
+}
+
+https: //10.85.46.107:8080 {
+    tls internal
+    reverse_proxy 10.85.46.102: 8080
+}
+
+https: //10.85.46.107:6333 {
+    tls internal
+    reverse_proxy 10.85.46.105: 6333
+}
+
+https: //10.85.46.107:61208 {
+    tls internal
+    reverse_proxy 10.85.46.1: 61208
+}
+
+https: //10.85.46.107:9090 {
+    tls internal
+    reverse_proxy https: //10.85.46.1:9091 {
+        transport http {
+            tls_insecure_skip_verify
+}
+}
+}
+
+https: //10.85.46.107:631 {
+    tls internal
+    reverse_proxy 10.85.46.1: 631 {
+        transport http {
+            tls_insecure_skip_verify
+}
+}
+}
