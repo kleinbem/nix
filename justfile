@@ -69,10 +69,10 @@ dev-dashboard:
     @echo "🚀 Starting Dashboard in Dev Mode..."
     @mkdir -p .dev-dashboard
     @echo "🔍 Generating Configuration..."
-    @nix eval --json --impure .#nixosConfigurations.nixos-nvme.config.containers.dashboard-homepage.config.services.homepage-dashboard.services | yq -P > .dev-dashboard/services.yaml
-    @nix eval --json --impure .#nixosConfigurations.nixos-nvme.config.containers.dashboard-homepage.config.services.homepage-dashboard.widgets | yq -P > .dev-dashboard/widgets.yaml
-    @nix eval --json --impure .#nixosConfigurations.nixos-nvme.config.containers.dashboard-homepage.config.services.homepage-dashboard.settings | yq -P > .dev-dashboard/settings.yaml
-    @nix eval --json --impure .#nixosConfigurations.nixos-nvme.config.containers.dashboard-homepage.config.services.homepage-dashboard.bookmarks | yq -P > .dev-dashboard/bookmarks.yaml
+    @nix eval --json --impure .#nixosConfigurations.nixos-nvme.config.containers.dashboard.config.services.homepage-dashboard.services | yq -P > .dev-dashboard/services.yaml
+    @nix eval --json --impure .#nixosConfigurations.nixos-nvme.config.containers.dashboard.config.services.homepage-dashboard.widgets | yq -P > .dev-dashboard/widgets.yaml
+    @nix eval --json --impure .#nixosConfigurations.nixos-nvme.config.containers.dashboard.config.services.homepage-dashboard.settings | yq -P > .dev-dashboard/settings.yaml
+    @nix eval --json --impure .#nixosConfigurations.nixos-nvme.config.containers.dashboard.config.services.homepage-dashboard.bookmarks | yq -P > .dev-dashboard/bookmarks.yaml
     @echo "🎨 Copying Custom CSS..."
     @rm -f .dev-dashboard/custom.css
     @cp -f nix-presets/containers/dashboard/homepage/custom.css .dev-dashboard/custom.css
