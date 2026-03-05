@@ -25,3 +25,6 @@
 [submodule "nix-waydroid-setup"]
 	path = nix-waydroid-setup
 	url = https://github.com/kleinbem/nix-waydroid-setup.git
+[submodule "nix-android-emulator-setup"]
+	path = nix-android-emulator-setup
+	url = https://github.com/kleinbem/nix-android-emulator-setup.git
