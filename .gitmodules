@@ -1,0 +1,27 @@
+[submodule "nix-config"]
+	path = nix-config
+	url = https://github.com/kleinbem/nix-config.git
+[submodule "nix-devshells"]
+	path = nix-devshells
+	url = https://github.com/kleinbem/nix-devshells.git
+[submodule "nix-hardware"]
+	path = nix-hardware
+	url = https://github.com/kleinbem/nix-hardware.git
+[submodule "nix-packages"]
+	path = nix-packages
+	url = https://github.com/kleinbem/nix-packages.git
+[submodule "nix-presets"]
+	path = nix-presets
+	url = https://github.com/kleinbem/nix-presets.git
+[submodule "nix-secrets"]
+	path = nix-secrets
+	url = git@github.com:kleinbem/nix-secrets.git
+[submodule "nix-templates"]
+	path = nix-templates
+	url = https://github.com/kleinbem/nix-templates.git
+[submodule "nix-redroid-setup"]
+	path = nix-redroid-setup
+	url = git@github.com:kleinbem/nix-redroid-setup.git
+[submodule "nix-waydroid-setup"]
+	path = nix-waydroid-setup
+	url = https://github.com/kleinbem/nix-waydroid-setup.git

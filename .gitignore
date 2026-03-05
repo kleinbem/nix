@@ -1,4 +1,4 @@
-nix-*/
+# Submodules are now tracked via .gitmodules
 
 # Environment State
 .direnv/
