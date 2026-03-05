@@ -19,12 +19,3 @@
 [submodule "nix-templates"]
 	path = nix-templates
 	url = https://github.com/kleinbem/nix-templates.git
-[submodule "nix-redroid-setup"]
-	path = nix-redroid-setup
-	url = git@github.com:kleinbem/nix-redroid-setup.git
-[submodule "nix-waydroid-setup"]
-	path = nix-waydroid-setup
-	url = https://github.com/kleinbem/nix-waydroid-setup.git
-[submodule "nix-android-emulator-setup"]
-	path = nix-android-emulator-setup
-	url = https://github.com/kleinbem/nix-android-emulator-setup.git
