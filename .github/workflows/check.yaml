@@ -1,0 +1,43 @@
+name: "Check Workspace"
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Check all flakes
+        run: |
+          npx just check-all
+
+  integration-test:
+    # Only run this job if triggered manually via the GitHub Actions UI
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: [self-hosted, nixos]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Rebuild NixOS testing VM configuration
+        run: |
+          nix flake check -L
+

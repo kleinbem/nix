@@ -1,43 +1,24 @@
-# Architecture & Dependency Graph
+# Workspace Discovery (Auto-generated)
+Last Synced: Thu 05 Mar 2026 19:46:47 GMT
 
-This document explains the relationship between the repositories in this meta-workspace.
+## Structure: Meta-Repo (Modular Monorepo)
+This workspace is managed as a **Meta-repo**. It uses Git submodules to aggregate multiple independent flakes into a unified coding environment.
 
-## Component Graph
-
+### Flake Hierarchy
 ```mermaid
 graph TD;
-    subgraph Meta
-        Nix[nix] --> Config[nix-config]
-    end
-
-    subgraph Dependency Layers
-        Config --> Hardware[nix-hardware]
-        Config --> Presets[nix-presets]
-        Config --> Packages[nix-packages]
-        Config --> Secrets[nix-secrets]
-        Config --> Templates[nix-templates]
-        Config --> DevShells[nix-devshells]
-    end
-
-    subgraph External Inputs
-        Config --> Nixpkgs[nixpkgs (unstable)]
-        Config --> HM[home-manager]
-        Config --> Nixpak[nixpak]
-    end
+    Meta[nix] -- Aggregates --> nix-config
+    nix-config -- imports --> nix-devshells
+    nix-config -- imports --> nix-hardware
+    nix-config -- imports --> nix-packages
+    nix-config -- imports --> nix-presets
+    nix-config -- imports --> nix-secrets
+    nix-config -- imports --> nix-templates
 ```
 
-## Repository Roles
-
-| Repository | Role | Imported By |
-| :--- | :--- | :--- |
-| **nix-config** | The "Consumer". Aggregates everything into final `nixosConfigurations`. | `nix` (conceptually), Users |
-| **nix-hardware** | Hardware-specific settings (file systems, boot loaders, kernel modules). | `nix-config` (hosts) |
-| **nix-presets** | "Role" bundles (e.g. `gaming`, `work`). | `nix-config` (hosts/users) |
-| **nix-packages** | Overlay for custom packages/versions. | `nix-config` (pkgs overlay) |
-| **nix-devshells** | Standardized development environments. | `nix-config` (devShells) |
-| **nix-secrets** | Private encrypted secrets (sops). | `nix-config` (modules) |
-
-## Data Flow
-1.  **Inputs**: `flake.nix` in `nix-config` pulls in all other local flakes as inputs.
-2.  **Modules**: Specialized logic lives in `nix-presets` or `nix-hardware`.
-3.  **Assembly**: `nix-config/hosts/<hostname>` imports specific modules and hardware profiles to build the system.
+### Key Repositories
+| Repo | Role |
+| :--- | :--- |
+| **nix-config** | Primary system consumer / Host definitions |
+| **nix-presets** | Reusable service and desktop bundles |
+| **nix-hardware** | Device-specific configurations |

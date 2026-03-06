@@ -9,28 +9,90 @@
     nixos-generators.url = "github:nix-community/nixos-generators";
     nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
 
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    nixpak = {
+      url = "github:nixpak/nixpak";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    colmena = {
+      url = "github:zhaofengli/colmena";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    nix-secrets = {
+      url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-secrets";
+      flake = false;
+    };
+
     # Import Local Devshell to keep tools consistent
     nix-devshells = {
       url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-devshells";
-      inputs.devenv.follows = "devenv";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.nixos-generators.follows = "nixos-generators";
+      inputs = {
+        devenv.follows = "devenv";
+        nixpkgs.follows = "nixpkgs";
+        nixos-generators.follows = "nixos-generators";
+      };
     };
 
     # Import NixOS Config to expose systems at root
     nix-config = {
       url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-config";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        nix-devshells.follows = "nix-devshells";
+        nix-hardware.follows = "nix-hardware";
+        nix-presets.follows = "nix-presets";
+        nix-packages.follows = "nix-packages";
+        nix-templates.follows = "nix-templates";
+        sops-nix.follows = "sops-nix";
+        home-manager.follows = "home-manager";
+        nixpak.follows = "nixpak";
+        colmena.follows = "colmena";
+        nix-secrets.follows = "nix-secrets";
+      };
     };
 
     nix-presets = {
       url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-presets";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        nix-devshells.follows = "nix-devshells";
+        nixpak.follows = "nixpak";
+      };
+    };
+
+    nix-hardware = {
+      url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-hardware";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        nix-devshells.follows = "nix-devshells";
+      };
     };
 
     nix-packages = {
       url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-packages";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        nix-devshells.follows = "nix-devshells";
+      };
+    };
+
+    nix-templates = {
+      url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-templates";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        nix-devshells.follows = "nix-devshells";
+      };
     };
 
     nix2container = {
@@ -52,7 +114,6 @@
       flake = {
         inherit (inputs.nix-config) nixosConfigurations diskoConfigurations;
       };
-
       perSystem =
         { system, ... }:
         let
@@ -71,6 +132,8 @@
             # Pass inputs so the shell module can access nixos-generators etc.
             _module.args.inputs = inputs;
           };
+
+          devShells.ai = inputs.nix-devshells.devShells.${system}.ai;
 
           formatter = inputs.nix-devshells.formatter.${system};
         };
