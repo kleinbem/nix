@@ -30,13 +30,13 @@
     };
 
     nix-secrets = {
-      url = "path:./nix-secrets";
+      url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-secrets";
       flake = false;
     };
 
     # Import Local Devshell to keep tools consistent
     nix-devshells = {
-      url = "path:./nix-devshells";
+      url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-devshells";
       inputs = {
         devenv.follows = "devenv";
         nixpkgs.follows = "nixpkgs";
@@ -46,7 +46,7 @@
 
     # Import NixOS Config to expose systems at root
     nix-config = {
-      url = "path:./nix-config";
+      url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-config";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         nix-devshells.follows = "nix-devshells";
@@ -63,7 +63,7 @@
     };
 
     nix-presets = {
-      url = "path:./nix-presets";
+      url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-presets";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         nix-devshells.follows = "nix-devshells";
@@ -72,7 +72,7 @@
     };
 
     nix-hardware = {
-      url = "path:./nix-hardware";
+      url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-hardware";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         nix-devshells.follows = "nix-devshells";
@@ -80,7 +80,7 @@
     };
 
     nix-packages = {
-      url = "path:./nix-packages";
+      url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-packages";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         nix-devshells.follows = "nix-devshells";
@@ -88,7 +88,7 @@
     };
 
     nix-templates = {
-      url = "path:./nix-templates";
+      url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-templates";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         nix-devshells.follows = "nix-devshells";
