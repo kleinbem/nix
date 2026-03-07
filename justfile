@@ -42,14 +42,20 @@ save message:
     @for repo in {{REPOS}}; do \
         if [ -n "$(git -C $repo status --porcelain)" ]; then \
             echo "Committing in $repo..."; \
-            git -C $repo add . && git -C $repo commit -m "{{message}}" --no-verify || true; \
+            git -C $repo add . && git -C $repo commit -m "{{message}}" || true; \
         fi \
     done
     @echo "Updating meta-repo pointers..."
-    git add . && git commit -m "{{message}}" --no-verify || true
+    git add . && git commit -m "{{message}}" || true
     @echo "✅ All changes saved."
 
-# Push all changes to GitHub
+# Load YubiKey into SSH agent for signing
+git-sign:
+    @echo "🔑 Loading YubiKey into SSH agent..."
+    ssh-add -K 2>/dev/null || ssh-add ~/.ssh/id_ed25519_sk
+    @ssh-add -l | grep -q "SK" && echo "✅ YubiKey loaded." || echo "❌ YubiKey NOT found in agent."
+
+# Push all changes to GitHub (with submodule check)
 push:
     @echo "🚀 Pushing changes across all repositories..."
     @for repo in {{REPOS}}; do \

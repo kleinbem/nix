@@ -1257,15 +1257,14 @@
         "treefmt-nix": "treefmt-nix_3"
       },
       "locked": {
-        "lastModified": 1772851934,
-        "narHash": "sha256-JCfHUdZAAa8rww/bVnyxYUSwMgCupMQlYZQLSdvzfgE=",
-        "path": "/home/martin/Develop/github.com/kleinbem/nix/nix-config",
+        "path": "./nix-config",
         "type": "path"
       },
       "original": {
-        "path": "/home/martin/Develop/github.com/kleinbem/nix/nix-config",
+        "path": "./nix-config",
         "type": "path"
-      }
+      },
+      "parent": []
     },
     "nix-devshells": {
       "inputs": {
@@ -1286,15 +1285,14 @@
         "treefmt-nix": "treefmt-nix_4"
       },
       "locked": {
-        "lastModified": 1772851864,
-        "narHash": "sha256-up0rWp+Db0iY9uVhdX7CsYMXAm6dZwlmhqwPsT+lbkE=",
-        "path": "/home/martin/Develop/github.com/kleinbem/nix/nix-devshells",
+        "path": "./nix-devshells",
         "type": "path"
       },
       "original": {
-        "path": "/home/martin/Develop/github.com/kleinbem/nix/nix-devshells",
+        "path": "./nix-devshells",
         "type": "path"
-      }
+      },
+      "parent": []
     },
     "nix-github-actions": {
       "inputs": {
@@ -1331,15 +1329,14 @@
         "treefmt-nix": "treefmt-nix_5"
       },
       "locked": {
-        "lastModified": 1772851946,
-        "narHash": "sha256-kJTwQDF5xBHnFr+ZOFAUL2vQHm/SsiYrB6w8/44yJy4=",
-        "path": "/home/martin/Develop/github.com/kleinbem/nix/nix-hardware",
+        "path": "./nix-hardware",
         "type": "path"
       },
       "original": {
-        "path": "/home/martin/Develop/github.com/kleinbem/nix/nix-hardware",
+        "path": "./nix-hardware",
         "type": "path"
-      }
+      },
+      "parent": []
     },
     "nix-packages": {
       "inputs": {
@@ -1354,15 +1351,14 @@
         "treefmt-nix": "treefmt-nix_6"
       },
       "locked": {
-        "lastModified": 1772851953,
-        "narHash": "sha256-kPi5aFCuPVw2ffcDw5nyCgDHlOXwiuGKJZC75UeeVWo=",
-        "path": "/home/martin/Develop/github.com/kleinbem/nix/nix-packages",
+        "path": "./nix-packages",
         "type": "path"
       },
       "original": {
-        "path": "/home/martin/Develop/github.com/kleinbem/nix/nix-packages",
+        "path": "./nix-packages",
         "type": "path"
-      }
+      },
+      "parent": []
     },
     "nix-presets": {
       "inputs": {
@@ -1383,28 +1379,26 @@
         "treefmt-nix": "treefmt-nix_7"
       },
       "locked": {
-        "lastModified": 1772851961,
-        "narHash": "sha256-FaNNNuZIRRdM7WX2svxhkqTFuD4fejU/BvzWF78sdEU=",
-        "path": "/home/martin/Develop/github.com/kleinbem/nix/nix-presets",
+        "path": "./nix-presets",
         "type": "path"
       },
       "original": {
-        "path": "/home/martin/Develop/github.com/kleinbem/nix/nix-presets",
+        "path": "./nix-presets",
         "type": "path"
-      }
+      },
+      "parent": []
     },
     "nix-secrets": {
       "flake": false,
       "locked": {
-        "lastModified": 1772851864,
-        "narHash": "sha256-Duk3BnHJiOpW5cXbN6x+UTrAZFDH8v7Q5pV12mYdxd8=",
-        "path": "/home/martin/Develop/github.com/kleinbem/nix/nix-secrets",
+        "path": "./nix-secrets",
         "type": "path"
       },
       "original": {
-        "path": "/home/martin/Develop/github.com/kleinbem/nix/nix-secrets",
+        "path": "./nix-secrets",
         "type": "path"
-      }
+      },
+      "parent": []
     },
     "nix-steipete-tools": {
       "inputs": {
@@ -1437,15 +1431,14 @@
         "treefmt-nix": "treefmt-nix_8"
       },
       "locked": {
-        "lastModified": 1772851886,
-        "narHash": "sha256-+H10qSSbWgkgMpeGHrQIgarCpWnoKPg1neLsk4tctCA=",
-        "path": "/home/martin/Develop/github.com/kleinbem/nix/nix-templates",
+        "path": "./nix-templates",
         "type": "path"
       },
       "original": {
-        "path": "/home/martin/Develop/github.com/kleinbem/nix/nix-templates",
+        "path": "./nix-templates",
         "type": "path"
-      }
+      },
+      "parent": []
     },
     "nix-vscode-extensions": {
       "inputs": {
