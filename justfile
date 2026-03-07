@@ -84,16 +84,18 @@ boot:
     cd nix-config && just boot-local
 
 update-all:
-    @DEVSHELLS_PATH=$(pwd)/nix-devshells; \
-    for repo in {{REPOS}}; do \
-        if [ -f "$repo/flake.nix" ]; then \
-            echo "Updating $repo..."; \
-            (cd $repo && nix flake update --impure --override-input nix-devshells "path:$DEVSHELLS_PATH" --commit-lock-file 2>/dev/null || \
-             cd $repo && nix flake update --impure --override-input nix-devshells "path:$DEVSHELLS_PATH"); \
-        fi \
+    #!/usr/bin/env bash
+    DEVSHELLS_PATH="$(pwd)/nix-devshells"
+    for repo in {{REPOS}}; do
+        if [ -d "$repo" ] && [ -f "$repo/flake.nix" ]; then
+            echo "Updating $repo..."
+            (cd "$repo" && nix flake update --impure --override-input nix-devshells "path:$DEVSHELLS_PATH" --commit-lock-file 2>/dev/null) || \
+            (cd "$repo" && nix flake update --impure --override-input nix-devshells "path:$DEVSHELLS_PATH")
+        fi
     done
-    @echo "Updating ROOT..."; nix flake update --impure
-    @echo "✅ All flakes upgraded."
+    echo "Updating ROOT..."
+    nix flake update --impure
+    echo "✅ All flakes upgraded."
 
 # --- Validation & Maintenance ---
 
@@ -105,7 +107,7 @@ fmt:
 # Check NixOS Configuration (Skips DevShell check which fails in sandbox)
 check:
     @echo "🔍 Checking NixOS Configuration..."
-    @nix eval .#nixosConfigurations.nixos-nvme.config.system.build.toplevel.drvPath >/dev/null
+    @nix eval .#nixosConfigurations.nixos-nvme.config.system.build.toplevel.drvPath --impure >/dev/null
     @echo "✅ Configuration is Valid!"
 
 # Dry Run System Activation
