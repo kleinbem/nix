@@ -52,7 +52,9 @@ save message:
 # Load YubiKey into SSH agent for signing
 git-sign:
     @echo "🔑 Loading YubiKey into SSH agent..."
-    ssh-add -K 2>/dev/null || ssh-add ~/.ssh/id_ed25519_sk
+    ssh-add -K 2>/dev/null || true
+    ssh-add ~/.ssh/id_ed25519_sk 2>/dev/null || true
+    ssh-add ~/.ssh/id_ed25519_sk_backup 2>/dev/null || true
     @ssh-add -l | grep -q "SK" && echo "✅ YubiKey loaded." || echo "❌ YubiKey NOT found in agent."
 
 # Push all changes to GitHub (with submodule check)
