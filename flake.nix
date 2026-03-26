@@ -23,11 +23,7 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    colmena = {
-      url = "github:zhaofengli/colmena";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # colmena flake removed — using nixpkgs for deployment definitions and tool
 
     nix-secrets = {
       url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-secrets";
@@ -57,7 +53,6 @@
         sops-nix.follows = "sops-nix";
         home-manager.follows = "home-manager";
         nixpak.follows = "nixpak";
-        colmena.follows = "colmena";
         nix-secrets.follows = "nix-secrets";
       };
     };
@@ -73,10 +68,8 @@
 
     nix-hardware = {
       url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-hardware";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        nix-devshells.follows = "nix-devshells";
-      };
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.jetpack-nixos.follows = "jetpack-nixos";
     };
 
     nix-packages = {
@@ -101,6 +94,16 @@
     };
 
     mk-shell-bin.url = "github:rrbutani/nix-mk-shell-bin";
+    zen-browser = {
+      url = "github:0xc000022070/zen-browser-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    jetpack-nixos = {
+      url = "github:anduril/jetpack-nixos";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
   };
 
   outputs =
