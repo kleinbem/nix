@@ -53,6 +53,7 @@
     },
     "nix.enableLanguageServer": true,
     "nix.serverPath": "nixd",
-    "nix.formatterPath": "nixfmt"
+    "nix.formatterPath": "nixfmt",
+    "nixEnvSelector.nixFile": "${workspaceFolder}/flake.nix"
   }
 }

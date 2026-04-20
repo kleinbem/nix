@@ -1,5 +1,7 @@
 # Meta-Workspace Justfile
 REPOS := `find . -maxdepth 1 -name "nix-*" -type d -printf "%f\n" | xargs echo`
+# Use overrides to make local folders the "source of truth", bypassing flake.lock caching for local workspace repos
+OVERRIDES := shell("echo " + REPOS + " | sed 's/\\([^ ]*\\)/--override-input \\1 .\\/\\1/g'")
 
 default:
     @just --list
@@ -91,33 +93,79 @@ clean:
     rm -rf .dev-dashboard
     @echo "✅ Workspace cleaned."
 
+# Refresh all git hooks in the workspace and submodules to fix stale Nix store paths
+hooks-refresh:
+    @echo "🔄 Refreshing Git hooks..."
+    @# Unset any stale core.hooksPath that might be pointing to dead Nix store paths
+    @git config --unset-all core.hooksPath || true
+    @if [ -f ".pre-commit-config.yaml" ]; then \
+        pre-commit install --install-hooks --overwrite; \
+    fi
+    @for repo in {{REPOS}}; do \
+        if [ -d "$repo/.git" ] || [ -f "$repo/.git" ]; then \
+            echo "Processing $repo..."; \
+            (cd $repo && git config --unset-all core.hooksPath || true); \
+            if [ -f "$repo/.pre-commit-config.yaml" ]; then \
+                echo "Refreshing hooks in $repo..."; \
+                (cd $repo && pre-commit install --install-hooks --overwrite); \
+            else \
+                echo "🧹 Cleaning up stale hooks in $repo..."; \
+                (cd $repo && pre-commit uninstall 2>/dev/null || true); \
+                echo "⏭️  Skipping $repo (no .pre-commit-config.yaml)"; \
+            fi; \
+        fi \
+    done
+    @echo "✅ Hooks refreshed."
+
+# Prune unused Podman data (images, volumes, networks)
+podman-prune:
+    @echo "🧹 Pruning Host Podman Cache..."
+    podman system prune -a -f
+    @if systemctl is-active --quiet container@langfuse.service; then \
+        echo "🧹 Pruning Nested Langfuse Podman Cache..."; \
+        sudo machinectl shell langfuse /run/current-system/sw/bin/podman system prune -f; \
+    fi
+
 # --- NixOS Operations ---
 
 # Switch System (Defaults to Local Overrides for Workspace)
 switch:
     @echo "🚀 Switching System (Root Workspace Mode)..."
-    nh os switch . -- --impure
+    nh os switch . -- {{OVERRIDES}} --impure
 
-# Full Workspace Pulse: Stage, Update, Check, and Switch in one go.
-apply: stage-all update-local check switch
+# Switch with Debug Output
+switch-debug:
+    @echo "🚀 Debug Switch (Verbose)..."
+    nh os switch . -- {{OVERRIDES}} --impure -- --show-trace --verbose
+
+# Build the system (No Switch/Activation)
+build:
+    @echo "🏗️ Building System Configuration..."
+    nh os build . -- {{OVERRIDES}} --impure
+
+# System Test (Build & Activate, No Bootloader)
+test:
+    @echo "🧪 Testing System Activation..."
+    nh os test . -- {{OVERRIDES}} --impure
+
+# System Boot (Build & Bootloader only, No Switch)
+boot:
+    @echo "👢 Preparing Next Boot..."
+    nh os boot . -- {{OVERRIDES}} --impure
+    @if [ -d ./nix-config/scripts ]; then ./nix-config/scripts/tag-generation.sh; fi
+
+# Full Workspace Pulse: Stage, Update, Check, Audit, and Switch in one go.
+apply: stage-all update-local check audit switch
     @echo "✨ Workspace applied and activated."
 
-# Switch System (Remote/Clean - Ignores local uncommitted changes in sub-repos)
-switch-remote:
-    cd nix-config && nh os switch .
-
-# Boot System with Local Overrides (No Activation)
-boot:
-    cd nix-config && just boot-local
 
 update-all:
     #!/usr/bin/env bash
-    DEVSHELLS_PATH="$(pwd)/nix-devshells"
+
     for repo in {{REPOS}}; do
         if [ -d "$repo" ] && [ -f "$repo/flake.nix" ]; then
             echo "Updating $repo..."
-            (cd "$repo" && nix flake update --impure --override-input nix-devshells "path:$DEVSHELLS_PATH" --commit-lock-file 2>/dev/null) || \
-            (cd "$repo" && nix flake update --impure --override-input nix-devshells "path:$DEVSHELLS_PATH")
+            (cd "$repo" && nix flake update --impure)
         fi
     done
     echo "Updating ROOT..."
@@ -125,15 +173,14 @@ update-all:
     echo "✅ All flakes upgraded."
 
 # Update only local workspace flake inputs
+update-core:
+    @echo "🔄 Updating core flake inputs (nixpkgs)..."
+    nix flake update nixpkgs --impure
+    @echo "✅ Core inputs updated."
+
 update-local:
     @echo "🔄 Updating local workspace inputs..."
-    nix flake lock --update-input nix-config \
-                   --update-input nix-presets \
-                   --update-input nix-hardware \
-                   --update-input nix-packages \
-                   --update-input nix-devshells \
-                   --update-input nix-templates \
-                   --update-input nix-secrets
+    nix flake update nix-config nix-presets nix-hardware nix-packages nix-devshells nix-templates nix-secrets --impure
     @echo "✅ Local inputs updated."
 
 # --- Validation & Maintenance ---
@@ -146,18 +193,30 @@ fmt:
 # Check NixOS Configuration (Skips DevShell check which fails in sandbox)
 check:
     @echo "🔍 Checking NixOS Configuration..."
-    @nix eval .#nixosConfigurations.nixos-nvme.config.system.build.toplevel.drvPath --impure >/dev/null
+    @nix eval .#nixosConfigurations.nixos-nvme.config.system.build.toplevel.drvPath {{OVERRIDES}} --impure >/dev/null
     @echo "✅ Configuration is Valid!"
+
+# Review system changes before switching
+sys-plan: build
+    @echo "📊 Comparing current system with new build..."
+    @nvd diff /run/current-system ./result
+    @echo "---"
+    @echo "✅ If you're happy with these changes, run 'just switch'."
+
+# Run security vulnerability audit on the entire infrastructure
+audit:
+    @sudo nix-security-audit all
+    @echo "✅ Security Audit Complete."
 
 # Dry Run System Activation
 dry-run:
     @echo "🔍 Simulating NixOS Activation..."
-    nixos-rebuild dry-activate --flake .#nixos-nvme
+    nixos-rebuild dry-activate --flake .#nixos-nvme {{OVERRIDES}}
 
 # Build and run a local VM of the system configuration
 test-vm:
-    @echo "🖥️ Building VM..."
-    nixos-rebuild build-vm --flake .#nixos-nvme
+    @echo "🖥️ Building Test VM..."
+    nixos-rebuild build-vm --flake .#nixos-nvme {{OVERRIDES}}
     @echo "🚀 Starting VM..."
     ./result/bin/run-nixos-nvme-vm
 
@@ -286,7 +345,7 @@ ai-check:
         echo "❌ Claude MCP: Missing Config"; \
     fi
     @echo "✅ Workspace Atlas Server: Ready"
-    @glances --version > /dev/null 2>&1 && echo "✅ Glances: Available (Observability)" || echo "⚠️  Glances: Missing (Run in ai-shell)"
+    @btop --version > /dev/null 2>&1 && echo "✅ btop: Available (Observability)" || echo "⚠️  btop: Missing (Run in ai-shell)"
     @echo "---------------------------------"
 
 # Comprehensive Fleet AI Probe
@@ -308,22 +367,54 @@ ai-shell:
 ai-logs *args:
     ./scripts/ai-logs.py {{args}}
 
+# Rebuild the conversation history index from brain logs
+ai-rebuild-history:
+    chmod +x ./scripts/rebuild_history.py
+    ./scripts/rebuild_history.py
+
+# Distill conversation history into the Knowledge Base
+ai-distill-history:
+    chmod +x ./scripts/rebuild_history.py
+    ./scripts/rebuild_history.py --distill
+
 # Safely initialize the AI stack sequentially to prevent thermal overload
 ai-init-safe:
     @echo "❄️  Initializing AI Stack Safely (Sequential Pulls)..."
     @echo "Phase 1/4: Core AI Infrastructure (LiteLLM, Database)..."
-    sudo systemctl start podman-langfuse-db.service podman-litellm.service
-    @echo "Phase 2/4: Langflow..."
-    sudo systemctl start podman-langflow.service
-    @echo "   ...Waiting for Langflow pull to settle..."
+    sudo systemctl start container@langfuse-db.service container@litellm.service ollama.service
+    @echo "Phase 2/4: AI Designers (Langflow, ComfyUI)..."
+    sudo systemctl start podman-langflow.service podman-comfyui.service
+    @echo "   ...Waiting for container pulls to settle..."
     @sleep 10
-    @echo "Phase 3/4: ComfyUI (Large Image)..."
-    sudo systemctl start --no-block podman-comfyui.service
-    @echo "   ...Waiting for ComfyUI pull to start..."
-    @sleep 10
-    @echo "Phase 4/4: vLLM (Giant Image - 10GB+)..."
-    sudo systemctl start --no-block podman-vllm.service
-    @echo "✅ AI Stack Initialization Triggered! Monitor with 'just ai-check'."
+    @echo "Phase 3/4: Application Layer (Open WebUI, Langfuse)..."
+    sudo systemctl start container@open-webui.service container@langfuse.service
+
+    @echo "Phase 4/4: Automation (n8n)..."
+    sudo systemctl start container@n8n.service
+    @echo "✅ AI Stack Initialization Triggered! Monitor with 'just ai-status'."
+
+# --- AI Development (Aider Architect) ---
+
+# Run Aider (The Architect) - Uses Gemini 2.0 Flash Thinking
+architect:
+    @cd nix-config && nix develop --command aider
+
+# Run Aider with DeepSeek API (Fast Coding)
+code:
+    @cd nix-config && nix develop --command aider --model deepseek/deepseek-chat
+
+# Run Aider with Gemini Pro (Deep Reasoning)
+plan:
+    @cd nix-config && nix develop --command aider --model gemini/gemini-2.0-flash-thinking-exp
+
+# Run Aider LOCALLY (Free, Private, Uses Ollama via LiteLLM)
+local:
+    @OLLAMA_API_BASE=http://localhost:4000/v1 cd nix-config && nix develop --command aider \
+      --model openai/qwen \
+      --editor-model openai/qwen
+
+
+# --- Distillation ---
 
 # Distill recent changes or piped text into agent knowledge
 ai-distill title="unnamed-session":
@@ -392,3 +483,16 @@ cache-push name="kleinbem":
         echo "❌ Error: CACHIX_SIGNING_KEY not found in environment and nix-secrets/secrets.yaml is missing."; \
         exit 1; \
     fi
+# --- Browser Maintenance ---
+
+# Quickly reset the Firefox Developer Edition (laboratory) profile folder
+reset-firefox-laboratory:
+    @echo "🧹 Resetting Firefox Laboratory Profile..."
+    rm -rf ~/.mozilla/firefox/laboratory
+    @echo "✅ Profile directory cleared. It will be re-initialized on next launch."
+
+# Clean up orphaned Zen and Firefox profile folders
+clean-browsers:
+    @echo "🧹 Cleaning up orphaned browser data..."
+    rm -rf ~/.config/zen ~/.zen ~/.mozilla/firefox/*.dev-edition-default
+    @echo "✅ Cleanup complete."

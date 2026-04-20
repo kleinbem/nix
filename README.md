@@ -15,23 +15,32 @@ This repository serves as the **entry point** and **conductor** for the federate
 
 1.  **Enter the Workspace**:
     ```bash
-    nix develop
+    nix develop  # Pure fallback
+    # OR
+    direnv allow # Professional recommendation
     ```
-    This loads `just`, `lazygit`, and `gh`.
+    This loads `just`, `devenv`, `lazygit`, and the specialized AI-stack shell.
 
-2.  **Verify Status**:
+2.  **Verify Workspace Health**:
     ```bash
-    just status
+    workspace-status
+    ```
+    This custom command checks the availability of your AI services (Ollama, etc.).
+
+3.  **Manage Services**:
+    ```bash
+    devenv up     # Starts background services
+    devenv tasks  # Lists diagnostic tasks
     ```
 
-3.  **Deploy System**:
+4.  **Deploy System**:
     ```bash
-    just switch-local
+    just switch
     ```
-    *(Delegates to `nix-config` using local repository overrides)*
+    *(Syncs your terminal, IDE settings, and Code-Server containers globally).*
 
 ## 🛠 Workflow
 
-- **Edit Configuration**: Go to `nix-config`.
-- **Add New Hardware**: Edit `nix-hardware`, then update `nix-config`'s lockfile.
-- **Update All**: Run `just update-all` in this directory to update lockfiles in all sub-repos.
+- **Environment Mobility**: You can `cd` into any sub-repository (e.g., `nix-config`). Your environment and tools follow you automatically.
+- **Unified Settings**: Global IDE settings are managed in `nix-presets/code-common/settings.nix`.
+- **System Control**: Use `just --help` to see all automated maintenance recipes.

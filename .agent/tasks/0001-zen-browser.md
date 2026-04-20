@@ -1,5 +1,4 @@
----
-status: todo
+status: done
 priority: high
 tags: [nix, internet, AI, PWA]
 created: 2026-03-24

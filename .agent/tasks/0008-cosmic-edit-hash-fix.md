@@ -1,5 +1,5 @@
 ---
-status: backlog
+status: done
 priority: medium
 tags: [nixos, cosmic, desktop, nixpkgs, hash-mismatch, regression]
 created: 2026-03-25
@@ -17,10 +17,10 @@ The package is currently blocked because its fetcher encounters a checksum misma
 
 ## 2. Restoration Steps
 Once the `nixos-cosmic` flake is updated with the correct hashes:
-- [ ] **Remove Overlay:** Delete the `cosmic-edit = final.hello;` line from `common.nix`.
-- [ ] **Uncomment Package:** Restore `cosmic-edit` to the `environment.systemPackages` list in `desktop.nix`.
-- [ ] **Update Lock:** Run `nix flake update cosmic` in the `nix-config` directory.
-- [ ] **Verify Build:** Run `nix build .#nixosConfigurations.nixos-nvme.config.system.build.toplevel --impure`.
+- [x] **Remove Overlay:** (Already resolved/not found in current config)
+- [x] **Uncomment Package:** (Already present in desktop.nix)
+- [x] **Update Lock:** (Not needed as using nixpkgs version)
+- [x] **Verify Build:** Confirmed to build successfully (version 1.0.8).
 
 ## 3. Reference
 - **Repo:** `lilyinstarlight/nixos-cosmic`

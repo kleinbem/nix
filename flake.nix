@@ -2,7 +2,9 @@
   description = "Meta-Workspace for Nix Repositories";
 
   inputs = {
+    # Tracking nixos-unstable to pull in latest upstream fixes for COSMIC:
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs-master.url = "github:NixOS/nixpkgs/master";
     flake-parts.url = "github:hercules-ci/flake-parts";
     devenv.url = "github:cachix/devenv";
 
@@ -45,6 +47,7 @@
       url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-config";
       inputs = {
         nixpkgs.follows = "nixpkgs";
+        nixpkgs-master.follows = "nixpkgs-master";
         nix-devshells.follows = "nix-devshells";
         nix-hardware.follows = "nix-hardware";
         nix-presets.follows = "nix-presets";
@@ -63,6 +66,7 @@
         nixpkgs.follows = "nixpkgs";
         nix-devshells.follows = "nix-devshells";
         nixpak.follows = "nixpak";
+        nix-packages.follows = "nix-packages";
       };
     };
 
@@ -94,11 +98,6 @@
     };
 
     mk-shell-bin.url = "github:rrbutani/nix-mk-shell-bin";
-    zen-browser = {
-      url = "github:0xc000022070/zen-browser-flake";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     jetpack-nixos = {
       url = "github:anduril/jetpack-nixos";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -127,12 +126,7 @@
           packages = packagesFromPackages // packagesFromPresets;
 
           devenv.shells.default = {
-            imports = [ inputs.nix-devshells.devenvModules.default ];
-
-            # FORCE the root to be the current directory (mutable)
-            devenv.root = "/home/martin/Develop/github.com/kleinbem/nix";
-
-            # Pass inputs so the shell module can access nixos-generators etc.
+            imports = [ ./devenv.nix ];
             _module.args.inputs = inputs;
           };
 

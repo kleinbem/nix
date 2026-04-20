@@ -8,8 +8,5 @@
         "**/.direnv": true,
         "**/result": true,
         "**/result-*": true
-    },
-    "nix.enableLanguageServer": true,
-    "nix.serverPath": "nixd",
-    "nix.formatterPath": "nixpkgs-fmt"
+    }
 }
