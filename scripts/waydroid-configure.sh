@@ -10,12 +10,12 @@ echo "--------------------------------------------------------"
 
 # Ensure Waydroid is running
 if ! waydroid status | grep -q "RUNNING"; then
-    echo "Waydroid is NOT running."
-    echo "Starting Waydroid Service..."
-    sudo systemctl restart waydroid-container
-    echo "Waiting for session..."
-    waydroid session start &
-    sleep 10
+  echo "Waydroid is NOT running."
+  echo "Starting Waydroid Service..."
+  sudo systemctl restart waydroid-container
+  echo "Waiting for session..."
+  waydroid session start &
+  sleep 10
 fi
 
 # 1. Update Play Integrity Fix

@@ -1,26 +1,23 @@
-name: "NixOS Check"
-
+name: "Check Nix Flakes"
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
-
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-    
-    - name: Install Nix
-      uses: cachix/install-nix-action@v25
+    - uses: cachix/install-nix-action@v25
       with:
         nix_path: nixpkgs=channel:nixos-unstable
-
-    - name: Install Just
-      run: nix-env -iA nixpkgs.just
-
-    - name: Run System Check
-      run: just check --impure
+    - name: Check root flake
+      run: nix flake check --no-build
+    - name: Check sub-repo flakes
+      run: |
+        for dir in nix-*; do
+          if [ -f "$dir/flake.nix" ]; then
+            echo "Checking $dir..."
+            (cd "$dir" && nix flake check --no-build)
+          fi
+        done

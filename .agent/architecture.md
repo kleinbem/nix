@@ -22,3 +22,7 @@ graph TD;
 | **nix-config** | Primary system consumer / Host definitions |
 | **nix-presets** | Reusable service and desktop bundles |
 | **nix-hardware** | Device-specific configurations |
+
+## Workload Profiles (Specialisations)
+The system supports multiple operational modes to balance performance and capability.
+See the [Workload Profile Matrix](file:///home/martin/Develop/github.com/kleinbem/nix/.agent/workload_profiles.md) for a detailed breakdown of services per mode.

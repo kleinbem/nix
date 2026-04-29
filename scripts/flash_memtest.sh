@@ -8,17 +8,17 @@ MEMTEST_URL="https://memtest.org/download/v7.20/mt86plus_7.20.iso"
 ISO_FILE="/tmp/memtest86plus.iso"
 
 if [ -z "$1" ]; then
-    echo "Usage: sudo $0 /dev/sdX"
-    echo "Available USB drives:"
-    lsblk -d -o NAME,SIZE,MODEL | grep -v 'nvme\|loop' || true
-    exit 1
+  echo "Usage: sudo $0 /dev/sdX"
+  echo "Available USB drives:"
+  lsblk -d -o NAME,SIZE,MODEL | grep -v 'nvme\|loop' || true
+  exit 1
 fi
 
 DEVICE=$1
 
 if [[ $EUID -ne 0 ]]; then
-   echo "This script must be run as root (sudo)." 
-   exit 1
+  echo "This script must be run as root (sudo)."
+  exit 1
 fi
 
 echo ""
@@ -30,8 +30,8 @@ echo ""
 read -p "Are you absolutely sure you want to proceed? (y/N) " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Aborted."
-    exit 1
+  echo "Aborted."
+  exit 1
 fi
 
 echo "Downloading MemTest86+ ISO..."

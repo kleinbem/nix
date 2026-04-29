@@ -14,5 +14,19 @@ result-*
 
 # Editors
 .idea/
+.vscode/
 *.swp
+*.swo
+
+# Secrets
+.env
+.envrc.local
+
+# Logs
+*.log
+cpu_usage.txt
+mem_usage.txt
+
+# VS Code Workspace State
+state.vscdb*
 

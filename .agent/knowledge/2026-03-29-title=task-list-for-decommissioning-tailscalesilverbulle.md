@@ -1,6 +1,6 @@
 # History: Task list for decommissioning Tailscale/SilverBullet and enabling CUPS persistence. Architecture stable. Activation fix verified. Logic drafted. Verification next.
 
-- **Date**: 2026-03-29T14:16:48.108489+00:00
+- **Date**: 2026-03-29T17:17:13.342002+00:00
 - **Conversation ID**: `b2127a5e-2ccb-4eee-b704-921a682ec891`
 - **Brain Path**: `~/.gemini/antigravity/brain/b2127a5e-2ccb-4eee-b704-921a682ec891`
 

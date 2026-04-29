@@ -16,8 +16,8 @@ echo "Bridge [waydroid0] initialized."
 
 echo "--- Creating Network Mock (Fixes NixOS Crash) ---"
 # Create a dummy script that always succeeds
-echo '#!/bin/sh' > /tmp/waydroid-net-mock.sh
-echo 'exit 0' >> /tmp/waydroid-net-mock.sh
+echo '#!/bin/sh' >/tmp/waydroid-net-mock.sh
+echo 'exit 0' >>/tmp/waydroid-net-mock.sh
 chmod +x /tmp/waydroid-net-mock.sh
 
 # Find the real script path in the nix store
@@ -64,22 +64,22 @@ sleep 3
 
 echo "--- Verifying Container Pulse ---"
 if sudo waydroid shell ls /data/ >/dev/null 2>&1; then
-    echo "SUCCESS: Container is ALIVE!"
-    echo "--- Starting UI Session ---"
+  echo "SUCCESS: Container is ALIVE!"
+  echo "--- Starting UI Session ---"
+  waydroid session start &
+  sleep 5
+  waydroid show-full-ui
+else
+  echo "Container stalling. Forcing manual start..."
+  sudo waydroid container start || true
+  sleep 5
+  if sudo waydroid shell ls /data/ >/dev/null 2>&1; then
+    echo "SUCCESS: Container is ALIVE (after manual trigger)!"
     waydroid session start &
     sleep 5
     waydroid show-full-ui
-else
-    echo "Container stalling. Forcing manual start..."
-    sudo waydroid container start || true
-    sleep 5
-    if sudo waydroid shell ls /data/ >/dev/null 2>&1; then
-        echo "SUCCESS: Container is ALIVE (after manual trigger)!"
-        waydroid session start &
-        sleep 5
-        waydroid show-full-ui
-    else
-        echo "ERROR: Container is still stalling."
-        sudo waydroid log | tail -n 10
-    fi
+  else
+    echo "ERROR: Container is still stalling."
+    sudo waydroid log | tail -n 10
+  fi
 fi

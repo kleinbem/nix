@@ -16,11 +16,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    nixpak = {
-      url = "github:nixpak/nixpak";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     sops-nix = {
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -28,13 +23,13 @@
     # colmena flake removed — using nixpkgs for deployment definitions and tool
 
     nix-secrets = {
-      url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-secrets";
+      url = "github:kleinbem/nix-secrets";
       flake = false;
     };
 
     # Import Local Devshell to keep tools consistent
     nix-devshells = {
-      url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-devshells";
+      url = "github:kleinbem/nix-devshells";
       inputs = {
         devenv.follows = "devenv";
         nixpkgs.follows = "nixpkgs";
@@ -44,7 +39,7 @@
 
     # Import NixOS Config to expose systems at root
     nix-config = {
-      url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-config";
+      url = "github:kleinbem/nix-config";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         nixpkgs-master.follows = "nixpkgs-master";
@@ -55,29 +50,27 @@
         nix-templates.follows = "nix-templates";
         sops-nix.follows = "sops-nix";
         home-manager.follows = "home-manager";
-        nixpak.follows = "nixpak";
         nix-secrets.follows = "nix-secrets";
       };
     };
 
     nix-presets = {
-      url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-presets";
+      url = "github:kleinbem/nix-presets";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         nix-devshells.follows = "nix-devshells";
-        nixpak.follows = "nixpak";
         nix-packages.follows = "nix-packages";
       };
     };
 
     nix-hardware = {
-      url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-hardware";
+      url = "github:kleinbem/nix-hardware";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.jetpack-nixos.follows = "jetpack-nixos";
     };
 
     nix-packages = {
-      url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-packages";
+      url = "github:kleinbem/nix-packages";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         nix-devshells.follows = "nix-devshells";
@@ -85,7 +78,7 @@
     };
 
     nix-templates = {
-      url = "path:/home/martin/Develop/github.com/kleinbem/nix/nix-templates";
+      url = "github:kleinbem/nix-templates";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         nix-devshells.follows = "nix-devshells";

@@ -39,6 +39,15 @@ This repository serves as the **entry point** and **conductor** for the federate
     ```
     *(Syncs your terminal, IDE settings, and Code-Server containers globally).*
 
+## 🛠 Maintenance
+
+Keep your workspace healthy with these commands:
+
+- **Linting**: `just lint` (Check for dead code and style issues)
+- **Fixing**: `just fix` (Auto-fix lints and format all code)
+- **Updating**: `just update-all` (Update all flake inputs across the workspace)
+- **Cleaning**: `just clean` (Remove temporary files and stale hooks)
+
 ## 🛠 Workflow
 
 - **Environment Mobility**: You can `cd` into any sub-repository (e.g., `nix-config`). Your environment and tools follow you automatically.

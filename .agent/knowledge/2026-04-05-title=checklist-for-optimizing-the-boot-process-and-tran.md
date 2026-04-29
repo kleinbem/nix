@@ -1,6 +1,6 @@
 # History: Checklist for optimizing the boot process and transitioning LUKS encryption from FIDO2 (Yubikey) to TPM2.
 
-- **Date**: 2026-04-05T19:54:50.320878+00:00
+- **Date**: 2026-04-05T20:18:10.110458+00:00
 - **Conversation ID**: `3c8e7943-1416-4035-95e5-45fe6b67ef1a`
 - **Brain Path**: `~/.gemini/antigravity/brain/3c8e7943-1416-4035-95e5-45fe6b67ef1a`
 

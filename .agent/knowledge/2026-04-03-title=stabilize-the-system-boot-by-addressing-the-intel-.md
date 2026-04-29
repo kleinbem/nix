@@ -3,7 +3,7 @@
 - Fix i915 power-well timeout by enabling GuC/HuC firmware on the 13th Gen Intel chip.
 - Streamline boot parameters to ensure a quiet, professional boot experience with Plymouth.
 
-- **Date**: 2026-04-03T17:48:09.866826+00:00
+- **Date**: 2026-04-03T18:32:16.841829+00:00
 - **Conversation ID**: `fde42366-a3b4-4cf6-8792-ab31e59e8a0c`
 - **Brain Path**: `~/.gemini/antigravity/brain/fde42366-a3b4-4cf6-8792-ab31e59e8a0c`
 

@@ -32,6 +32,34 @@
       "name": "Nix Secrets",
       "path": "./nix-secrets"
     },
+    {
+      "name": "Antigravity (Memory)",
+      "path": "/home/martin/.gemini/antigravity"
+    },
+    {
+      "name": "Desktop Launchers",
+      "path": "/home/martin/.local/share/applications"
+    },
+    {
+      "name": "System Persistence",
+      "path": "/nix/persist"
+    },
+    {
+      "name": "User Systemd Units",
+      "path": "/home/martin/.config/systemd/user"
+    },
+    {
+      "name": "SSH Config",
+      "path": "/home/martin/.ssh"
+    },
+    {
+      "name": "Browser Profiles",
+      "path": "/home/martin/.mozilla/firefox"
+    },
+    {
+      "name": "Obsidian Vault",
+      "path": "/home/martin/GoogleDrive/Obsidian/MyVault"
+    }
   ],
   "settings": {
     "editor.formatOnSave": true,

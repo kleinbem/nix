@@ -1,7 +1,8 @@
 # Meta-Workspace Justfile
 REPOS := `find . -maxdepth 1 -name "nix-*" -type d -printf "%f\n" | xargs echo`
 # Use overrides to make local folders the "source of truth", bypassing flake.lock caching for local workspace repos
-OVERRIDES := shell("echo " + REPOS + " | sed 's/\\([^ ]*\\)/--override-input \\1 .\\/\\1/g'")
+# Force 'path:' to ensure uncommitted changes are seen and Nix doesn't downgrade to stale Git commits
+OVERRIDES := shell("echo " + REPOS + " | sed 's/\\([^ ]*\\)/--override-input \\1 path:$(pwd)\\/\\1/g'")
 
 default:
     @just --list
@@ -91,7 +92,12 @@ clean:
     git submodule foreach 'git gc --prune=now && git remote prune origin'
     git gc --prune=now && git remote prune origin
     rm -rf .dev-dashboard
+    @just clean-launchers --apply
     @echo "✅ Workspace cleaned."
+
+# Clean up broken application launchers (~/.local/share/applications)
+clean-launchers *args:
+    @bash nix-config/scripts/clean-launchers.sh {{args}}
 
 # Refresh all git hooks in the workspace and submodules to fix stale Nix store paths
 hooks-refresh:
@@ -129,34 +135,78 @@ podman-prune:
 # --- NixOS Operations ---
 
 # Switch System (Defaults to Local Overrides for Workspace)
-switch:
-    @echo "🚀 Switching System (Root Workspace Mode)..."
-    nh os switch . -- {{OVERRIDES}} --impure
+# Usage: just switch OR just switch playground
+switch mode="":
+    @if [ -z "{{mode}}" ]; then \
+        echo "🚀 Switching System (Minimal Mode)..."; \
+        nice -n 19 ionice -c 3 nh os switch . -- {{OVERRIDES}} --impure; \
+        bash nix-config/scripts/mode-info.sh minimal; \
+    else \
+        echo "🚀 Switching System & Activating Mode: {{mode}}..."; \
+        nice -n 19 ionice -c 3 nh os switch . -- {{OVERRIDES}} --impure; \
+        just mode {{mode}}; \
+    fi
 
 # Switch with Debug Output
 switch-debug:
     @echo "🚀 Debug Switch (Verbose)..."
-    nh os switch . -- {{OVERRIDES}} --impure -- --show-trace --verbose
+    nice -n 19 ionice -c 3 nh os switch . -- {{OVERRIDES}} --impure --show-trace --verbose
 
 # Build the system (No Switch/Activation)
 build:
     @echo "🏗️ Building System Configuration..."
-    nh os build . -- {{OVERRIDES}} --impure
+    nice -n 19 ionice -c 3 nh os build . -- {{OVERRIDES}} --impure
 
 # System Test (Build & Activate, No Bootloader)
 test:
     @echo "🧪 Testing System Activation..."
-    nh os test . -- {{OVERRIDES}} --impure
+    nice -n 19 ionice -c 3 nh os test . -- {{OVERRIDES}} --impure
 
 # System Boot (Build & Bootloader only, No Switch)
-boot:
+switch-boot:
     @echo "👢 Preparing Next Boot..."
-    nh os boot . -- {{OVERRIDES}} --impure
+    nice -n 19 ionice -c 3 nh os boot . -- {{OVERRIDES}} --impure
+    @if [ -d ./nix-config/scripts ]; then ./nix-config/scripts/tag-generation.sh; fi
+
+# Boot with Debug Output
+switch-boot-debug:
+    @echo "👢 Debug Boot (Verbose)..."
+    nice -n 19 ionice -c 3 nh os boot . -- {{OVERRIDES}} --impure --show-trace --verbose
     @if [ -d ./nix-config/scripts ]; then ./nix-config/scripts/tag-generation.sh; fi
 
 # Full Workspace Pulse: Stage, Update, Check, Audit, and Switch in one go.
 apply: stage-all update-local check audit switch
     @echo "✨ Workspace applied and activated."
+
+# --- Workload Profile Management (Specialisations) ---
+
+# List available system modes (specialisations)
+modes:
+    @echo "🎭 Available System Modes:"
+    @if [ -d "/run/current-system/specialisation" ]; then \
+        ls -F /run/current-system/specialisation | sed 's/\///'; \
+    else \
+        echo "No specialisations found. Run 'just switch' first."; \
+    fi
+
+# Switch to a specific system mode (live switch)
+# Usage: just mode minimal
+mode name:
+    @if [ -d "/run/current-system/specialisation/{{name}}" ]; then \
+        echo "🔄 Switching to mode: {{name}}..."; \
+        sudo /run/current-system/specialisation/{{name}}/bin/switch; \
+        bash nix-config/scripts/mode-info.sh {{name}}; \
+        echo "✅ System is now in '{{name}}' mode."; \
+    else \
+        echo "❌ Mode '{{name}}' not found."; \
+        just modes; \
+    fi
+
+# Reset system to the default (base) configuration
+reset-mode:
+    @echo "🏠 Resetting to base configuration..."
+    @just switch
+
 
 
 update-all:
@@ -165,11 +215,11 @@ update-all:
     for repo in {{REPOS}}; do
         if [ -d "$repo" ] && [ -f "$repo/flake.nix" ]; then
             echo "Updating $repo..."
-            (cd "$repo" && nix flake update --impure)
+            (cd "$repo" && nix flake update {{OVERRIDES}} --impure)
         fi
     done
     echo "Updating ROOT..."
-    nix flake update --impure
+    nix flake update {{OVERRIDES}} --impure
     echo "✅ All flakes upgraded."
 
 # Update only local workspace flake inputs
@@ -180,20 +230,29 @@ update-core:
 
 update-local:
     @echo "🔄 Updating local workspace inputs..."
-    nix flake update nix-config nix-presets nix-hardware nix-packages nix-devshells nix-templates nix-secrets --impure
+    nix flake update nix-config nix-presets nix-hardware nix-packages nix-devshells nix-templates nix-secrets {{OVERRIDES}} --impure
     @echo "✅ Local inputs updated."
 
 # --- Validation & Maintenance ---
 
 # Format all nix code
 fmt:
-    @nix fmt *.nix 2>/dev/null || true
-    @for repo in {{REPOS}}; do echo "Formatting $repo..."; (cd $repo && nix fmt); done
+    @echo "🎨 Formatting and fixing all Nix and Shell code..."
+    @nix fmt {{OVERRIDES}} --impure
+    @for repo in {{REPOS}}; do \
+        if [ -d "$repo" ] && [ -f "$repo/flake.nix" ]; then \
+            echo "Processing $repo..."; \
+            (cd $repo && nix fmt); \
+        else \
+            echo "Skipping $repo (No flake.nix)..."; \
+        fi; \
+    done
+    @echo "✅ All code formatted and fixed."
 
 # Check NixOS Configuration (Skips DevShell check which fails in sandbox)
 check:
     @echo "🔍 Checking NixOS Configuration..."
-    @nix eval .#nixosConfigurations.nixos-nvme.config.system.build.toplevel.drvPath {{OVERRIDES}} --impure >/dev/null
+    @nice -n 19 ionice -c 3 nix eval .#nixosConfigurations.nixos-nvme.config.system.build.toplevel.drvPath {{OVERRIDES}} --impure >/dev/null
     @echo "✅ Configuration is Valid!"
 
 # Review system changes before switching
@@ -203,6 +262,28 @@ sys-plan: build
     @echo "---"
     @echo "✅ If you're happy with these changes, run 'just switch'."
 
+# Run all linters without making changes
+lint:
+    @echo "🔍 Linting all code (Check mode)..."
+    @nix fmt {{OVERRIDES}} --impure -- --fail-on-change
+    @for repo in {{REPOS}}; do \
+        if [ -d "$repo" ] && [ -f "$repo/flake.nix" ]; then \
+            echo "Linting $repo..."; \
+            (cd $repo && nix fmt -- --fail-on-change); \
+        fi; \
+    done
+    @echo "✅ All checks passed!"
+
+# Apply all automatic fixes and format code (Alias for fmt)
+fix: fmt
+
+# Generate documentation for custom NixOS options
+docs:
+    @echo "📚 Generating documentation for custom options..."
+    @mkdir -p docs
+    @nix eval --json .#nixosConfigurations.nixos-nvme.options.my {{OVERRIDES}} --impure --apply "opts: builtins.mapAttrs (n: v: { description = v.description or \"No description\"; default = v.default or \"No default\"; }) opts" > docs/options.json
+    @echo "✅ Documentation generated in docs/options.json"
+
 # Run security vulnerability audit on the entire infrastructure
 audit:
     @sudo nix-security-audit all
@@ -211,7 +292,7 @@ audit:
 # Dry Run System Activation
 dry-run:
     @echo "🔍 Simulating NixOS Activation..."
-    nixos-rebuild dry-activate --flake .#nixos-nvme {{OVERRIDES}}
+    sudo nixos-rebuild dry-activate --flake .#nixos-nvme {{OVERRIDES}}
 
 # Build and run a local VM of the system configuration
 test-vm:
@@ -363,22 +444,33 @@ ai-health-fleet:
 ai-shell:
     nix develop .#ai
 
-# Semantic view of recent system errors
+# Semantic view of recent system errors (supports -m for machines, -u for units)
 ai-logs *args:
     ./scripts/ai-logs.py {{args}}
 
-# Rebuild the conversation history index from brain logs
-ai-rebuild-history:
-    chmod +x ./scripts/rebuild_history.py
-    ./scripts/rebuild_history.py
+# Specialized view for the AI Agent Team orchestration logs
+ai-team-logs:
+    ./scripts/ai-logs.py -m agent-team
 
-# Distill conversation history into the Knowledge Base
-ai-distill-history:
-    chmod +x ./scripts/rebuild_history.py
-    ./scripts/rebuild_history.py --distill
+# Rebuild the history index and sync missing items to the Antigravity UI
+history:
+    @echo "🔄 Synchronizing and rebuilding Antigravity history..."
+    @chmod +x ./scripts/rebuild_history.py
+    @./scripts/rebuild_history.py --sync
+    @echo "✅ History rebuilt in conversation_history.md"
+    @echo "💡 Tip: Restart Antigravity to see newly synced items in the sidebar."
 
+# Distill conversation history into the permanent Knowledge Base (.agent/knowledge)
+distill:
+    @echo "🧠 Distilling conversation history into Knowledge Base..."
+    @chmod +x ./scripts/rebuild_history.py
+    @./scripts/rebuild_history.py --distill
+    @echo "✅ Knowledge Items generated in .agent/knowledge/"
+
+# [DEPRECATED] Use 'just mode playground' instead.
 # Safely initialize the AI stack sequentially to prevent thermal overload
 ai-init-safe:
+    @echo "⚠️  This command is DEPRECATED. Use 'just mode playground' instead."
     @echo "❄️  Initializing AI Stack Safely (Sequential Pulls)..."
     @echo "Phase 1/4: Core AI Infrastructure (LiteLLM, Database)..."
     sudo systemctl start container@langfuse-db.service container@litellm.service ollama.service
@@ -483,6 +575,31 @@ cache-push name="kleinbem":
         echo "❌ Error: CACHIX_SIGNING_KEY not found in environment and nix-secrets/secrets.yaml is missing."; \
         exit 1; \
     fi
+# --- Personal Knowledge Management ---
+
+# Quick capture a note to the Obsidian Inbox
+capture message="":
+    @./scripts/obsidian-capture.sh {{message}}
+
+# Organize the Obsidian vault into a PARA structure
+organize-notes:
+    @chmod +x ./scripts/organize-notes.sh
+    @./scripts/organize-notes.sh
+
+# Run a health check on the Obsidian vault
+vault-check:
+    @chmod +x ./scripts/vault-health.sh
+    @./scripts/vault-health.sh
+
+# Link repository documentation into the Obsidian vault
+link-docs:
+    @chmod +x ./scripts/link-docs-to-obsidian.sh
+    @./scripts/link-docs-to-obsidian.sh
+
+# Open the Obsidian application
+obsidian:
+    @obsidian &
+
 # --- Browser Maintenance ---
 
 # Quickly reset the Firefox Developer Edition (laboratory) profile folder

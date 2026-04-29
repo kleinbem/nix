@@ -7,28 +7,28 @@ echo "--- Random Secret Generation ---"
 echo ""
 
 generate_secret() {
-    local name=$1
-    local type=$2
-    local value=""
+  local name=$1
+  local type=$2
+  local value=""
 
-    if command -v openssl >/dev/null 2>&1; then
-        if [ "$type" == "base64" ]; then
-            value=$(openssl rand -base64 32)
-        else
-            value=$(openssl rand -hex 24)
-        fi
+  if command -v openssl >/dev/null 2>&1; then
+    if [ "$type" == "base64" ]; then
+      value=$(openssl rand -base64 32)
     else
-        # Fallback to /dev/urandom if openssl is missing
-        if [ "$type" == "base64" ]; then
-            value=$(head -c 32 /dev/urandom | base64)
-        else
-            value=$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')
-        fi
+      value=$(openssl rand -hex 24)
     fi
+  else
+    # Fallback to /dev/urandom if openssl is missing
+    if [ "$type" == "base64" ]; then
+      value=$(head -c 32 /dev/urandom | base64)
+    else
+      value=$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')
+    fi
+  fi
 
-    echo "NAME:  $name"
-    echo "VALUE: $value"
-    echo "-----------------------------------"
+  echo "NAME:  $name"
+  echo "VALUE: $value"
+  echo "-----------------------------------"
 }
 
 generate_secret "langfuse_nextauth_secret" "base64"
