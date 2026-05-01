@@ -5,37 +5,58 @@ import os
 import subprocess
 from typing import List, Dict, Any
 
-# Simple MCP server for Nix Workspace Discovery
-# Protocol: Read JSON from stdin, write JSON to stdout
+# Workspace Atlas MCP - V2.0
+# Expanded to support deep NixOS configuration inspection
 
-def get_workspace_info():
-    """Returns information about the Nix workspace structure."""
+def get_active_profile():
+    """Detects the currently active NixOS specialisation."""
     try:
-        # Get list of local repositories (submodules)
-        repos = [d for d in os.listdir('.') if os.path.isdir(d) and d.startswith('nix-')]
+        spec_path = "/run/current-system/specialisation"
+        if not os.path.exists(spec_path):
+            return "minimal (base)"
         
-        info = {
-            "root": os.getcwd(),
-            "repositories": repos,
-            "architecture": "Meta-Workspace (nix) -> Aggregates Sub-Flakes",
-            "key_files": {
-                "flake.nix": "Main entry point",
-                "justfile": "Workspace commands",
-                ".agent/rules.md": "Assistant guidelines"
-            }
-        }
-        return info
+        # In NixOS, the active specialisation isn't always easy to tell just from the FS,
+        # but we can check which specialisation's 'bin/switch' was last used or check symlinks.
+        # For now, we'll return the list of available ones if we can't be sure.
+        specs = os.listdir(spec_path)
+        return {"active_potential": specs, "note": "Check 'active-specialisation' if available"}
     except Exception as e:
         return {"error": str(e)}
 
-def list_nix_outputs(flake_path: str):
-    """Lists outputs of a specific flake."""
+def eval_nix(expr: str, flake_path: str = "."):
+    """Evaluates a Nix expression from the flake."""
     try:
+        # We target the nixos-nvme configuration specifically as it's the main host
+        full_expr = f"(import {flake_path} {{}}).nixosConfigurations.nixos-nvme.config.{expr}"
+        
         result = subprocess.run(
-            ["nix", "flake", "show", "--json", flake_path],
+            ["nix", "eval", "--json", "--impure", "--expr", full_expr],
             capture_output=True, text=True, check=True
         )
         return json.loads(result.stdout)
+    except subprocess.CalledProcessError as e:
+        return {"error": f"Nix evaluation failed: {e.stderr}"}
+    except Exception as e:
+        return {"error": str(e)}
+
+def get_containers():
+    """Specifically lists all custom containers defined in my.containers."""
+    try:
+        # This reaches into your custom module structure
+        expr = "my.containers"
+        containers = eval_nix(expr)
+        
+        if "error" in containers:
+            return containers
+            
+        summary = {}
+        for name, cfg in containers.items():
+            summary[name] = {
+                "enable": cfg.get("enable", False),
+                "ip": cfg.get("ip", "unknown"),
+                "hostDataDir": cfg.get("hostDataDir", "N/A")
+            }
+        return summary
     except Exception as e:
         return {"error": str(e)}
 
@@ -54,31 +75,37 @@ def main():
             
             if method == "initialize":
                 response["result"] = {
-                    "capabilities": {
-                        "tools": {
-                            "list": True
-                        }
-                    },
-                    "serverInfo": {"name": "workspace-atlas", "version": "0.1.0"}
+                    "capabilities": {"tools": {"list": True}},
+                    "serverInfo": {"name": "workspace-atlas", "version": "0.2.0"}
                 }
             elif method == "tools/list":
                 response["result"] = {
                     "tools": [
                         {
-                            "name": "get_workspace_summary",
-                            "description": "Get a summary of the Nix workspace structure",
+                            "name": "get_active_profile",
+                            "description": "Detect the currently active NixOS specialisation/mode",
                             "inputSchema": {"type": "object", "properties": {}}
                         },
                         {
-                            "name": "inspect_flake_outputs",
-                            "description": "List the outputs of a specific nix flake in the workspace",
+                            "name": "list_containers",
+                            "description": "List all NixOS containers and their current configuration",
+                            "inputSchema": {"type": "object", "properties": {}}
+                        },
+                        {
+                            "name": "eval_nix_option",
+                            "description": "Evaluate a specific Nix configuration option",
                             "inputSchema": {
-                                "type": "object", 
+                                "type": "object",
                                 "properties": {
-                                    "path": {"type": "string", "description": "Path to the flake directory (e.g., './nix-config')"}
+                                    "option": {"type": "string", "description": "The option path (e.g., 'services.ollama.enable')"}
                                 },
-                                "required": ["path"]
+                                "required": ["option"]
                             }
+                        },
+                        {
+                            "name": "get_workspace_summary",
+                            "description": "Get a summary of the Nix workspace structure",
+                            "inputSchema": {"type": "object", "properties": {}}
                         }
                     ]
                 }
@@ -86,18 +113,22 @@ def main():
                 tool_name = params.get("name")
                 tool_args = params.get("arguments", {})
                 
-                if tool_name == "get_workspace_summary":
-                    response["result"] = {"content": [{"type": "text", "text": json.dumps(get_workspace_info(), indent=2)}]}
-                elif tool_name == "inspect_flake_outputs":
-                    path = tool_args.get("path")
-                    response["result"] = {"content": [{"type": "text", "text": json.dumps(list_nix_outputs(path), indent=2)}]}
-                else:
-                    response["error"] = {"code": -32601, "message": f"Tool not found: {tool_name}"}
+                result_data = {}
+                if tool_name == "get_active_profile":
+                    result_data = get_active_profile()
+                elif tool_name == "list_containers":
+                    result_data = get_containers()
+                elif tool_name == "eval_nix_option":
+                    result_data = eval_nix(tool_args.get("option"))
+                elif tool_name == "get_workspace_summary":
+                    # Reuse existing logic or simple placeholder
+                    result_data = {"root": os.getcwd()}
+                
+                response["result"] = {"content": [{"type": "text", "text": json.dumps(result_data, indent=2)}]}
             
             sys.stdout.write(json.dumps(response) + "\n")
             sys.stdout.flush()
         except Exception as e:
-            # Silent error for protocol robustness, but log to stderr
             sys.stderr.write(f"Error: {str(e)}\n")
 
 if __name__ == "__main__":

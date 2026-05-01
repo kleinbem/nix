@@ -30,3 +30,7 @@ mem_usage.txt
 # VS Code Workspace State
 state.vscdb*
 
+# Agentic AI State (Unreviewed/Sensitive)
+.agent/knowledge/
+.agent/tasks/
+

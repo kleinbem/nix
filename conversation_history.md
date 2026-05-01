@@ -1,15 +1,55 @@
 # Rebuilt Conversation History
 
-Generated on: 2026-04-24T20:19:49.006775+00:00
+Generated on: 2026-05-01T19:05:53.211904+00:00
 
 | Last Updated | ID | Summary | Sources | Artifacts |
 | :--- | :--- | :--- | :--- | :--- |
-| 2026-04-24 20:18 | `9d2e47f8...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
-| 2026-04-24 20:17 | `067da85b...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
-| 2026-04-24 20:08 | `6d1b2a5f...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-05-01 18:28 | `6858a2be...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-05-01 18:15 | `05df3e5f...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-05-01 18:02 | `6df353d5...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-05-01 17:16 | `54b1031b...` | Persist Antigravity and AI tool history in the NixOS persistence layer.
+- Add user-level persiste... | brain, conversations | 5 |
+| 2026-05-01 17:16 | `b2174e82...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-05-01 12:15 | `tempmedi...` | *(No summary)* | brain | 0 |
+| 2026-05-01 12:05 | `330f1d05...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-05-01 10:09 | `59e2447b...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 1 |
+| 2026-05-01 09:53 | `a912da50...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 1 |
+| 2026-04-30 21:49 | `27713be0...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 1 |
+| 2026-04-30 17:56 | `c0685518...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-04-30 15:43 | `aec43246...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 6 |
+| 2026-04-30 09:55 | `1d1a8e73...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-04-29 13:16 | `1cb525c8...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 1 |
+| 2026-04-29 12:56 | `f6c4a733...` | *(Raw session data)* | conversations, implicit | 0 |
+| 2026-04-29 12:37 | `817d9874...` | *(Raw session data)* | conversations, implicit | 0 |
+| 2026-04-29 12:37 | `47626dd3...` | *(Raw session data)* | conversations, implicit | 0 |
+| 2026-04-29 12:32 | `4c017ca3...` | *(Raw session data)* | conversations, implicit | 0 |
+| 2026-04-29 12:32 | `5b0d7211...` | *(Raw session data)* | conversations, implicit | 0 |
+| 2026-04-29 12:31 | `e560495b...` | *(Raw session data)* | conversations, implicit | 0 |
+| 2026-04-29 12:23 | `a0f961a0...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-04-29 00:53 | `70d2eed4...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-04-28 20:21 | `968428b0...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-04-28 17:52 | `79a7458e...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-04-28 16:11 | `5c619193...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-04-28 15:02 | `fbffcd13...` | *(No summary)* | brain, conversations | 0 |
+| 2026-04-28 14:22 | `81c55891...` | *(No summary)* | brain, conversations | 0 |
+| 2026-04-28 01:20 | `956bce02...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-04-27 22:18 | `68ad8e8e...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-04-27 20:48 | `184266a9...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-04-27 20:30 | `d141ba44...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-04-27 15:47 | `9ba8a668...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-04-27 13:41 | `4d3e75f8...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-04-27 08:30 | `d5e27df4...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-04-26 18:23 | `6bab20ff...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 5 |
+| 2026-04-26 18:16 | `8032b001...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-04-25 20:12 | `ea6aa14a...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-04-25 12:14 | `067da85b...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-04-25 12:07 | `af52ae69...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-04-25 08:33 | `a5bf72e3...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 1 |
+| 2026-04-24 21:25 | `6d1b2a5f...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-04-24 21:10 | `03fea5e3...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-04-24 20:29 | `9d2e47f8...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
 | 2026-04-24 19:10 | `662cd369...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
 | 2026-04-24 16:21 | `1b8a2bf2...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 1 |
-| 2026-04-24 12:52 | `tempmedi...` | *(No summary)* | brain | 0 |
 | 2026-04-24 12:43 | `b5b2c520...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
 | 2026-04-24 11:18 | `e5ad3f1b...` | Implementation plan to optimize the Obsidian setup for better integration, automation, and "lazy-... | brain, conversations | 28 |
 | 2026-04-24 11:09 | `2cfaed38...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
@@ -30,7 +70,6 @@ Generated on: 2026-04-24T20:19:49.006775+00:00
 | 2026-04-22 14:15 | `41e3c455...` | *(No summary)* | brain, conversations | 0 |
 | 2026-04-22 01:17 | `3cb585bc...` | Refactor the AI Agent Team to a 'Distroless' (Nix-Native) architecture. This eliminates the Debia... | brain, conversations | 27 |
 | 2026-04-22 01:00 | `dfb52969...` | Plan to remove Zen Browser and disable built-in password saving in Firefox and Chromium/Chrome. I... | brain, conversations | 15 |
-| 2026-04-22 01:00 | `f6c4a733...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-04-21 16:04 | `48adc17b...` | Finalizing the launcher cleanup task. Verification will be handled by the user due to environment... | brain, conversations | 14 |
 | 2026-04-21 12:40 | `93a210dc...` | Checklist for fixing Firefox default browser issues. / Fix for Firefox reporting it is not the de... | brain, conversations | 14 |
 | 2026-04-21 00:22 | `baa014a6...` | Resolved SSH Agent and YubiKey mounting issues by reverting to robust pathing. / Resolved SSH Age... | brain, conversations | 12 |
@@ -42,18 +81,13 @@ Generated on: 2026-04-24T20:19:49.006775+00:00
 | 2026-04-20 10:29 | `35fe8a34...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-04-20 10:29 | `b30bb303...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-04-20 10:29 | `14e6f8ee...` | *(Raw session data)* | conversations, implicit | 0 |
-| 2026-04-20 10:29 | `4c017ca3...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-04-20 10:27 | `802e95cf...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-04-20 10:27 | `e61acb95...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-04-20 10:27 | `6e38b5e4...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-04-20 10:27 | `93a507d0...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-04-20 10:27 | `06437a18...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-04-20 10:27 | `e27442f8...` | *(Raw session data)* | conversations, implicit | 0 |
-| 2026-04-20 10:20 | `817d9874...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-04-20 08:52 | `afc8a607...` | *(No summary)* | brain, conversations | 0 |
-| 2026-04-20 08:46 | `47626dd3...` | *(Raw session data)* | conversations, implicit | 0 |
-| 2026-04-20 08:46 | `5b0d7211...` | *(Raw session data)* | conversations, implicit | 0 |
-| 2026-04-20 08:43 | `e560495b...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-04-19 22:27 | `154dd258...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-04-19 21:59 | `fa8e5c99...` | Walkthrough of the final workspace-status path-swapping fix, ensuring 100% reliability across all... | brain, conversations | 58 |
 | 2026-04-19 21:57 | `b2d27771...` | Implementation plan to remove Brave and Ladybird browsers and reduce Google Chrome profiles to on... | brain, conversations | 14 |
@@ -72,66 +106,11 @@ Generated on: 2026-04-24T20:19:49.006775+00:00
 | 2026-04-15 12:40 | `a96e3e20...` | *(No summary)* | brain, conversations | 0 |
 | 2026-04-14 20:48 | `736bc0f8...` | Removed FirefoxPWA extension and package while keeping native PWA settings. / Removing FirefoxPWA... | brain, conversations | 16 |
 | 2026-04-14 20:35 | `e402c286...` | Creating the walkthrough for fixing the dashboard TLS and persistence issues. / Creating the task... | brain, conversations | 11 |
-| 2026-04-14 20:30 | `8d5a4c42...` | Creating implementation plan to fix AI stack startup issues and bridge dependencies. / Walkthroug... | brain, conversations | 13 |
-| 2026-04-14 20:01 | `1a24b2cc...` | Updated migration plan to include LiteLLM as a candidate for a native NixOS container migration, ... | brain, conversations | 20 |
-| 2026-04-14 19:57 | `dd320688...` | Add recommended Firefox extensions to various profiles in the declarative configuration. / Tracki... | brain, conversations | 19 |
-| 2026-04-14 14:29 | `6d82d79e...` | Task list for stabilizing YubiKey boot and login. Includes configuration updates for LUKS (FIDO2)... | brain, conversations | 15 |
-| 2026-04-14 12:41 | `a57ccbbc...` | Walkthrough of the conversation history rebuilding process. / Task list for rebuilding conversati... | brain, conversations | 19 |
-| 2026-04-14 12:32 | `c738c055...` | Implementation plan to update firefoxpwa to version 2.18.2 via a Nixpkgs overlay. / Task list for... | brain, conversations | 16 |
-| 2026-04-14 11:09 | `de9cc72c...` | Switch Firefox Stable to Firefox Beta across the configuration. | brain, conversations | 4 |
-| 2026-04-14 11:04 | `8c965b84...` | TODO list for removing Zen Browser and refining Firefox configuration. / Walkthrough of the chang... | brain, conversations | 14 |
-| 2026-04-13 14:37 | `7b7e7650...` | Task list for suppressing Electron launch warnings. / Walkthrough of the changes made to suppress... | brain, conversations | 14 |
-| 2026-04-13 14:17 | `c80ae033...` | Stabilized the WD SN740 NVMe drive by adding a kernel latency workaround and enabling the firmwar... | brain, conversations | 14 |
-| 2026-04-13 14:16 | `77f751ad...` | Summary of persistence configuration improvements to ensure statefulness for key services and sys... | brain, conversations | 14 |
-| 2026-04-13 13:27 | `c93041be...` | Implementation plan to resolve the 'ghost' Falco container issue and complete the security harden... | brain, conversations | 30 |
-| 2026-04-13 09:56 | `e68ff050...` | Security audit workflow unification completed. / Unified the security auditing workflow across CL... | brain, conversations | 9 |
-| 2026-04-13 08:32 | `db65cdb4...` | *(No summary)* | brain, conversations | 0 |
-| 2026-04-13 01:41 | `b8c73b9f...` | Finalized the 3-point security expansion. Resolved module and package conflicts for Falco by leve... | brain, conversations | 37 |
-| 2026-04-12 23:15 | `04435a45...` | FHS migration completed. / Plan to switch Antigravity to FHS version and audit other applications... | brain, conversations | 14 |
 | 2026-04-12 16:55 | `2d95a61f...` | *(Raw session data)* | conversations, implicit | 0 |
-| 2026-04-12 13:19 | `37d21d6d...` | Task list for consolidating security log shipping. / Summary of improvements to security log ship... | brain, conversations | 14 |
-| 2026-04-12 13:19 | `99ef1a07...` | Task list for setting Firefox as the default browser and configuring the search engine. / Walkthr... | brain, conversations | 19 |
-| 2026-04-12 08:41 | `605fc9ed...` | Todo list for finalizing security, audit, and backup configurations. / Complete the implementatio... | brain, conversations | 9 |
-| 2026-04-12 00:37 | `3c8c9350...` | Implementation plan to resolve the truncated/stale chat history indexing issue by identifying and... | brain, conversations | 9 |
-| 2026-04-11 20:47 | `7d3235ad...` | *(No summary)* | brain, conversations | 0 |
-| 2026-04-11 20:09 | `109a1bb1...` | *(No summary)* | brain, conversations | 0 |
-| 2026-04-11 18:28 | `8988d68a...` | Plan to verify earlyoom, monitor thermals with Netdata, and prepare Memtest86+ diagnostics / Walk... | brain, conversations | 13 |
-| 2026-04-11 10:02 | `8f0ecbfe...` | Proposed plan to implement EarlyOOM to mitigate out-of-memory kernel freezes and provide hardware... | brain, conversations | 21 |
-| 2026-04-08 18:20 | `8fd6d966...` | TODO list for hardening Zero Trust networking and refining the inventory system. / Walkthrough of... | brain, conversations | 16 |
-| 2026-04-08 17:06 | `1c452c65...` | Task list for system recovery and refactoring consolidation. / Plan to recover from the workstati... | brain, conversations | 13 |
-| 2026-04-06 10:14 | `dbf3c21d...` | This plan aims to fix Bitwarden YubiKey support in Firefox by disabling specific hardening settin... | brain, conversations | 13 |
-| 2026-04-06 09:43 | `15887de8...` | *(No summary)* | brain, conversations | 0 |
-| 2026-04-05 20:18 | `3c8e7943...` | Walkthrough of the boot optimization and TPM LUKS transition. Includes instructions for manual TP... | brain, conversations | 22 |
-| 2026-04-04 22:33 | `1ba48425...` | This implementation plan aims to fix the 'unfree' evaluation error for the Claude Code extension ... | brain, conversations | 17 |
-| 2026-04-04 17:49 | `14e0f1d4...` | *(No summary)* | brain, conversations | 0 |
-| 2026-04-03 19:40 | `9f4fe694...` | *(No summary)* | brain, conversations | 0 |
-| 2026-04-03 18:32 | `fde42366...` | Stabilize the system boot by addressing the Intel graphics driver (i915) crash and reducing conso... | brain, conversations | 22 |
-| 2026-04-03 18:23 | `30444e38...` | *(No summary)* | brain, conversations | 0 |
-| 2026-04-03 17:14 | `9ccb0b5e...` | *(No summary)* | brain, conversations | 0 |
-| 2026-04-03 16:42 | `3a3e2c0e...` | Technical assessment and architectural feedback for the Nix infrastructure. / Enterprise upgrades... | brain, conversations | 58 |
-| 2026-04-01 21:31 | `835a7b24...` | Walkthrough of the CVE scanning implementation. Includes adding `vulnix` to the devShell and addi... | brain, conversations | 17 |
 | 2026-04-01 19:54 | `bb52645b...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-04-01 19:54 | `65821be6...` | *(Raw session data)* | conversations, implicit | 0 |
-| 2026-03-30 01:00 | `869c35aa...` | Plan to fix the boot failure by switching to stable disk paths, adjusting LUKS FIDO2 settings, an... | brain, conversations | 16 |
-| 2026-03-29 17:17 | `b2127a5e...` | Task list for decommissioning Tailscale/SilverBullet and enabling CUPS persistence. Architecture ... | brain, conversations | 56 |
-| 2026-03-28 16:59 | `c05c146d...` | Walkthrough of the fixes implemented to resolve monitoring timeouts and kernel audit error spam. ... | brain, conversations | 28 |
-| 2026-03-27 22:23 | `3b0da326...` | *(No summary)* | brain, conversations | 0 |
-| 2026-03-27 22:21 | `3e3bfcd3...` | Walkthrough of fixes for persistence assertions and waydroid-setup build. / Task list for fixing ... | brain, conversations | 21 |
-| 2026-03-27 17:11 | `62434c2e...` | Restored all requested features and verified the configuration. / Walkthrough of the restored fea... | brain, conversations | 14 |
-| 2026-03-27 16:36 | `d0928a07...` | Professionalism roadmap for the user's NixOS repositories. Provides clear, actionable steps to el... | brain, conversations | 34 |
-| 2026-03-26 22:39 | `01b03748...` | Updated implementation plan with a more stable Nixpkgs pinning strategy.
-- Switched the recommend... | brain, conversations | 44 |
 | 2026-03-26 11:41 | `040cc5c4...` | *(No summary)* | brain | 0 |
 | 2026-03-26 11:37 | `cf2fc957...` | *(No summary)* | brain | 0 |
-| 2026-03-26 09:44 | `0af3dd52...` | Updated implementation plan to prioritize nixpkgs COSMIC over the flake. Documented the removal o... | brain, conversations | 65 |
-| 2026-03-25 14:05 | `d36287cf...` | Detailed implementation plan for the transition to a declarative, multi-profile Zen Browser setup... | brain, conversations | 57 |
-| 2026-03-23 22:56 | `8c890790...` | Updated task.md to reflect Cycle 15 (Ollama Pivot). / Final resolution of the vLLM stack. Fixed i... | brain, conversations | 47 |
-| 2026-03-23 10:51 | `deeeaf64...` | Migrating AI services to Podman. Resolved network and DNS conflicts. Optimized tmpfiles. Relocate... | brain, conversations | 48 |
-| 2026-03-21 15:26 | `5383fb01...` | Final task list for pro-grade infrastructure expansion, marking everything complete. / Plan to fi... | brain, conversations | 49 |
-| 2026-03-20 10:17 | `7363ed39...` | Final walkthrough documenting the nixos-anywhere-based installation method for the Orin Nano. / T... | brain, conversations | 20 |
-| 2026-03-19 19:24 | `dbd4ccb7...` | Task list for resuming the Orin Nano NixOS installation after a session restart. Includes verifyi... | brain, conversations | 20 |
-| 2026-03-19 18:05 | `6f255d28...` | Task list to resume the setup of the Orin Nano Plus, including researching the previous state and... | brain, conversations | 60 |
-| 2026-03-18 21:35 | `412597d6...` | Pin `direnv` and `nix-direnv` to the stable package set in the `terminal` preset to prevent regre... | brain, conversations | 10 |
 | 2026-03-11 11:13 | `5c47c52a...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-03-07 11:05 | `f97b516d...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-03-07 11:05 | `5393c0ec...` | *(Raw session data)* | conversations, implicit | 0 |

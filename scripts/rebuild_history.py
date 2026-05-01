@@ -102,9 +102,11 @@ def get_conversation_data():
 def sync_missing_to_app(convs):
     """Restore implicit sessions to the main conversation folder to help the UI see them."""
     if not os.path.exists(CONVERSATIONS_DIR):
+        print(f"⚠️ Conversations directory not found: {CONVERSATIONS_DIR}")
         return 0
         
     count = 0
+    print(f"Checking {len(convs)} conversations for sync...")
     for conv_id, data in convs.items():
         if "implicit" in data["sources"] and "conversations" not in data["sources"]:
             src = os.path.join(IMPLICIT_DIR, f"{conv_id}.pb")
@@ -112,9 +114,10 @@ def sync_missing_to_app(convs):
             if os.path.exists(src) and not os.path.exists(dst):
                 try:
                     shutil.copy2(src, dst)
+                    print(f"  [SYNC] Restored session {conv_id[:8]}... to UI sidebar")
                     count += 1
                 except Exception as e:
-                    print(f"❌ Error syncing {conv_id}: {e}")
+                    print(f"  [ERROR] Failed syncing {conv_id}: {e}")
     return count
 
 def generate_markdown(convs):

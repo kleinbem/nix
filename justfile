@@ -2,7 +2,8 @@
 REPOS := `find . -maxdepth 1 -name "nix-*" -type d -printf "%f\n" | xargs echo`
 # Use overrides to make local folders the "source of truth", bypassing flake.lock caching for local workspace repos
 # Force 'path:' to ensure uncommitted changes are seen and Nix doesn't downgrade to stale Git commits
-OVERRIDES := shell("echo " + REPOS + " | sed 's/\\([^ ]*\\)/--override-input \\1 path:$(pwd)\\/\\1/g'")
+OVERRIDES := shell("echo " + REPOS + " | sed 's|\\([^ ]*\\)|--override-input \\1 path:" + justfile_directory() + "/\\1|g'")
+KEEP := "3"
 
 default:
     @just --list
@@ -86,14 +87,18 @@ push:
     git push
     @echo "✅ All changes pushed."
 
-# Clean up stale git references and temporary files
+# Clean up stale git references, temporary files, and Nix generations
 clean:
     @echo "🧹 Cleaning up workspace..."
     git submodule foreach 'git gc --prune=now && git remote prune origin'
     git gc --prune=now && git remote prune origin
     rm -rf .dev-dashboard
+    @echo "🧹 Cleaning up Nix generations (keeping {{KEEP}})..."
+    nh clean all --keep {{KEEP}}
+    @echo "🔄 Optimizing Nix store..."
+    nix-store --optimise
     @just clean-launchers --apply
-    @echo "✅ Workspace cleaned."
+    @echo "✅ Workspace and System cleaned."
 
 # Clean up broken application launchers (~/.local/share/applications)
 clean-launchers *args:
@@ -139,11 +144,11 @@ podman-prune:
 switch mode="":
     @if [ -z "{{mode}}" ]; then \
         echo "🚀 Switching System (Minimal Mode)..."; \
-        nice -n 19 ionice -c 3 nh os switch . -- {{OVERRIDES}} --impure; \
-        bash nix-config/scripts/mode-info.sh minimal; \
+        nice -n 19 ionice -c 3 nh os switch . -- {{OVERRIDES}} --impure && \
+        atlas status; \
     else \
         echo "🚀 Switching System & Activating Mode: {{mode}}..."; \
-        nice -n 19 ionice -c 3 nh os switch . -- {{OVERRIDES}} --impure; \
+        nice -n 19 ionice -c 3 nh os switch . -- {{OVERRIDES}} --impure && \
         just mode {{mode}}; \
     fi
 
@@ -242,7 +247,7 @@ fmt:
     @for repo in {{REPOS}}; do \
         if [ -d "$repo" ] && [ -f "$repo/flake.nix" ]; then \
             echo "Processing $repo..."; \
-            (cd $repo && nix fmt); \
+            (cd $repo && nix fmt {{OVERRIDES}} --impure); \
         else \
             echo "Skipping $repo (No flake.nix)..."; \
         fi; \
@@ -269,7 +274,7 @@ lint:
     @for repo in {{REPOS}}; do \
         if [ -d "$repo" ] && [ -f "$repo/flake.nix" ]; then \
             echo "Linting $repo..."; \
-            (cd $repo && nix fmt -- --fail-on-change); \
+            (cd $repo && nix fmt {{OVERRIDES}} --impure -- --fail-on-change); \
         fi; \
     done
     @echo "✅ All checks passed!"
@@ -312,7 +317,7 @@ check-all: check
     @for repo in {{REPOS}}; do \
         if [ -f "$repo/flake.nix" ]; then \
             echo "Checking $repo..."; \
-            (cd $repo && nix flake check --no-build); \
+            (cd $repo && nix flake check {{OVERRIDES}} --impure --no-build); \
         else \
             echo "Skipping $repo (no flake.nix)"; \
         fi \
