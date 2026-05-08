@@ -1,0 +1,30 @@
+# Architecture: High Reasoning for Planning
+architect: true
+
+# Models: Local-First Strategy
+model: openai/qwen
+editor-model: openai/qwen
+api-base: http://localhost:4000/v1
+
+# Mental Sandbox: Context Files
+read:
+  - .context/constitution.md
+  - .context/system-architecture.md
+  - flake.nix
+
+# Performance Tuning for Intel i3 CPU
+# Reducing this from 4096 to 1024 drastically speeds up 
+# the "thinking" phase on CPU-only setups.
+map-tokens: 1024
+cache-prompts: true
+
+# Thinking Protocol
+reasoning-effort: high
+check-model-accepts-settings: false
+
+# Automated Hygiene
+auto-commits: true
+attribute-author: true
+attribute-committer: true
+lint-cmd: "statix check"
+test-cmd: "nixos-rebuild dry-build --flake .#nixos-nvme"

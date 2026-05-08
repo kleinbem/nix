@@ -3,7 +3,7 @@
 # Documentation Linker for Obsidian
 # Purpose: Symlink repository knowledge bases into the Obsidian vault for easy browsing.
 
-VAULT_PATH="$HOME/Notes"
+VAULT_PATH="$HOME/Documents/Notes"
 KNOWLEDGE_ROOT="$VAULT_PATH/System/Knowledge"
 WORKSPACE_ROOT="$HOME/Develop/github.com/kleinbem/nix"
 

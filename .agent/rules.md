@@ -14,3 +14,6 @@
 - **Meta-Workspace**: This repo (`nix`) aggregates sub-flakes (`nix-config`, `nix-hardware`, etc.).
 - **Dependency Flow**: `nix-config` consumes other local flakes.
 
+## System Context
+- **Ground Truth**: Always check `nix-config/docs/SYSTEM_REFERENCE.md` to find current `nixpkgs` revisions and service maps.
+- **Sync**: If the reference seems outdated, run `just maintenance::sync-agent`.

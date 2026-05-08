@@ -1,0 +1,11 @@
+[
+  "prohibit-password",
+  "secrets/secrets.yaml",
+  "modules/nixos/secrets",
+  "defaultSopsFile",
+  "example-secret",
+  "martin.kleinberger@gmail.com",
+  "git+ssh://git@github.com/kleinbem/nix-secrets.git",
+  "sk-ssh-ed25519@openssh.com",
+  "ssh -T git@github.com"
+]

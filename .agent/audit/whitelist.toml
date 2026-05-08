@@ -1,0 +1,3 @@
+# Vulnix Whitelist
+# Add CVEs here if they are false positives or accepted risks.
+# format: ["CVE-YYYY-XXXX"]

@@ -3,7 +3,7 @@
 # Obsidian Quick Capture Script
 # Purpose: Quickly append a note to the Obsidian Inbox without opening the UI.
 
-VAULT_PATH="$HOME/Notes"
+VAULT_PATH="$HOME/Documents/Notes"
 INBOX_FILE="$VAULT_PATH/Inbox.md"
 
 # Ensure the vault directory exists

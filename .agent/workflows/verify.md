@@ -7,15 +7,15 @@ description: "Perform a dry-run build to verify configuration validity"
 Before switching to a new configuration, it is good practice to verify that your flakes are healthy and your code builds.
 
 ## 1. Check Flake Integrity
+// turbo
 Run the flake check across all repositories to catch syntax errors or missing dependencies.
-
 ```bash
 just check
 ```
 
 ## 2. Dry-Run Build
+// turbo
 If you want to ensure the NixOS configuration builds without switching:
-
 ```bash
 cd nix-config
 nh os build . 

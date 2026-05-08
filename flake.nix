@@ -4,6 +4,7 @@
   inputs = {
     # Tracking nixos-unstable to pull in latest upstream fixes for COSMIC:
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixpkgs-master.url = "github:NixOS/nixpkgs/master";
     flake-parts.url = "github:hercules-ci/flake-parts";
     devenv.url = "github:cachix/devenv";
@@ -29,7 +30,7 @@
 
     # Import Local Devshell to keep tools consistent
     nix-devshells = {
-      url = "github:kleinbem/nix-devshells";
+      url = "path:./nix-devshells";
       inputs = {
         devenv.follows = "devenv";
         nixpkgs.follows = "nixpkgs";
@@ -112,15 +113,90 @@
       perSystem =
         { system, ... }:
         let
+          pkgs = import inputs.nixpkgs {
+            inherit system;
+            config.allowUnfree = true;
+          };
           packagesFromPresets = inputs.nix-presets.packages.${system} or { };
           packagesFromPackages = inputs.nix-packages.packages.${system} or { };
         in
         {
+          _module.args.pkgs = pkgs;
           packages = packagesFromPackages // packagesFromPresets;
 
-          devenv.shells.default = {
-            imports = [ ./devenv.nix ];
-            _module.args.inputs = inputs;
+          devenv.shells = {
+            default = {
+              imports = [ ./devenv.nix ];
+              _module.args.inputs = inputs;
+            };
+
+            apps = {
+              imports = [ inputs.nix-devshells.devenvModules.apps ];
+              devenv.root = "/home/martin/Develop/github.com/kleinbem/nix";
+              _module.args.inputs = inputs;
+              _module.args.system = system;
+            };
+
+            pentest = {
+              imports = [ inputs.nix-devshells.devenvModules.pentest ];
+              devenv.root = "/home/martin/Develop/github.com/kleinbem/nix";
+              _module.args.inputs = inputs;
+              _module.args.system = system;
+            };
+
+            ai-dev = {
+              imports = [ inputs.nix-devshells.devenvModules.ai-dev ];
+              devenv.root = "/home/martin/Develop/github.com/kleinbem/nix";
+              _module.args.inputs = inputs;
+              _module.args.system = system;
+            };
+
+            math = {
+              imports = [ inputs.nix-devshells.devenvModules.math ];
+              devenv.root = "/home/martin/Develop/github.com/kleinbem/nix";
+              _module.args.inputs = inputs;
+              _module.args.system = system;
+            };
+
+            media = {
+              imports = [ inputs.nix-devshells.devenvModules.media ];
+              devenv.root = "/home/martin/Develop/github.com/kleinbem/nix";
+              _module.args.inputs = inputs;
+              _module.args.system = system;
+            };
+
+            ultimate = {
+              imports = [
+                inputs.nix-devshells.devenvModules.apps
+                inputs.nix-devshells.devenvModules.pentest
+                inputs.nix-devshells.devenvModules.ai-dev
+                inputs.nix-devshells.devenvModules.math
+                inputs.nix-devshells.devenvModules.media
+              ];
+              devenv.root = "/home/martin/Develop/github.com/kleinbem/nix";
+              _module.args.inputs = inputs;
+              _module.args.system = system;
+
+              env = {
+                DEV_SHELL_NAME = "ultimate";
+                STARSHIP_SHELL_SYMBOL = "🌌 ";
+                WORDLISTS = "${inputs.nixpkgs.legacyPackages.${system}.seclists}/share/wordlists";
+              };
+              scripts.inventory.exec = ''
+                echo "$STARSHIP_SHELL_SYMBOL $DEV_SHELL_NAME Inventory (Live Audit):"
+                # Filter for primary binaries (ignore versioned duplicates, aliases, and internal scripts)
+                ls $DEVENV_PROFILE/bin | grep -vE "(-[0-9]|\.sh|@|pkg-config|inventory|process-compose|crityp|typlite|mkoctfile|octave-config)" | sort -u | while read bin; do
+                  # SMOKE TEST: Try to get version, if it fails completely, mark as NOK
+                  version_raw=$($bin --version 2>/dev/null | head -n 1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n 1)
+                  if [ $? -eq 0 ]; then
+                    printf "  ✅ %-15s (%s)\n" "$bin" "''${version_raw:-active}"
+                  else
+                    printf "  ❌ %-15s (BROKEN)\n" "$bin"
+                  fi
+                done
+              '';
+              enterShell = "inventory";
+            };
           };
 
           devShells.ai = inputs.nix-devshells.devShells.${system}.ai;

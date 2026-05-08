@@ -18,7 +18,11 @@
   ];
 
   # Devenv root must be absolute for many features to work correctly
-  devenv.root = lib.mkDefault "/home/martin/Develop/github.com/kleinbem/nix";
+  devenv.root = lib.mkForce "/home/martin/Develop/github.com/kleinbem/nix";
+
+  # --- Prompt Identity ---
+  env.DEV_SHELL_NAME = "meta";
+  env.STARSHIP_SHELL_SYMBOL = "🏗️ ";
 
   # Pass along the flake inputs to imported modules
   _module.args.inputs = inputs;

@@ -8,7 +8,7 @@ import argparse
 from typing import Dict, Any
 
 # ATLAS - Unified Nix Workspace Toolkit
-# V1.1.0 - Best Practice Implementation
+# V1.1.1 - Improved Fleet Visibility
 
 # --- STYLING ---
 BLUE, BOLD, NC = '\033[0;34m', '\033[1m', '\033[0m'
@@ -84,27 +84,43 @@ def cmd_status(engine: AtlasEngine):
     log("Mapping system fleet state...")
     containers = engine.nix_eval("my.containers")
     
+    if "error" in containers:
+        log(f"Fleet mapping failed: {containers['error']}", RED)
+        return
+
     print(f"\n{BLUE}{BOLD}==================== SANCTUARY FLEET STATUS ===================={NC}")
-    print(f"{'Container':<18} | {'Status':<10} | {'Profile':<12} | {'Endpoint':<20}")
-    print(f"{'-'*18}-+-{'-'*10}-+-{'-'*12}-+-{'-'*20}")
+    print(f"{'Container':<16} | {'Def':<3} | {'Status':<10} | {'Profile':<15} | {'IP':<15} | {'Endpoint':<20}")
+    print(f"{'-'*16}-+-{'-'*3}-+-{'-'*10}-+-{'-'*15}-+-{'-'*15}-+-{'-'*20}")
 
     for name, cfg in sorted(containers.items()):
-        if "error" in containers: break
+        # skip metadata if any
+        if not isinstance(cfg, dict): continue
         
-        # Systemd Check
+        # 1. Config Information
+        is_enabled = cfg.get("enable", False)
+        def_text = f"{GREEN}YES{NC}" if is_enabled else f"{NC}no{NC}"
+        ip = cfg.get("ip", "---").split("/")[0]
+        
+        # 2. Running Information
         unit = f"container@{name}.service"
         active = subprocess.run(["systemctl", "is-active", unit], capture_output=True, text=True).stdout.strip()
         
         color = GREEN if active == "active" else NC
         status = "RUNNING" if active == "active" else "Stopped"
+        if active == "failed":
+            status = "FAILED"
+            color = RED
         
-        # Logical Profile Mapping
-        if name in ["ollama", "n8n", "agent-team"]: tag = f"{MAGENTA}AI/WORK{NC}"
-        elif cfg.get("enable", False): tag = f"{BLUE}CORE{NC}"
+        # 3. Scope / Profile Mapping
+        if name in ["ollama", "n8n", "agent-team", "agent-zero", "open-webui"]: tag = f"{MAGENTA}AI/WORK{NC}"
+        elif name in ["vllm", "comfyui", "langflow", "langfuse", "litellm", "qdrant", "openclaw"]: tag = f"{MAGENTA}AI{NC}"
+        elif name in ["syncthing", "obsidian-web"]: tag = f"{CYAN}NOTES{NC}"
+        elif name in ["caddy", "dashboard", "monitoring", "loki", "falco", "netdata", "cups"]: tag = f"{BLUE}CORE{NC}"
         else: tag = f"{NC}WORKLOAD{NC}"
 
         endpoint = f"https://{name}.local" if active == "active" else "---"
-        print(f"{color}{name:<18}{NC} | {color}{status:<10}{NC} | {tag:<21} | {endpoint}")
+        
+        print(f"{color}{name:<16}{NC} | {def_text:<12} | {color}{status:<10}{NC} | {tag:<24} | {ip:<15} | {endpoint}")
     print(f"{BLUE}{BOLD}================================================================{NC}\n")
 
 def cmd_mcp_launch(engine: AtlasEngine, server, command):

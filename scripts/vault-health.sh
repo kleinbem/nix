@@ -3,7 +3,7 @@
 # Obsidian Vault Health Check
 # Purpose: Identify sync conflicts, large files, and potential issues in the vault.
 
-VAULT_PATH="$HOME/GoogleDrive/Obsidian/MyVault"
+VAULT_PATH="$HOME/Documents/Notes"
 
 if [ ! -d "$VAULT_PATH" ]; then
   echo "❌ Error: Vault not found at $VAULT_PATH"
@@ -47,7 +47,7 @@ if [ -d "$VAULT_PATH/.obsidian" ]; then
 fi
 
 # 5. Backup Check (Simulated)
-# Since the vault is on GDrive, we assume cloud versioning is active.
+# Since the vault is on Obsidian Sync, we assume cloud versioning is active.
 # But we should remind the user to check their secondary backup.
 echo "🔄 Reminder: Check your secondary backup (Obsidian Git or Restic)."
 

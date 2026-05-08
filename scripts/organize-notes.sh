@@ -3,11 +3,11 @@
 # Obsidian PARA Organization Script
 # Purpose: Moves files from the root to a PARA structure.
 
-VAULT_PATH="$HOME/GoogleDrive/Obsidian/MyVault"
+VAULT_PATH="$HOME/Documents/Notes"
 
 if [ ! -d "$VAULT_PATH" ]; then
-  echo "❌ Error: Vault not found at $VAULT_PATH"
-  exit 1
+  echo "📂 Creating Obsidian Vault directory at $VAULT_PATH..."
+  mkdir -p "$VAULT_PATH"
 fi
 
 echo "📂 Organizing Vault: $VAULT_PATH"
