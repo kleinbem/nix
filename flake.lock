@@ -1641,7 +1641,6 @@
         "type": "github"
       }
     },
-    },
     "ghostty": {
       "inputs": {
         "flake-compat": "flake-compat_4",
