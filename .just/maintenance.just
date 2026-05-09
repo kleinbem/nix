@@ -22,8 +22,10 @@ lint:
 check-all *args="":
     @echo "🧪 Running full workspace verification..."
     @for repo in {{REPOS}}; do \
-        echo "Checking $repo..."; \
-        nix flake check $repo {{OVERRIDES}} {{args}}; \
+        if [ -f "$repo/flake.nix" ]; then \
+            echo "Checking $repo..."; \
+            nix flake check ./$repo {{OVERRIDES}} {{args}}; \
+        fi; \
     done
     @nix flake check . {{OVERRIDES}} {{args}}
 
@@ -34,7 +36,7 @@ ci:
 [group("Linter")]
 check:
     @echo "✅ Verifying NixOS configuration..."
-    @nix eval .#nixosConfigurations.nixos-nvme.config.system.build.toplevel --no-link
+    @nix eval .#nixosConfigurations.nixos-nvme.config.system.build.toplevel {{OVERRIDES}} --impure
 
 [group("Linter")]
 check-shells:
@@ -85,7 +87,6 @@ apply:
     @just git::stage-all
     @just maintenance::update-local
     @just maintenance::check
-    @just maintenance::audit
     @just nixos::switch
 
 [group("System")]

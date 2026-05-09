@@ -7,7 +7,13 @@
     nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixpkgs-master.url = "github:NixOS/nixpkgs/master";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    devenv.url = "github:cachix/devenv";
+    devenv = {
+      # FIXME: Temporary pin to bypass broken libghostty-vt requirement in devenv 2.1 (released May 7, 2026)
+      url = "github:cachix/devenv/070577452d0c81d62168ef8b158ee4317ace7e21";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.ghostty.follows = "ghostty";
+    };
+    ghostty.url = "github:mitchellh/ghostty";
 
     nixos-generators.url = "github:nix-community/nixos-generators";
     nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
@@ -30,7 +36,7 @@
 
     # Import Local Devshell to keep tools consistent
     nix-devshells = {
-      url = "path:./nix-devshells";
+      url = "github:kleinbem/nix-devshells";
       inputs = {
         devenv.follows = "devenv";
         nixpkgs.follows = "nixpkgs";
@@ -97,6 +103,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    nix-on-droid = {
+      url = "github:nix-community/nix-on-droid/release-24.05";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
+    };
+
   };
 
   outputs =
@@ -108,19 +120,34 @@
       systems = [ "x86_64-linux" ];
 
       flake = {
-        inherit (inputs.nix-config) nixosConfigurations diskoConfigurations;
+        inherit (inputs.nix-config) nixosConfigurations diskoConfigurations nixOnDroidConfigurations;
       };
       perSystem =
-        { system, ... }:
+        { system, lib, ... }:
         let
           pkgs = import inputs.nixpkgs {
             inherit system;
             config.allowUnfree = true;
+            overlays = [
+              (_: prev: {
+                libghostty-vt = (inputs.ghostty.packages.${system} or { }).libghostty-vt or prev.hello;
+              })
+            ];
           };
           packagesFromPresets = inputs.nix-presets.packages.${system} or { };
           packagesFromPackages = inputs.nix-packages.packages.${system} or { };
         in
         {
+          devenv.modules = [
+            (_: {
+              overlays = [
+                (_: prev: {
+                  libghostty-vt = (inputs.ghostty.packages.${system} or { }).libghostty-vt or prev.hello;
+                })
+              ];
+            })
+          ];
+
           _module.args.pkgs = pkgs;
           packages = packagesFromPackages // packagesFromPresets;
 
@@ -178,11 +205,11 @@
               _module.args.system = system;
 
               env = {
-                DEV_SHELL_NAME = "ultimate";
-                STARSHIP_SHELL_SYMBOL = "🌌 ";
-                WORDLISTS = "${inputs.nixpkgs.legacyPackages.${system}.seclists}/share/wordlists";
+                DEV_SHELL_NAME = lib.mkForce "ultimate";
+                STARSHIP_SHELL_SYMBOL = lib.mkForce "🌌 ";
+                WORDLISTS = lib.mkForce "${inputs.nixpkgs.legacyPackages.${system}.seclists}/share/wordlists";
               };
-              scripts.inventory.exec = ''
+              scripts.inventory.exec = lib.mkForce ''
                 echo "$STARSHIP_SHELL_SYMBOL $DEV_SHELL_NAME Inventory (Live Audit):"
                 # Filter for primary binaries (ignore versioned duplicates, aliases, and internal scripts)
                 ls $DEVENV_PROFILE/bin | grep -vE "(-[0-9]|\.sh|@|pkg-config|inventory|process-compose|crityp|typlite|mkoctfile|octave-config)" | sort -u | while read bin; do

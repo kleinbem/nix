@@ -606,11 +606,11 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1777835512,
-        "narHash": "sha256-ozkaS1NFB3pTURXfSilzr/cDSestr76gCFkXQU/DaFI=",
+        "lastModified": 1778268099,
+        "narHash": "sha256-HRgiMUZWhlnYfOxRhP4qc9hXdzjYlpB4ruukbgEIRTY=",
         "owner": "cachix",
         "repo": "devenv",
-        "rev": "65b7ea396aff4d5a049e5fda94f58b2f1b11fbfb",
+        "rev": "6f9e328de0bdd800ca458f7d99fce8207082a5f6",
         "type": "github"
       },
       "original": {
@@ -3014,22 +3014,20 @@
         "nixpkgs": [
           "nixpkgs"
         ],
+        "nixpkgs-master": "nixpkgs-master",
         "pre-commit-hooks": "pre-commit-hooks_6",
         "rust-overlay": "rust-overlay_5",
         "treefmt-nix": "treefmt-nix_4"
       },
       "locked": {
-        "lastModified": 1777664239,
-        "narHash": "sha256-ODgHhat+tLvImhsMdGjLhacxybuZ9eWEoZwX3pcJtwA=",
-        "owner": "kleinbem",
-        "repo": "nix-devshells",
-        "rev": "a88885f87c47e93986a7a4206ccda93c88dacf60",
-        "type": "github"
+        "lastModified": 1778276419,
+        "narHash": "sha256-yHYpVjbP546rN1yDIIJMbLoYSueqexpdoQFi7omuTGI=",
+        "path": "/home/martin/Develop/github.com/kleinbem/nix/nix-devshells",
+        "type": "path"
       },
       "original": {
-        "owner": "kleinbem",
-        "repo": "nix-devshells",
-        "type": "github"
+        "path": "./nix-devshells",
+        "type": "path"
       }
     },
     "nix-devshells_2": {
@@ -3899,6 +3897,22 @@
       }
     },
     "nixpkgs-master": {
+      "locked": {
+        "lastModified": 1778157685,
+        "narHash": "sha256-3EFipbkwe9g3aB1A2J1NvK3qzK2hFwrQmByX9YnSyqY=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "6d9f1254ac1e66cdc23978ec37e5bd02e91b787e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "master",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs-master_2": {
       "locked": {
         "lastModified": 1777844074,
         "narHash": "sha256-qeODy+W67T6lXQukFdGrjvQC1epnIl1464ft4b43onY=",
@@ -4791,7 +4805,7 @@
         "nix2container": "nix2container_3",
         "nixos-generators": "nixos-generators_3",
         "nixpkgs": "nixpkgs_24",
-        "nixpkgs-master": "nixpkgs-master",
+        "nixpkgs-master": "nixpkgs-master_2",
         "nixpkgs-stable": "nixpkgs-stable_2",
         "sops-nix": "sops-nix"
       }

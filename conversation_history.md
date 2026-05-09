@@ -1,9 +1,21 @@
 # Rebuilt Conversation History
 
-Generated on: 2026-05-08T19:29:06.296540+00:00
+Generated on: 2026-05-09T17:02:07.373127+00:00
 
 | Last Updated | ID | Summary | Sources | Artifacts |
 | :--- | :--- | :--- | :--- | :--- |
+| 2026-05-09 17:01 | `0d99a1fd...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-05-09 16:53 | `2051080e...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-05-09 16:10 | `817d9874...` | *(Raw session data)* | conversations, implicit | 0 |
+| 2026-05-09 13:49 | `9716f243...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-05-08 19:58 | `1d5ee4b3...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-05-08 19:53 | `bd81c7ab...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-05-08 19:52 | `f6c4a733...` | *(Raw session data)* | conversations, implicit | 0 |
+| 2026-05-08 19:48 | `47626dd3...` | *(Raw session data)* | conversations, implicit | 0 |
+| 2026-05-08 19:41 | `8d930fb2...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-05-08 19:37 | `227267df...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-05-08 19:36 | `441becfe...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
+| 2026-05-08 19:35 | `35f01f81...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
 | 2026-05-08 18:29 | `2b65cf96...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 1 |
 | 2026-05-08 18:17 | `ef025823...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
 | 2026-05-08 18:02 | `d0b52f63...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
@@ -34,7 +46,6 @@ Generated on: 2026-05-08T19:29:06.296540+00:00
 | 2026-05-05 15:50 | `9e688f05...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
 | 2026-05-05 12:28 | `0ede72f9...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 1 |
 | 2026-05-05 11:42 | `2b4613e3...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
-| 2026-05-05 11:42 | `817d9874...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-05-05 08:10 | `6d9417aa...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 1 |
 | 2026-05-04 23:13 | `dc5993ae...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 1 |
 | 2026-05-04 21:46 | `70128eb1...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
@@ -53,8 +64,6 @@ Generated on: 2026-05-08T19:29:06.296540+00:00
 | 2026-05-01 20:53 | `37d87f65...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
 | 2026-05-01 20:23 | `0a4096fe...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
 | 2026-05-01 19:47 | `8cb92858...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
-| 2026-05-01 19:40 | `f6c4a733...` | *(Raw session data)* | conversations, implicit | 0 |
-| 2026-05-01 19:37 | `47626dd3...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-05-01 19:37 | `4c017ca3...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-05-01 19:36 | `5b0d7211...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-05-01 19:35 | `154dd258...` | *(Raw session data)* | conversations, implicit | 0 |
@@ -97,15 +106,9 @@ Generated on: 2026-05-08T19:29:06.296540+00:00
 | 2026-04-24 20:29 | `9d2e47f8...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
 | 2026-04-24 19:10 | `662cd369...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
 | 2026-04-24 16:21 | `1b8a2bf2...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 1 |
-| 2026-04-24 12:43 | `b5b2c520...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
-| 2026-04-24 11:18 | `e5ad3f1b...` | Implementation plan to optimize the Obsidian setup for better integration, automation, and "lazy-... | brain, conversations | 28 |
-| 2026-04-24 11:09 | `2cfaed38...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
 | 2026-04-24 11:08 | `3951d7ca...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-04-24 09:59 | `e31bdbc3...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-04-24 09:59 | `4268f219...` | *(Raw session data)* | conversations, implicit | 0 |
-| 2026-04-24 09:59 | `8cf1951e...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 1 |
-| 2026-04-23 15:17 | `b2e582f4...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 1 |
-| 2026-04-23 09:57 | `8d0ffeb8...` | {"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-0... | brain, conversations | 0 |
 | 2026-04-20 10:35 | `0f6ceaaf...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-04-20 10:29 | `2dc95d27...` | *(Raw session data)* | conversations, implicit | 0 |
 | 2026-04-20 10:29 | `35fe8a34...` | *(Raw session data)* | conversations, implicit | 0 |
