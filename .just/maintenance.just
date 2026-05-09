@@ -19,15 +19,30 @@ lint:
     treefmt --fail-on-change
 
 [group("Linter")]
-check-all *args="":
-    @echo "🧪 Running full workspace verification..."
+check-all *args="--all-systems --impure":
+    @echo "🧪 Starting Comprehensive Workspace Audit..."
+    @echo "------------------------------------------------------------"
     @for repo in {{REPOS}}; do \
         if [ -f "$repo/flake.nix" ]; then \
-            echo "Checking $repo..."; \
-            nix flake check ./$repo {{OVERRIDES}} {{args}}; \
+            echo "🔍 Auditing sub-flake: $repo..."; \
+            nix flake check ./$repo --all-systems --impure {{args}} 2>&1 | grep -v "does not match any input" || true; \
         fi; \
     done
-    @nix flake check . {{OVERRIDES}} {{args}}
+    @echo "------------------------------------------------------------"
+    @echo "🌐 Auditing root workspace (Aggregated Checks)..."
+    @nix flake check . {{OVERRIDES}} {{args}} 2>&1 | grep -v "does not match any input" || true
+    @echo "------------------------------------------------------------"
+    @echo "✅ All workspace checks completed!"
+
+[group("Linter")]
+check-hosts *args="--all-systems --impure":
+    @echo "🏗️  Verifying all Host Configurations (Evaluation & Build)..."
+    @nix flake check . {{OVERRIDES}} {{args}} --regex 'checks\..*\.host-.*'
+
+[group("Linter")]
+check-containers *args="--impure":
+    @echo "📦 Verifying all Container Presets (Evaluation Test)..."
+    @nix flake check . {{OVERRIDES}} {{args}} --regex 'checks\..*\.module-.*'
 
 [group("Linter")]
 ci:

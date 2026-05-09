@@ -229,6 +229,18 @@
           devShells.ai = inputs.nix-devshells.devShells.${system}.ai;
 
           formatter = inputs.nix-devshells.formatter.${system};
+
+          # ---------------------------------------------------------
+          # Aggregated Workspace Checks
+          # ---------------------------------------------------------
+          # Combines checks from all sub-flakes to allow 'nix flake check'
+          # at the root to verify the entire workspace.
+          checks =
+            (inputs.nix-config.checks.${system} or { })
+            // (inputs.nix-presets.checks.${system} or { })
+            // (inputs.nix-packages.checks.${system} or { })
+            // (inputs.nix-devshells.checks.${system} or { })
+            // (inputs.nix-templates.checks.${system} or { });
         };
     };
 }
