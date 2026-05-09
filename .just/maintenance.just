@@ -37,12 +37,12 @@ check-all *args="--all-systems --impure":
 [group("Linter")]
 check-hosts *args="--all-systems --impure":
     @echo "🏗️  Verifying all Host Configurations (Evaluation & Build)..."
-    @nix flake check . {{OVERRIDES}} {{args}} --regex 'checks\..*\.host-.*'
+    @nix flake check ./nix-config {{OVERRIDES}} {{args}}
 
 [group("Linter")]
 check-containers *args="--impure":
     @echo "📦 Verifying all Container Presets (Evaluation Test)..."
-    @nix flake check . {{OVERRIDES}} {{args}} --regex 'checks\..*\.module-.*'
+    @nix flake check ./nix-presets {{OVERRIDES}} {{args}}
 
 [group("Linter")]
 ci:
