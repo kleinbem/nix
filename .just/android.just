@@ -57,6 +57,20 @@ phone-ip:
     @DETECTED_IP=$(adb -s {{PHONE_SERIAL}} shell ip addr show wlan0 2>/dev/null | grep "inet " | awk '{print $2}' | cut -d/ -f1 | head -n 1 || true); \
     echo ${DETECTED_IP:-"{{PHONE_IP}}"}
 
+[group("Phone")]
+phone-sync:
+    @echo "🔄 Syncing phone configuration locks..."
+    @nix flake lock --update-input nix-config
+    @git add flake.lock
+    @git commit -m "chore(phone): sync nix-config lock" || echo "Already synced."
+    @git push
+
+[group("Phone")]
+phone-deploy:
+    @just android::phone-sync
+    @echo "📡 Triggering update on phone via ADB..."
+    @adb -s {{PHONE_SERIAL}} shell "export PATH=\$PATH:/data/data/com.termux.nix/files/home/.nix-profile/bin; cd ~/nix && git pull && nix-on-droid switch --flake .#phone --impure"
+
 # --- Dhirujaan's Phone Management ---
 
 [group("Dhirujaan")]
