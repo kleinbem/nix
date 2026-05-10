@@ -35,7 +35,7 @@ check-all *args="--all-systems --impure":
     @echo "✅ All workspace checks completed!"
 
 [group("Linter")]
-check-hosts *args="--all-systems --impure":
+check-hosts *args="--impure":
     @echo "🏗️  Verifying all Host Configurations (Evaluation & Build)..."
     @nix flake check ./nix-config {{OVERRIDES}} {{args}}
 

@@ -71,6 +71,35 @@ phone-deploy:
     @echo "📡 Triggering update on phone via ADB..."
     @adb -s {{PHONE_SERIAL}} shell "export PATH=\$PATH:/data/data/com.termux.nix/files/home/.nix-profile/bin; cd ~/nix && git pull && nix-on-droid switch --flake .#phone --impure"
 
+[group("Phone")]
+phone-push-all:
+    @echo "📦 Pushing entire configuration to phone..."
+    @adb push ~/Develop/github.com/kleinbem/nix/nix-config /sdcard/Download/ || true
+    @adb push ~/Develop/github.com/kleinbem/nix/nix-presets /sdcard/Download/ || true
+    @adb push ~/Develop/github.com/kleinbem/nix/nix-packages /sdcard/Download/ || true
+    @adb push ~/Develop/github.com/kleinbem/nix/nix-devshells /sdcard/Download/ || true
+    @adb push ~/Develop/github.com/kleinbem/nix/nix-hardware /sdcard/Download/ || true
+    @adb push ~/Develop/github.com/kleinbem/nix/nix-templates /sdcard/Download/ || true
+    @adb push ~/Develop/github.com/kleinbem/nix/nix-secrets /sdcard/Download/ || true
+
+[group("Phone")]
+phone-sync-all:
+    @just android::phone-push-all
+    @echo "🔄 Moving files and building on phone..."
+    @adb -s {{PHONE_SERIAL}} shell " \
+        mkdir -p /data/data/com.termux.nix/files/home/nix/nix-config /data/data/com.termux.nix/files/home/nix/nix-presets /data/data/com.termux.nix/files/home/nix/nix-packages /data/data/com.termux.nix/files/home/nix/nix-devshells /data/data/com.termux.nix/files/home/nix/nix-hardware /data/data/com.termux.nix/files/home/nix/nix-templates /data/data/com.termux.nix/files/home/nix/nix-secrets; \
+        cp -rf /sdcard/Download/nix-config/. /data/data/com.termux.nix/files/home/nix/nix-config/ && \
+        cp -rf /sdcard/Download/nix-presets/. /data/data/com.termux.nix/files/home/nix/nix-presets/ && \
+        cp -rf /sdcard/Download/nix-packages/. /data/data/com.termux.nix/files/home/nix/nix-packages/ && \
+        cp -rf /sdcard/Download/nix-devshells/. /data/data/com.termux.nix/files/home/nix/nix-devshells/ && \
+        cp -rf /sdcard/Download/nix-hardware/. /data/data/com.termux.nix/files/home/nix/nix-hardware/ && \
+        cp -rf /sdcard/Download/nix-templates/. /data/data/com.termux.nix/files/home/nix/nix-templates/ && \
+        cp -rf /sdcard/Download/nix-secrets/. /data/data/com.termux.nix/files/home/nix/nix-secrets/ && \
+        cd /data/data/com.termux.nix/files/home/nix/nix-config && git add . && \
+        cd /data/data/com.termux.nix/files/home/nix && git add . && \
+        /data/data/com.termux.nix/files/home/.nix-profile/bin/nix build '.#nixOnDroidConfigurations.phone.activationPackage' --impure --override-input nix-config ./nix-config \
+    "
+
 # --- Dhirujaan's Phone Management ---
 
 [group("Dhirujaan")]
