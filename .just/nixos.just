@@ -80,3 +80,19 @@ mode name:
 [group("Modes")]
 reset-mode *args="":
     @nh os switch . -- {{OVERRIDES}} {{args}}
+
+[group("Debugging")]
+verify-caddy:
+    @echo "🔍 Verifying Caddy Gateway..."
+    @for i in {1..5}; do curl -k -s https://10.85.46.107 > /dev/null && echo "✅ Caddy is responsive" && exit 0 || echo "⏳ Waiting for Caddy... ($i/5)" && sleep 2; done
+    @echo "❌ Caddy is NOT responsive. Checking status..."
+    @systemctl status container@caddy.service --no-pager || true
+    @echo "📜 Recent Logs:"
+    @journalctl -u container@caddy.service -n 20 --no-pager
+
+[group("Development")]
+topology:
+    @echo "🗺️ Rendering Infrastructure Topology..."
+    @nix build .#topology.x86_64-linux.config.build.svg --no-link --print-out-paths > /tmp/topo-path
+    @echo "✅ Rendered to: $(cat /tmp/topo-path)/main.svg"
+    @if [ -n "$DISPLAY" ]; then xdg-open "$(cat /tmp/topo-path)/main.svg"; else echo "🔗 File path: $(cat /tmp/topo-path)/main.svg"; fi

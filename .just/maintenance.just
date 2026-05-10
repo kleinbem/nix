@@ -171,6 +171,15 @@ sync-agent:
     @./scripts/sync-agent-context.sh
 
 [group("Updates")]
+lock-refresh:
+    @echo "🔄 Refreshing all sub-flake lock files..."
+    @for repo in {{REPOS}}; do \
+        if [ -f "$repo/flake.nix" ]; then \
+            echo "Updating $repo..."; \
+            nix flake update --flake "./$repo" || echo "Failed to update $repo"; \
+        fi; \
+    done
+
 update-all *args="":
     @echo "🚀 Starting Comprehensive System Update (Bluefin Style)..."
     @nix flake update {{args}}

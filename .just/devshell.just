@@ -30,3 +30,8 @@ apps:
 ultimate:
     @echo "🌌 Entering Ultimate DevShell..."
     @nix develop .#ultimate
+
+[group("Shells")]
+arm:
+    @echo "📱 Entering ARM-Specific Shell..."
+    @nix develop .#arm
