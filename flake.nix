@@ -46,7 +46,7 @@
 
     # Import NixOS Config to expose systems at root
     nix-config = {
-      url = "github:kleinbem/nix-config";
+      url = "path:./nix-config";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         nixpkgs-master.follows = "nixpkgs-master";
@@ -62,7 +62,7 @@
     };
 
     nix-presets = {
-      url = "github:kleinbem/nix-presets";
+      url = "path:./nix-presets";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         nix-devshells.follows = "nix-devshells";
@@ -149,7 +149,13 @@
           ];
 
           _module.args.pkgs = pkgs;
-          packages = packagesFromPackages // packagesFromPresets;
+          packages =
+            packagesFromPackages
+            // packagesFromPresets
+            // {
+              atlas = pkgs.callPackage ./scripts/default.nix { };
+              inherit (inputs.nix-config.packages.${system}) router-1-image;
+            };
 
           devenv.shells = {
             default = {

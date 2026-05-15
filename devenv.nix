@@ -1,5 +1,6 @@
 {
   lib,
+  pkgs,
   inputs ? { },
   ...
 }:
@@ -21,8 +22,11 @@
   devenv.root = lib.mkForce "/home/martin/Develop/github.com/kleinbem/nix";
 
   # --- Prompt Identity ---
-  env.DEV_SHELL_NAME = "meta";
-  env.STARSHIP_SHELL_SYMBOL = "🏗️ ";
+  env = {
+    DEV_SHELL_NAME = "meta";
+    NIXPKGS_ALLOW_UNFREE = "1";
+    STARSHIP_SHELL_SYMBOL = "🏗️ ";
+  };
 
   # Pass along the flake inputs to imported modules
   _module.args.inputs = inputs;
@@ -42,6 +46,18 @@
     devenv tasks run workspace:health
     popd > /dev/null
   '';
+
+  packages = [
+    (pkgs.python3.withPackages (
+      p: with p; [
+        mcp
+        psutil
+        requests
+        google-api-python-client
+        google-auth-oauthlib
+      ]
+    ))
+  ];
 
   # Tasks (Run things before entering the shell or on demand)
   tasks."workspace:health" = {
