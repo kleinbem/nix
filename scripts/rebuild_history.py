@@ -14,10 +14,13 @@ KNOWLEDGE_DIR = ".agent/knowledge"
 OUTPUT_FILE = "conversation_history.md"
 
 def sanitize_filename(text):
+    if not text: return "untitled"
+    # Remove XML tags like <USER_REQUEST>
+    text = re.sub(r'<[^>]+>', '', text)
     text = text.lower()
     text = re.sub(r'[^\w\s-]', '', text)
     text = re.sub(r'[\s]+', '-', text)
-    return text[:50]
+    return text.strip('-')[:50]
 
 def get_conversation_data():
     convs = {}
@@ -67,8 +70,26 @@ def get_conversation_data():
                         with open(overview_path, 'r') as f:
                             first_line = f.readline().strip()
                             if first_line:
-                                first_line = re.sub(r'^USER: ', '', first_line)
-                                conv_data["summaries"].append(first_line)
+                                # Handle JSON format
+                                if first_line.startswith('{'):
+                                    try:
+                                        msg_data = json.loads(first_line)
+                                        content = msg_data.get("content", "")
+                                        # Extract from <USER_REQUEST> if present
+                                        match = re.search(r'<USER_REQUEST>(.*?)</USER_REQUEST>', content, re.DOTALL)
+                                        if match:
+                                            summary = match.group(1).strip().split('\n')[0]
+                                        else:
+                                            summary = content.strip().split('\n')[0]
+                                        
+                                        if summary:
+                                            conv_data["summaries"].append(summary)
+                                    except Exception:
+                                        pass
+                                else:
+                                    # Handle legacy format
+                                    first_line = re.sub(r'^USER: ', '', first_line)
+                                    conv_data["summaries"].append(first_line)
                     except Exception:
                         pass
 

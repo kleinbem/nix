@@ -15,5 +15,7 @@
 - **Dependency Flow**: `nix-config` consumes other local flakes.
 
 ## System Context
-- **Ground Truth**: Always check `nix-config/docs/SYSTEM_REFERENCE.md` to find current `nixpkgs` revisions and service maps.
+- **Ground Truth**: Always check `nix-config/docs/SYSTEM_REFERENCE.md` to find current `nixpkgs` revisions and service maps. For router-specific hardware and network maps, see `../openwrt/docs/SYSTEM_REFERENCE.md`.
+- **Inventory Owner**: This repository owns the `nix-config/inventory.nix`, which is the master source for both NixOS and OpenWrt infrastructure.
+- **Router Management**: Use `just deployment::router-provision` and `just deployment::deploy-router-lxc` for network-level operations.
 - **Sync**: If the reference seems outdated, run `just maintenance::sync-agent`.

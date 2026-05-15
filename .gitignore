@@ -8,6 +8,17 @@
 # Build Results
 result
 result-*
+result_*
+
+# Temporary Files
+*.bak
+*.tar
+*.gz
+*.tmp
+*.log
+*.qcow2
+cpu_usage.txt
+mem_usage.txt
 
 # OS Metadata
 .DS_Store
@@ -21,11 +32,6 @@ result-*
 # Secrets
 .env
 .envrc.local
-
-# Logs
-*.log
-cpu_usage.txt
-mem_usage.txt
 
 # VS Code Workspace State
 state.vscdb*

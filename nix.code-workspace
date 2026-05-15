@@ -33,6 +33,14 @@
       "path": "./nix-secrets"
     },
     {
+      "name": "Router Config (Ansible)",
+      "path": "/home/martin/Develop/github.com/kleinbem/openwrt/openwrt-config"
+    },
+    {
+      "name": "Router Secrets",
+      "path": "/home/martin/Develop/github.com/kleinbem/openwrt/openwrt-secrets"
+    },
+    {
       "name": "Antigravity (Memory)",
       "path": "/home/martin/.gemini/antigravity"
     },
@@ -59,6 +67,30 @@
     {
       "name": "Obsidian Vault",
       "path": "/home/martin/GoogleDrive/Obsidian/MyVault"
+    },
+    {
+      "name": "System Logs",
+      "path": "/var/log"
+    },
+    {
+      "name": "Container State",
+      "path": "/var/lib/containers"
+    },
+    {
+      "name": "Nix Profiles",
+      "path": "/nix/var/nix/profiles"
+    },
+    {
+      "name": "Global Nix Config",
+      "path": "/etc/nix"
+    },
+    {
+      "name": "Sops State",
+      "path": "/var/lib/sops"
+    },
+    {
+      "name": "Local Bin",
+      "path": "/home/martin/.local/bin"
     }
   ],
   "settings": {
@@ -76,12 +108,17 @@
       "**/result-*": true,
       "nix-*": true
     },
+    "files.associations": {
+      "Justfile": "makefile",
+      "*.nix": "nix"
+    },
     "[nix]": {
       "editor.defaultFormatter": "jnoortheen.nix-ide"
     },
     "nix.enableLanguageServer": true,
     "nix.serverPath": "nixd",
     "nix.formatterPath": "nixfmt",
-    "nixEnvSelector.nixFile": "${workspaceFolder}/flake.nix"
+    "nixEnvSelector.nixFile": "${workspaceFolder}/flake.nix",
+    "nixEnvSelector.useFlakes": true
   }
 }

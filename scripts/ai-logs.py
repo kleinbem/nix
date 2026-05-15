@@ -52,11 +52,29 @@ def main():
     parser.add_argument("-u", "--unit", type=str, help="Specific systemd unit to filter by")
     parser.add_argument("-m", "--machine", type=str, help="Filter by NixOS container/machine name")
     parser.add_argument("--json", action="store_true", help="Output in raw JSON format")
+    parser.add_argument("--sink", action="store_true", help="Update the persistent health sink")
     
     args = parser.parse_args()
     
     logs = get_recent_errors(args.lines, args.unit, args.machine)
     
+    # Update health sink if requested
+    if args.sink:
+        import os
+        sink_path = os.path.expanduser("~/.cache/ai-health.json")
+        try:
+            os.makedirs(os.path.dirname(sink_path), exist_ok=True)
+            with open(sink_path, "w") as f:
+                summary = {
+                    "last_check": datetime.now().isoformat(),
+                    "error_count": len(logs) if isinstance(logs, list) else 0,
+                    "status": "Healthy" if not logs else "Degraded",
+                    "recent_units": list(set([l.get("unit") for l in logs])) if isinstance(logs, list) else []
+                }
+                json.dump(summary, f, indent=2)
+        except Exception as e:
+            print(f"Warning: Failed to update sink: {e}", file=sys.stderr)
+
     if args.json:
         print(json.dumps(logs, indent=2))
     else:

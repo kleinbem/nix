@@ -18,7 +18,7 @@ deploy-orin:
 [group("Fleet")]
 deploy-edge:
     @echo "📡 Deploying to AI Edge (Orin + Raspberry Pi)..."
-    colmena apply --on orin-nano,rpi5-1,rpi5-2
+    colmena apply --on orin-nano,core-pi,hass-pi
 
 [group("Status")]
 fleet mode="minimal":
@@ -54,8 +54,31 @@ orin-install target="root@orin-nano.local":
     @nix run github:nix-community/disko -- --mode zap_create_mount ./hosts/orin-nano/disko.nix
     @nixos-install --flake .#orin-nano --target-host {{target}}
 
-[group("Security")]
+[group("Provisioning")]
 [confirm("🔐 Seal the TPM key on the Orin Nano? This can only be done once after boot.")]
 orin-seal:
     @echo "🔐 Sealing Orin Nano TPM keys..."
     @ssh root@orin-nano.local "tpm2_pcrseal -g sha256 -l 7 -o /persist/tpm-seal.bin"
+
+# --- Router LXC ---
+
+[group("Router")]
+deploy-router-lxc host="router-1":
+    @echo "🏗️ Building LXC image for {{host}}..."
+    nix build ".#{{host}}-image" --out-link result-{{host}}
+    @echo "📦 Uploading to Router B (192.168.1.2)..."
+    # nixos-generators LXC format produces a tarball in result/tarball/
+    scp result-{{host}}/tarball/*.tar.xz root@192.168.1.2:/srv/lxc/nixos-{{host}}.tar.xz
+    @echo "🚀 Activating container on router..."
+    ssh root@192.168.1.2 "lxc-stop -n {{host}} || true; mkdir -p /srv/lxc/{{host}}/rootfs; tar -xf /srv/lxc/nixos-{{host}}.tar.xz -C /srv/lxc/{{host}}/rootfs; lxc-start -n {{host}}"
+    @echo "✅ Deployment of {{host}} complete."
+
+[group("Router")]
+router-secrets file="site.yml":
+    @echo "🔐 Editing OpenWrt secrets: {{file}}..."
+    @cd ../openwrt/openwrt-secrets && sops {{file}}
+
+[group("Router")]
+router-provision:
+    @echo "⚙️  Provisioning OpenWrt routers via Ansible..."
+    @cd ../openwrt/openwrt-config && just provision

@@ -67,6 +67,12 @@ ai-init-safe:
     @systemctl start vllm.service
     @echo "✅ AI Stack Ready."
 
+[group("Development")]
+ai-provision-models:
+    @echo "📥 Pulling recommended local models..."
+    @ollama pull nomic-embed-text
+    @ollama pull llama3:8b
+
 [group("Status")]
 ai-health-fleet:
     @just ai::ai-check

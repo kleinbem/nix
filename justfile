@@ -9,6 +9,7 @@ mod ai '.just/ai.just'
 mod deployment '.just/deployment.just'
 mod maintenance '.just/maintenance.just'
 mod devshell '.just/devshell.just'
+mod orin '.just/orin.just'
 
 [group("Main")]
 default:
@@ -35,6 +36,14 @@ phone *args:
     @just android::phone {{args}}
 
 [group("Main")]
+phone-push:
+    @just android::phone-push
+
+[group("Main")]
+phone-backup-fetch:
+    @just android::phone-backup-fetch
+
+[group("Main")]
 tablet *args:
     @just android::tablet {{args}}
 
@@ -55,6 +64,7 @@ hub:
         else if ($1 ~ /^devshell::/) icon="💻";
         else if ($1 ~ /^deployment::/) icon="🚀";
         else if ($1 ~ /^maintenance::/) icon="🧹";
+        else if ($1 ~ /^orin::/) icon="🏎️";
         else if ($1 ~ /^(status|switch|phone|tablet|apply)/) icon="✨";
         print icon " " $1
     }')

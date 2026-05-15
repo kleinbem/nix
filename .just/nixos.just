@@ -8,25 +8,25 @@ set working-directory := ".."
 switch mode="" *args="":
     @echo "🏗️ Switching System Configuration..."
     @if [ -n "{{mode}}" ]; then \
-        nh os switch . --specialisation {{mode}} -- {{OVERRIDES}} {{args}}; \
+        {{TIMER}} nh os switch . --specialisation {{mode}} -- {{OVERRIDES}} {{args}}; \
     else \
-        nh os switch . -- {{OVERRIDES}} {{args}}; \
+        {{TIMER}} nh os switch . -- {{OVERRIDES}} {{args}}; \
     fi
 
 [group("System")]
 build *args="":
     @echo "🔨 Building System Configuration..."
-    nh os build . -- {{OVERRIDES}} {{args}}
+    @{{TIMER}} nh os build . -- {{OVERRIDES}} {{args}}
 
 [group("Development")]
 dry-run *args="":
     @echo "🧪 Dry Run: Testing configuration activation..."
-    nh os test . --dry --map -- {{OVERRIDES}} {{args}}
+    @{{TIMER}} nh os test . --dry --map -- {{OVERRIDES}} {{args}}
 
 [group("Development")]
 test *args="":
     @echo "🚦 Testing System Configuration (Activation Only)..."
-    nh os test . -- {{OVERRIDES}} {{args}}
+    @{{TIMER}} nh os test . -- {{OVERRIDES}} {{args}}
 
 [group("System")]
 [confirm("👢 This will make the current configuration the DEFAULT at boot. Proceed?")]
@@ -53,12 +53,22 @@ sys-plan:
 [group("Development")]
 build-pkg pkg_name:
     @echo "📦 Building package: {{pkg_name}}..."
-    nix build .#{{pkg_name}} {{OVERRIDES}}
+    @{{TIMER}} nix build .#{{pkg_name}} {{OVERRIDES}}
 
 [group("Development")]
 test-integration *args="":
-    @echo "🧪 Running integration tests..."
-    nix flake check . {{OVERRIDES}} {{args}}
+    @echo "🧪 Running ALL integration tests..."
+    @{{TIMER}} nix flake check . --system x86_64-linux {{OVERRIDES}} {{args}}
+
+[group("Development")]
+test-caddy *args="":
+    @echo "🧪 Running TARGETED Caddy integration test..."
+    nix build .#checks.x86_64-linux.caddy-test {{OVERRIDES}} {{args}}
+
+[group("Development")]
+test-recovery *args="":
+    @echo "🧪 Running Recovery & Restore integration test..."
+    nix build .#checks.x86_64-linux.recovery-test {{OVERRIDES}} {{args}}
 
 [group("Development")]
 test-vm *args="":

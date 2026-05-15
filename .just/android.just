@@ -11,209 +11,107 @@ TABLET_IP     := "10.0.0.56"
 DHIRUJAAN_PHONE_SERIAL := "RFCT90BVPNE"
 DHIRUJAAN_PHONE_IP     := "10.0.0.238"
 
+# ==========================================
+# SMART DISPATCHERS (The "Single Entry" way)
+# ==========================================
+
 [group("Phone")]
 phone *args:
-    @echo "📱 Launching scrcpy (Phone/USB)..."
-    @scrcpy -s {{PHONE_SERIAL}} --max-fps 60 --video-bit-rate 16M --stay-awake --power-off-on-close {{args}}
+    @just android::scrcpy-dispatch "{{PHONE_SERIAL}}" "{{PHONE_IP}}" "16M" {{args}}
 
-[group("Phone")]
+[group("Tablet")]
+tablet *args:
+    @just android::scrcpy-dispatch "{{TABLET_SERIAL}}" "{{TABLET_IP}}" "24M" {{args}}
+
+[group("Dhirujaan")]
+dhirujaan *args:
+    @just android::scrcpy-dispatch "{{DHIRUJAAN_PHONE_SERIAL}}" "{{DHIRUJAAN_PHONE_IP}}" "16M" {{args}}
+
+# ==========================================
+# PRIVATE HELPERS (Logic Core)
+# ==========================================
+
 [private]
-phone-dup:
-    @just android::phone --audio-dup
+scrcpy-dispatch serial ip bitrate *args:
+    #!/usr/bin/env bash
+    set -e
+    MODE="usb"
+    AUDIO_FLAG=""
+    
+    # Parse Arguments
+    for arg in {{args}}; do
+        case $arg in
+            wireless) MODE="wireless" ;;
+            silent)   AUDIO_FLAG="--no-audio" ;;
+            dup)      AUDIO_FLAG="--audio-dup" ;;
+            help|-h|--help)
+                echo "📱 scrcpy Smart Dispatcher"
+                echo "--------------------------------"
+                echo "Usage: just <command> [options]"
+                echo ""
+                echo "Options:"
+                echo "  wireless  - Connect via TCP/IP (auto-connects if needed)"
+                echo "  silent    - Launch without audio (--no-audio)"
+                echo "  dup       - Mirror audio on both device and PC (--audio-dup)"
+                echo "  help      - Show this help menu"
+                exit 0
+                ;;
+            *)
+                echo "⚠️ Unknown option: $arg"
+                echo "💡 Available options: wireless, silent, dup, help"
+                exit 1
+                ;;
+        esac
+    done
 
-[group("Phone")]
-[private]
-phone-silent:
-    @just android::phone --no-audio
+    # Auto-detect Mode if USB is missing
+    if [ "$MODE" == "usb" ] && ! adb devices | grep -q "{{serial}}"; then
+        echo "🔌 USB device {{serial}} not found. Falling back to wireless..."
+        MODE="wireless"
+    fi
 
-[group("Phone")]
-phone-wireless *args:
-    @echo "📡 Checking for phone IP..."
-    @DETECTED_IP=$(adb -s {{PHONE_SERIAL}} shell ip addr show wlan0 2>/dev/null | grep "inet " | awk '{print $2}' | cut -d/ -f1 | head -n 1 || true); \
-    IP=${DETECTED_IP:-"{{PHONE_IP}}"}; \
-    echo "🔗 Phone IP: $IP"; \
-    if ! adb devices | grep -q "$IP:5555"; then \
-        echo "🔄 Initializing wireless bridge..."; \
-        adb -s {{PHONE_SERIAL}} tcpip 5555 2>/dev/null || true; \
-        sleep 2; \
-        adb connect $IP; \
-    fi; \
-    echo "🚀 Launching wireless scrcpy..."; \
-    scrcpy --tcpip=$IP --max-fps 60 --video-bit-rate 12M --stay-awake --power-off-on-close {{args}}
+    if [ "$MODE" == "wireless" ]; then
+        echo "📡 Checking for device at {{ip}}..."
+        if ! adb devices | grep -q "{{ip}}:5555"; then
+            echo "🔄 Initializing wireless bridge..."
+            adb -s {{serial}} tcpip 5555 2>/dev/null || true
+            sleep 2
+            adb connect {{ip}}
+        fi
+        echo "🚀 Launching Wireless scrcpy ({{bitrate}})..."
+        scrcpy --tcpip={{ip}} --max-fps 60 --video-bit-rate {{bitrate}} --stay-awake --power-off-on-close $AUDIO_FLAG
+    else
+        echo "🚀 Launching USB scrcpy ({{bitrate}})..."
+        scrcpy -s {{serial}} --max-fps 60 --video-bit-rate {{bitrate}} --stay-awake --power-off-on-close $AUDIO_FLAG
+    fi
 
-[group("Phone")]
-[private]
-phone-wireless-dup:
-    @just android::phone-wireless --audio-dup
+# ==========================================
+# MAINTENANCE & UTILS
+# ==========================================
 
-[group("Phone")]
-[private]
-phone-wireless-silent:
-    @just android::phone-wireless --no-audio
-
-[group("Phone")]
-[private]
-phone-ip:
-    @DETECTED_IP=$(adb -s {{PHONE_SERIAL}} shell ip addr show wlan0 2>/dev/null | grep "inet " | awk '{print $2}' | cut -d/ -f1 | head -n 1 || true); \
-    echo ${DETECTED_IP:-"{{PHONE_IP}}"}
-
-[group("Phone")]
-phone-sync:
+[group("Maintenance")]
+android-sync:
     @echo "🔄 Syncing phone configuration locks..."
     @nix flake lock --update-input nix-config
     @git add flake.lock
     @git commit -m "chore(phone): sync nix-config lock" || echo "Already synced."
     @git push
 
-[group("Phone")]
-phone-deploy:
-    @just android::phone-sync
+[group("Maintenance")]
+android-deploy:
+    @just android::android-sync
     @echo "📡 Triggering update on phone via ADB..."
     @adb -s {{PHONE_SERIAL}} shell "export PATH=\$PATH:/data/data/com.termux.nix/files/home/.nix-profile/bin; cd ~/nix && git pull && nix-on-droid switch --flake .#phone --impure"
 
-[group("Phone")]
-phone-push-all:
-    @echo "📦 Pushing entire configuration to phone..."
-    @adb push ~/Develop/github.com/kleinbem/nix/nix-config /sdcard/Download/ || true
-    @adb push ~/Develop/github.com/kleinbem/nix/nix-presets /sdcard/Download/ || true
-    @adb push ~/Develop/github.com/kleinbem/nix/nix-packages /sdcard/Download/ || true
-    @adb push ~/Develop/github.com/kleinbem/nix/nix-devshells /sdcard/Download/ || true
-    @adb push ~/Develop/github.com/kleinbem/nix/nix-hardware /sdcard/Download/ || true
-    @adb push ~/Develop/github.com/kleinbem/nix/nix-templates /sdcard/Download/ || true
-    @adb push ~/Develop/github.com/kleinbem/nix/nix-secrets /sdcard/Download/ || true
+[group("Maintenance")]
+android-backup:
+    @echo "📥 Fetching latest Nix-on-Droid backups..."
+    @adb pull "/sdcard/Download/nix-on-droid-snapshot-*.tar" . || echo "No snapshot found."
 
-[group("Phone")]
-phone-sync-all:
-    @just android::phone-push-all
-    @echo "🔄 Moving files and building on phone..."
-    @adb -s {{PHONE_SERIAL}} shell " \
-        mkdir -p /data/data/com.termux.nix/files/home/nix/nix-config /data/data/com.termux.nix/files/home/nix/nix-presets /data/data/com.termux.nix/files/home/nix/nix-packages /data/data/com.termux.nix/files/home/nix/nix-devshells /data/data/com.termux.nix/files/home/nix/nix-hardware /data/data/com.termux.nix/files/home/nix/nix-templates /data/data/com.termux.nix/files/home/nix/nix-secrets; \
-        cp -rf /sdcard/Download/nix-config/. /data/data/com.termux.nix/files/home/nix/nix-config/ && \
-        cp -rf /sdcard/Download/nix-presets/. /data/data/com.termux.nix/files/home/nix/nix-presets/ && \
-        cp -rf /sdcard/Download/nix-packages/. /data/data/com.termux.nix/files/home/nix/nix-packages/ && \
-        cp -rf /sdcard/Download/nix-devshells/. /data/data/com.termux.nix/files/home/nix/nix-devshells/ && \
-        cp -rf /sdcard/Download/nix-hardware/. /data/data/com.termux.nix/files/home/nix/nix-hardware/ && \
-        cp -rf /sdcard/Download/nix-templates/. /data/data/com.termux.nix/files/home/nix/nix-templates/ && \
-        cp -rf /sdcard/Download/nix-secrets/. /data/data/com.termux.nix/files/home/nix/nix-secrets/ && \
-        cd /data/data/com.termux.nix/files/home/nix/nix-config && git add . && \
-        cd /data/data/com.termux.nix/files/home/nix && git add . && \
-        /data/data/com.termux.nix/files/home/.nix-profile/bin/nix build '.#nixOnDroidConfigurations.phone.activationPackage' --impure --override-input nix-config ./nix-config \
-    "
-
-# --- Dhirujaan's Phone Management ---
-
-[group("Dhirujaan")]
-dhirujaan-phone *args:
-    @echo "📱 Launching scrcpy (Dhirujaan's Phone/USB)..."
-    @scrcpy -s {{DHIRUJAAN_PHONE_SERIAL}} --max-fps 60 --video-bit-rate 16M --stay-awake --power-off-on-close {{args}}
-
-[group("Dhirujaan")]
-[private]
-dhirujaan-phone-dup:
-    @just android::dhirujaan-phone --audio-dup
-
-[group("Dhirujaan")]
-[private]
-dhirujaan-phone-silent:
-    @just android::dhirujaan-phone --no-audio
-
-[group("Dhirujaan")]
-dhirujaan-phone-wireless *args:
-    @echo "📡 Checking for Dhirujaan's phone IP..."
-    @DETECTED_IP=$(adb -s {{DHIRUJAAN_PHONE_SERIAL}} shell ip addr show wlan0 2>/dev/null | grep "inet " | awk '{print $2}' | cut -d/ -f1 | head -n 1 || true); \
-    IP=${DETECTED_IP:-"{{DHIRUJAAN_PHONE_IP}}"}; \
-    echo "🔗 Phone IP: $IP"; \
-    if ! adb devices | grep -q "$IP:5555"; then \
-        echo "🔄 Initializing wireless bridge..."; \
-        adb -s {{DHIRUJAAN_PHONE_SERIAL}} tcpip 5555 2>/dev/null || true; \
-        sleep 2; \
-        adb connect $IP; \
-    fi; \
-    echo "🚀 Launching wireless scrcpy..."; \
-    scrcpy --tcpip=$IP --max-fps 60 --video-bit-rate 12M --stay-awake --power-off-on-close {{args}}
-
-[group("Dhirujaan")]
-[private]
-dhirujaan-phone-wireless-dup:
-    @just android::dhirujaan-phone-wireless --audio-dup
-
-[group("Dhirujaan")]
-[private]
-dhirujaan-phone-wireless-silent:
-    @just android::dhirujaan-phone-wireless --no-audio
-
-[group("Dhirujaan")]
-[private]
-dhirujaan-phone-ip:
-    @DETECTED_IP=$(adb -s {{DHIRUJAAN_PHONE_SERIAL}} shell ip addr show wlan0 2>/dev/null | grep "inet " | awk '{print $2}' | cut -d/ -f1 | head -n 1 || true); \
-    echo ${DHIRUJAAN_PHONE_IP}
-
-# --- Tablet Management ---
-
-[group("Tablet")]
-tablet *args:
-    @echo "📟 Launching scrcpy (Tablet/USB)..."
-    @scrcpy -s {{TABLET_SERIAL}} --max-fps 60 --video-bit-rate 24M --stay-awake --power-off-on-close {{args}}
-
-[group("Tablet")]
-[private]
-tablet-dup:
-    @just android::tablet --audio-dup
-
-[group("Tablet")]
-[private]
-tablet-silent:
-    @just android::tablet --no-audio
-
-[group("Tablet")]
-tablet-wireless *args:
-    @echo "📡 Checking for tablet IP..."
-    @DETECTED_IP=$(adb -s {{TABLET_SERIAL}} shell ip addr show wlan0 2>/dev/null | grep "inet " | awk '{print $2}' | cut -d/ -f1 | head -n 1 || true); \
-    IP=${DETECTED_IP:-"{{TABLET_IP}}"}; \
-    echo "🔗 Tablet IP: $IP"; \
-    if ! adb devices | grep -q "$IP:5555"; then \
-        echo "🔄 Initializing wireless bridge..."; \
-        adb -s {{TABLET_SERIAL}} tcpip 5555 2>/dev/null || true; \
-        sleep 2; \
-        adb connect $IP; \
-    fi; \
-    echo "🚀 Launching wireless scrcpy..."; \
-    scrcpy --tcpip=$IP --max-fps 60 --video-bit-rate 16M --stay-awake --power-off-on-close {{args}}
-
-[group("Tablet")]
-[private]
-tablet-wireless-dup:
-    @just android::tablet-wireless --audio-dup
-
-[group("Tablet")]
-[private]
-tablet-wireless-silent:
-    @just android::tablet-wireless --no-audio
-
-[group("Tablet")]
-[private]
-tablet-ip:
-    @DETECTED_IP=$(adb -s {{TABLET_SERIAL}} shell ip addr show wlan0 2>/dev/null | grep "inet " | awk '{print $2}' | cut -d/ -f1 | head -n 1 || true); \
-    echo ${TABLET_IP}
-
-[group("Tablet")]
-tablet-quiet:
-    @echo "🔇 Lowering tablet volume..."
-    @adb -s {{TABLET_SERIAL}} shell media volume --set 6
-
+# Keeping the hub for discovery
 [group("Hub")]
-android:
+android-hub:
     #!/usr/bin/env bash
-    CHOICES=$(just --summary | tr ' ' '\n' | grep -E '^(phone|tablet|dhirujaan)' | sort)
-    if command -v fzf >/dev/null; then
-        echo "$CHOICES" | fzf --header "📱 scrcpy Hub" --height 15 --reverse --preview "just --show {}" | xargs -r just
-    else
-        echo "📱 Available Android commands:"
-        PS3="Select a command: "
-        select opt in $CHOICES "Cancel"; do
-            case $opt in
-                "Cancel") break ;;
-                *) [ -n "$opt" ] && just "$opt"; break ;;
-            esac
-        done
-    fi
+    CHOICES="phone\ntablet\ndhirujaan\nandroid-sync\nandroid-deploy\nandroid-backup"
+    echo -e "$CHOICES" | fzf --header "📱 scrcpy Hub" --height 15 --reverse --preview "just --show {}" | xargs -r just
+

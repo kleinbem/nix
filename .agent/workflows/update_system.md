@@ -3,6 +3,8 @@ description: "How to update the NixOS system and repositories"
 ---
 
 # Update System and Repositories
+// turbo-all
+
 
 This workflow describes how to keep the meta-workspace and NixOS system up to date.
 

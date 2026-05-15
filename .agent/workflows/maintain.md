@@ -3,6 +3,8 @@ description: "Update flake inputs and clean up the system"
 ---
 
 # System Maintenance
+// turbo-all
+
 
 Keep the system performing well by running routine updates and cleaning up the Nix store.
 
@@ -10,7 +12,7 @@ Keep the system performing well by running routine updates and cleaning up the N
 // turbo
 Update the `flake.lock` files for all sub-repositories in the workspace.
 ```bash
-just update-all
+# mcp_workspace-atlas_run_just_recipe --recipe "update-all"
 ```
 
 ## 2. Verify Health
@@ -25,7 +27,7 @@ just check
 // turbo
 Remove old generations and garbage collect the Nix store to free up space.
 ```bash
-just clean
+# mcp_workspace-atlas_run_just_recipe --recipe "clean"
 ```
 
 ## 4. System Optimization
@@ -40,4 +42,12 @@ nix-store --optimise
 Check the disk space after cleanup to verify space reclaimed.
 ```bash
 df -h /
+```
+
+## 6. Final Health Check
+// turbo
+Ensure all services are still healthy after maintenance.
+```bash
+# mcp_workspace-atlas_check_ai_stack_health
+# mcp_workspace-atlas_update_todo --task "Run system maintenance" --status "done"
 ```

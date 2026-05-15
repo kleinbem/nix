@@ -3,6 +3,8 @@ description: Apply the NixOS configuration to the current system
 ---
 
 # Workflow: System Rebuild
+// turbo-all
+
 
 1. Run Security Scan
    `.agent/scripts/secure-scan.sh`

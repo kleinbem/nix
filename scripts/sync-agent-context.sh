@@ -49,9 +49,20 @@ done
 
 echo -e "\n## 🛠️ Workspace Status" >> "$OUTPUT_FILE"
 if command -v devenv &> /dev/null; then
-    echo "- Devenv: Available" >> "$OUTPUT_FILE"
+    echo "- **Devenv**: Available" >> "$OUTPUT_FILE"
 else
-    echo "- Devenv: Not found in path" >> "$OUTPUT_FILE"
+    echo "- **Devenv**: Not found in path" >> "$OUTPUT_FILE"
 fi
+
+# Check for Guardian service
+if systemctl --user is-active workspace-guardian.service &> /dev/null; then
+    echo "- **Autonomous Guardian**: Active ✅" >> "$OUTPUT_FILE"
+else
+    echo "- **Autonomous Guardian**: Inactive ❌" >> "$OUTPUT_FILE"
+fi
+
+echo -e "\n## 🤖 AI Capabilities (MCP Tools)" >> "$OUTPUT_FILE"
+# Extract tools from workspace-mcp.py
+grep "@mcp.tool()" -A 1 "$REPO_ROOT/scripts/workspace-mcp.py" | grep "def " | sed 's/def //; s/(.*):/- **/; s/$/\**/' >> "$OUTPUT_FILE"
 
 echo "✅ System Reference updated at $OUTPUT_FILE"

@@ -19,30 +19,30 @@ lint:
     treefmt --fail-on-change
 
 [group("Linter")]
-check-all *args="--all-systems --impure":
+check-all *args="--impure":
     @echo "🧪 Starting Comprehensive Workspace Audit..."
     @echo "------------------------------------------------------------"
     @for repo in {{REPOS}}; do \
         if [ -f "$repo/flake.nix" ]; then \
             echo "🔍 Auditing sub-flake: $repo..."; \
-            nix flake check ./$repo --all-systems --impure {{args}} 2>&1 | grep -v "does not match any input" || true; \
+            nix flake check ./$repo --impure {{OVERRIDES}} {{args}} 2>&1 | grep -v "does not match any input" || true; \
         fi; \
     done
     @echo "------------------------------------------------------------"
     @echo "🌐 Auditing root workspace (Aggregated Checks)..."
-    @nix flake check . {{OVERRIDES}} {{args}} 2>&1 | grep -v "does not match any input" || true
+    @{{TIMER}} nix flake check . {{OVERRIDES}} {{args}} 2>&1 | grep -v "does not match any input" || true
     @echo "------------------------------------------------------------"
     @echo "✅ All workspace checks completed!"
 
 [group("Linter")]
 check-hosts *args="--impure":
     @echo "🏗️  Verifying all Host Configurations (Evaluation & Build)..."
-    @nix flake check ./nix-config {{OVERRIDES}} {{args}}
+    @{{TIMER}} nix flake check ./nix-config {{OVERRIDES}} {{args}}
 
 [group("Linter")]
 check-containers *args="--impure":
     @echo "📦 Verifying all Container Presets (Evaluation Test)..."
-    @nix flake check ./nix-presets {{OVERRIDES}} {{args}}
+    @{{TIMER}} nix flake check ./nix-presets {{OVERRIDES}} {{args}}
 
 [group("Linter")]
 ci:
@@ -51,7 +51,7 @@ ci:
 [group("Linter")]
 check:
     @echo "✅ Verifying NixOS configuration..."
-    @nix eval .#nixosConfigurations.nixos-nvme.config.system.build.toplevel {{OVERRIDES}} --impure
+    @{{TIMER}} nix eval .#nixosConfigurations.nixos-nvme.config.system.build.toplevel {{OVERRIDES}} --impure
 
 [group("Linter")]
 check-shells:
@@ -60,14 +60,14 @@ check-shells:
 [group("Security")]
 audit *args="":
     @echo "🕵️ Running security audit..."
-    @nix run nixpkgs#vulnix -- --system {{args}}
+    @{{TIMER}} nix run nixpkgs#vulnix -- --system {{args}}
 
 [group("Cleanup")]
 [confirm("🧹 This will delete OLD system generations. Proceed?")]
 clean *args="":
     @echo "🧹 Cleaning up workspace and system..."
-    @nix-env --delete-generations +{{KEEP}} {{args}}
-    @nix-collect-garbage -d {{args}}
+    @{{TIMER}} nix-env --delete-generations +{{KEEP}} {{args}}
+    @{{TIMER}} nix-collect-garbage -d {{args}}
     @for repo in {{REPOS}}; do \
         git -C $repo gc --prune=now; \
     done
@@ -99,10 +99,16 @@ docs:
 
 [group("Workflow")]
 apply:
-    @just git::stage-all
-    @just maintenance::update-local
-    @just maintenance::check
-    @just nixos::switch
+    @{{LOCK_CMD}} {{TIMER}} just git::stage-all
+    @{{LOCK_CMD}} {{TIMER}} just maintenance::update-local
+    @{{LOCK_CMD}} {{TIMER}} just maintenance::check
+    @{{LOCK_CMD}} {{TIMER}} just nixos::switch
+    @{{LOCK_CMD}} {{TIMER}} just maintenance::sync-agent
+
+[group("System")]
+health-check:
+    @echo "🏥 Running system health check..."
+    @python3 ./scripts/ai-logs.py --sink
 
 [group("System")]
 history:
@@ -180,12 +186,32 @@ lock-refresh:
         fi; \
     done
 
+[group("System")]
+who:
+    #!/usr/bin/env python3
+    import fcntl, os, sys
+    lock_file = "/tmp/workspace-just.lock"
+    if not os.path.exists(lock_file):
+        print("✅ No active workspace lock found.")
+        sys.exit(0)
+    try:
+        with open(lock_file, "r") as f:
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            print("✅ Lock file exists but is NOT held by any active process.")
+    except (IOError, OSError):
+        # The lock is held. We can try to find the PID if we wrote it, 
+        # but flock usually doesn't store the PID in the file.
+        # However, we can use 'ps' to see who is running 'just'.
+        print("🕵️ Workspace is LOCKED. Active tasks:")
+        os.system("ps -eo pid,user,start,command | grep -E 'just|nixos-rebuild|nh os' | grep -v grep")
+    except Exception as e:
+        print(f"❌ Error checking lock: {e}")
+
 update-all *args="":
     @echo "🚀 Starting Comprehensive System Update (Bluefin Style)..."
-    @nix flake update {{args}}
+    @nix flake update {{OVERRIDES}} {{args}}
     @echo "📦 Updating Flatpaks..."
     @flatpak update -y
     @echo "🏗️  Applying system changes..."
     @just apply
-    @just maintenance::sync-agent
     @echo "✅ System fully updated and synced!"

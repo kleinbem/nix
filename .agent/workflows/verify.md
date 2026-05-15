@@ -3,6 +3,8 @@ description: "Perform a dry-run build to verify configuration validity"
 ---
 
 # Verify Configuration
+// turbo-all
+
 
 Before switching to a new configuration, it is good practice to verify that your flakes are healthy and your code builds.
 
