@@ -46,7 +46,7 @@
 
     # Import NixOS Config to expose systems at root
     nix-config = {
-      url = "path:./nix-config";
+      url = "git+file:///home/martin/Develop/github.com/kleinbem/nix/nix-config";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         nixpkgs-master.follows = "nixpkgs-master";
@@ -62,7 +62,7 @@
     };
 
     nix-presets = {
-      url = "path:./nix-presets";
+      url = "git+file:///home/martin/Develop/github.com/kleinbem/nix/nix-presets";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         nix-devshells.follows = "nix-devshells";
