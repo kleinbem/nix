@@ -188,24 +188,7 @@ lock-refresh:
 
 [group("System")]
 who:
-    #!/usr/bin/env python3
-    import fcntl, os, sys
-    lock_file = "/tmp/workspace-just.lock"
-    if not os.path.exists(lock_file):
-        print("✅ No active workspace lock found.")
-        sys.exit(0)
-    try:
-        with open(lock_file, "r") as f:
-            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            print("✅ Lock file exists but is NOT held by any active process.")
-    except (IOError, OSError):
-        # The lock is held. We can try to find the PID if we wrote it, 
-        # but flock usually doesn't store the PID in the file.
-        # However, we can use 'ps' to see who is running 'just'.
-        print("🕵️ Workspace is LOCKED. Active tasks:")
-        os.system("ps -eo pid,user,start,command | grep -E 'just|nixos-rebuild|nh os' | grep -v grep")
-    except Exception as e:
-        print(f"❌ Error checking lock: {e}")
+    @python3 ./scripts/check_lock.py
 
 update-all *args="":
     @echo "🚀 Starting Comprehensive System Update (Bluefin Style)..."
