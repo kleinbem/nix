@@ -226,24 +226,22 @@ def get_conversation_data():
     return convs
 
 def sync_missing_to_app(convs):
-    """Restore implicit sessions to the main conversation folder to help the UI see them."""
-    if not os.path.exists(CONVERSATIONS_DIR):
-        print(f"⚠️ Conversations directory not found: {CONVERSATIONS_DIR}")
+    """Clean up UI sidebar by removing duplicate implicit/subagent sessions from conversations directory."""
+    if not os.path.exists(CONVERSATIONS_DIR) or not os.path.exists(IMPLICIT_DIR):
         return 0
         
     count = 0
-    print(f"Checking {len(convs)} conversations for sync...")
+    print(f"Checking for subagent session clutter in UI sidebar...")
     for conv_id, data in convs.items():
-        if "implicit" in data["sources"] and "conversations" not in data["sources"]:
-            src = os.path.join(IMPLICIT_DIR, f"{conv_id}.pb")
-            dst = os.path.join(CONVERSATIONS_DIR, f"{conv_id}.pb")
-            if os.path.exists(src) and not os.path.exists(dst):
+        if "implicit" in data["sources"] and "conversations" in data["sources"]:
+            conv_path = os.path.join(CONVERSATIONS_DIR, f"{conv_id}.pb")
+            if os.path.exists(conv_path):
                 try:
-                    shutil.copy2(src, dst)
-                    print(f"  [SYNC] Restored session {conv_id[:8]}... to UI sidebar")
+                    os.remove(conv_path)
+                    print(f"  [CLEAN] Removed subagent session {conv_id[:8]}... from UI sidebar")
                     count += 1
                 except Exception as e:
-                    print(f"  [ERROR] Failed syncing {conv_id}: {e}")
+                    print(f"  [ERROR] Failed cleaning {conv_id}: {e}")
     return count
 
 def generate_markdown(convs):
@@ -310,13 +308,13 @@ if __name__ == "__main__":
     print(f"✅ Found {len(data)} unique conversations.")
     
     if do_sync:
-        synced = sync_missing_to_app(data)
-        if synced > 0:
-            print(f"🔄 Restored {synced} sessions to Antigravity UI sidebar.")
-            # Refresh data after sync
+        cleaned = sync_missing_to_app(data)
+        if cleaned > 0:
+            print(f"🧹 Cleaned {cleaned} subagent sessions from Antigravity UI sidebar.")
+            # Refresh data after cleaning
             data = get_conversation_data()
         else:
-            print("ℹ️ No missing sessions needed restoration.")
+            print("✨ UI sidebar is clean (no subagent clutter found).")
 
     md = generate_markdown(data)
     with open(OUTPUT_FILE, 'w') as f:

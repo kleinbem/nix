@@ -1,33 +1,33 @@
 # Rebuilt Conversation History & Status Center
 
-Generated on: 2026-05-16T13:13:04.840498+00:00
+Generated on: 2026-05-16T14:20:59.581156+00:00
 
 | Last Updated | ID | Summary | Sidebar Status | Activity State | Artifacts |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| 2026-05-16 13:13 | `ba0af901...` | I will reboot my computer, about the just maintenance::history fix for antigravity, I d... | 📌 Active Sidebar (Original) | ⚡ In Progress (Running Tools) | 0 |
-| 2026-05-16 12:24 | `eca48871...` | why does this happen? | 📌 Active Sidebar (Original) | 🟢 Active Now (AI Responded) | 0 |
+| 2026-05-16 14:20 | `ba0af901...` | I will reboot my computer, about the just maintenance::history fix for antigravity, I d... | 📌 Active Sidebar (Original) | ⚡ In Progress (Running Tools) | 0 |
+| 2026-05-16 12:24 | `eca48871...` | why does this happen? | 📌 Active Sidebar (Original) | 🔄 Active / Follow-up | 0 |
 | 2026-05-16 11:54 | `3000793d...` | is there a help or a apply boot? | 📌 Active Sidebar (Original) | 🔄 Active / Follow-up | 0 |
 | 2026-05-16 11:05 | `08b46ab2...` | I use AI extensivley, | 📌 Active Sidebar (Original) | ✅ Completed (Recent) | 0 |
-| 2026-05-16 11:03 | `f6c4a733...` | *(Raw session data)* | 🔄 Restored from Background | ⏳ In Progress (Recent) | 0 |
-| 2026-05-16 10:53 | `817d9874...` | *(Raw session data)* | 🔄 Restored from Background | ⏳ In Progress (Recent) | 0 |
+| 2026-05-16 11:03 | `f6c4a733...` | *(Raw session data)* | ⚙️ Background / Implicit | ⏳ In Progress (Recent) | 0 |
+| 2026-05-16 10:53 | `817d9874...` | *(Raw session data)* | ⚙️ Background / Implicit | ⏳ In Progress (Recent) | 0 |
 | 2026-05-16 10:38 | `d89b6db6...` | <USER_REQUEST> | 📌 Active Sidebar (Original) | 🔄 Active / Follow-up | 0 |
 | 2026-05-16 10:12 | `a340b6d7...` | I am software developer, | 📌 Active Sidebar (Original) | 🔄 Active / Follow-up | 0 |
 | 2026-05-16 01:34 | `93a608b0...` | antigravity did stop I had at least 10 open conversations on the left bar, where are th... | 📌 Active Sidebar (Original) | ✅ Completed (Recent) | 1 |
 | 2026-05-16 01:22 | `b29e6eac...` | <USER_REQUEST> | 📌 Active Sidebar (Original) | ✅ Completed (Recent) | 0 |
 | 2026-05-16 01:16 | `f3e76c7d...` | A comprehensive plan to migrate core infrastructure services from the main Zotac workst... | 📌 Active Sidebar (Original) | 🔄 Active / Follow-up | 4 |
 | 2026-05-15 22:54 | `8553c411...` | <USER_REQUEST> | 📌 Active Sidebar (Original) | ✅ Completed (Recent) | 0 |
-| 2026-05-15 22:25 | `f6b1ea5a...` | *(Raw session data)* | 🔄 Restored from Background | ⏳ In Progress (Recent) | 0 |
-| 2026-05-15 22:25 | `f87dbb3d...` | *(Raw session data)* | 🔄 Restored from Background | ⏳ In Progress (Recent) | 0 |
-| 2026-05-15 22:25 | `8d639eb5...` | *(Raw session data)* | 🔄 Restored from Background | ⏳ In Progress (Recent) | 0 |
-| 2026-05-15 22:25 | `722e0f4e...` | *(Raw session data)* | 🔄 Restored from Background | ⏳ In Progress (Recent) | 0 |
-| 2026-05-15 22:25 | `4a55dc33...` | *(Raw session data)* | 🔄 Restored from Background | ⏳ In Progress (Recent) | 0 |
-| 2026-05-15 22:25 | `88c89e74...` | *(Raw session data)* | 🔄 Restored from Background | ⏳ In Progress (Recent) | 0 |
-| 2026-05-15 22:25 | `ad617a60...` | *(Raw session data)* | 🔄 Restored from Background | ⏳ In Progress (Recent) | 0 |
-| 2026-05-15 22:21 | `47626dd3...` | *(Raw session data)* | 🔄 Restored from Background | ⏳ In Progress (Recent) | 0 |
-| 2026-05-15 22:20 | `4c017ca3...` | *(Raw session data)* | 🔄 Restored from Background | ⏳ In Progress (Recent) | 0 |
-| 2026-05-15 22:19 | `5b0d7211...` | *(Raw session data)* | 🔄 Restored from Background | ⏳ In Progress (Recent) | 0 |
-| 2026-05-15 20:20 | `154dd258...` | *(Raw session data)* | 🔄 Restored from Background | ⏳ In Progress (Recent) | 0 |
-| 2026-05-15 20:20 | `e560495b...` | *(Raw session data)* | 🔄 Restored from Background | ⏳ In Progress (Recent) | 0 |
+| 2026-05-15 22:25 | `f6b1ea5a...` | *(Raw session data)* | ⚙️ Background / Implicit | ⏳ In Progress (Recent) | 0 |
+| 2026-05-15 22:25 | `f87dbb3d...` | *(Raw session data)* | ⚙️ Background / Implicit | ⏳ In Progress (Recent) | 0 |
+| 2026-05-15 22:25 | `8d639eb5...` | *(Raw session data)* | ⚙️ Background / Implicit | ⏳ In Progress (Recent) | 0 |
+| 2026-05-15 22:25 | `722e0f4e...` | *(Raw session data)* | ⚙️ Background / Implicit | ⏳ In Progress (Recent) | 0 |
+| 2026-05-15 22:25 | `4a55dc33...` | *(Raw session data)* | ⚙️ Background / Implicit | ⏳ In Progress (Recent) | 0 |
+| 2026-05-15 22:25 | `88c89e74...` | *(Raw session data)* | ⚙️ Background / Implicit | ⏳ In Progress (Recent) | 0 |
+| 2026-05-15 22:25 | `ad617a60...` | *(Raw session data)* | ⚙️ Background / Implicit | ⏳ In Progress (Recent) | 0 |
+| 2026-05-15 22:21 | `47626dd3...` | *(Raw session data)* | ⚙️ Background / Implicit | ⏳ In Progress (Recent) | 0 |
+| 2026-05-15 22:20 | `4c017ca3...` | *(Raw session data)* | ⚙️ Background / Implicit | ⏳ In Progress (Recent) | 0 |
+| 2026-05-15 22:19 | `5b0d7211...` | *(Raw session data)* | ⚙️ Background / Implicit | ⏳ In Progress (Recent) | 0 |
+| 2026-05-15 20:20 | `154dd258...` | *(Raw session data)* | ⚙️ Background / Implicit | ⏳ In Progress (Recent) | 0 |
+| 2026-05-15 20:20 | `e560495b...` | *(Raw session data)* | ⚙️ Background / Implicit | ⏳ In Progress (Recent) | 0 |
 | 2026-05-15 19:28 | `5045d386...` | <USER_REQUEST> | 📌 Active Sidebar (Original) | 🔄 Active / Follow-up | 0 |
 | 2026-05-15 16:43 | `64c7072e...` | <USER_REQUEST> | 📌 Active Sidebar (Original) | 🔄 Active / Follow-up | 0 |
 | 2026-05-15 16:39 | `tempmedi...` | *(No summary)* | 📁 Brain Storage Only | ⏳ In Progress (Recent) | 0 |
@@ -74,7 +74,7 @@ Generated on: 2026-05-16T13:13:04.840498+00:00
 | 2026-05-09 17:06 | `c3526465...` | <USER_REQUEST> | 📌 Active Sidebar (Original) | ✅ Completed | 0 |
 | 2026-05-09 17:01 | `0d99a1fd...` | <USER_REQUEST> | 📌 Active Sidebar (Original) | ⚡ In Progress (Tool Execution) | 0 |
 | 2026-05-09 16:53 | `2051080e...` | how to install Termux on my phone and can it use nixos | 📌 Active Sidebar (Original) | ✅ Completed | 0 |
-| 2026-05-09 13:49 | `9716f243...` | <USER_REQUEST> | 📌 Active Sidebar (Original) | 🔄 Active (This Week) | 0 |
+| 2026-05-09 13:49 | `9716f243...` | <USER_REQUEST> | 📌 Active Sidebar (Original) | ✅ Completed / Inactive | 0 |
 | 2026-05-08 19:58 | `1d5ee4b3...` | <USER_REQUEST> | 📌 Active Sidebar (Original) | ✅ Completed | 0 |
 | 2026-05-08 19:53 | `bd81c7ab...` | git error in nix presets | 📌 Active Sidebar (Original) | ✅ Completed / Inactive | 0 |
 | 2026-05-08 19:41 | `8d930fb2...` | ~/Develop/github.com/kleinbem/nix on  main [✘!+?] via 🐍 v3.12.13  loaded/allowed via 🏗️... | 📌 Active Sidebar (Original) | ✅ Completed / Inactive | 0 |
@@ -105,82 +105,78 @@ Generated on: 2026-05-16T13:13:04.840498+00:00
 | 2026-05-07 13:29 | `a181564a...` | there are several isos I like to get from bitttorent sources, which app with a good sea... | 📌 Active Sidebar (Original) | ✅ Completed / Inactive | 0 |
 | 2026-05-07 08:52 | `8d30accf...` | can you see my obsidian folders, is that best practice. | 📌 Active Sidebar (Original) | ✅ Completed / Inactive | 1 |
 | 2026-05-06 22:25 | `d4b016b6...` | what is the zapper tool? and is it free? | 📌 Active Sidebar (Original) | ✅ Completed / Inactive | 0 |
-| 2026-05-06 19:17 | `aa0aecae...` | can you list firefox extensions between the profiles, what is for all ond profile specific | 📌 Active Sidebar (Original) | ✅ Completed / Inactive | 0 |
-| 2026-05-05 23:07 | `368884c6...` | I do need rustdesk can you add it one of my flakes, it shouldnt be pernament installed | 📌 Active Sidebar (Original) | ✅ Completed | 0 |
-| 2026-05-05 15:50 | `9e688f05...` | is rustdesk available for linux? | 📌 Active Sidebar (Original) | ✅ Completed / Inactive | 0 |
-| 2026-05-05 12:28 | `0ede72f9...` | microsoft has a chapata which doesnt work in my firefox developer edition, I have to pr... | 📌 Active Sidebar (Original) | ✅ Completed / Inactive | 1 |
-| 2026-04-24 11:08 | `3951d7ca...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-04-24 09:59 | `e31bdbc3...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-04-24 09:59 | `4268f219...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-04-20 10:35 | `0f6ceaaf...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-04-20 10:29 | `2dc95d27...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-04-20 10:29 | `35fe8a34...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-04-20 10:29 | `b30bb303...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-04-20 10:29 | `14e6f8ee...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-04-20 10:27 | `802e95cf...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-04-20 10:27 | `e61acb95...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-04-20 10:27 | `6e38b5e4...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-04-20 10:27 | `93a507d0...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-04-20 10:27 | `06437a18...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-04-20 10:27 | `e27442f8...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-04-12 16:55 | `2d95a61f...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-04-01 19:54 | `bb52645b...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-04-01 19:54 | `65821be6...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
+| 2026-04-24 11:08 | `3951d7ca...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-04-24 09:59 | `e31bdbc3...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-04-24 09:59 | `4268f219...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-04-20 10:35 | `0f6ceaaf...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-04-20 10:29 | `2dc95d27...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-04-20 10:29 | `35fe8a34...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-04-20 10:29 | `b30bb303...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-04-20 10:29 | `14e6f8ee...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-04-20 10:27 | `802e95cf...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-04-20 10:27 | `e61acb95...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-04-20 10:27 | `6e38b5e4...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-04-20 10:27 | `93a507d0...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-04-20 10:27 | `06437a18...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-04-20 10:27 | `e27442f8...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-04-12 16:55 | `2d95a61f...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-04-01 19:54 | `bb52645b...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-04-01 19:54 | `65821be6...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
 | 2026-03-26 11:41 | `040cc5c4...` | *(No summary)* | 📁 Brain Storage Only | 📁 Inactive / Archived | 0 |
 | 2026-03-26 11:37 | `cf2fc957...` | *(No summary)* | 📁 Brain Storage Only | 📁 Inactive / Archived | 0 |
-| 2026-03-11 11:13 | `5c47c52a...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 11:05 | `f97b516d...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 11:05 | `5393c0ec...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 11:05 | `ab9e46a4...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 11:05 | `f01a3ee0...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 10:57 | `5c8a84a4...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 10:53 | `6bb729db...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 10:52 | `c33bed00...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 10:52 | `8661e5d9...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 02:51 | `1607c7ee...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 02:50 | `9afad9d8...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 02:50 | `70ceb095...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 02:50 | `25774ddd...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 02:50 | `7b49d56c...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 02:50 | `65b59780...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 02:49 | `2de1e500...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 02:49 | `064b0294...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 02:47 | `9f879a44...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 02:46 | `8143f090...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 02:46 | `7de50666...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 02:46 | `c8584a8c...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 02:27 | `d65673b4...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-03-07 02:27 | `ef140abc...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-02-28 22:41 | `76cb2dd1...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-02-28 03:24 | `8d93570c...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-02-27 23:19 | `a4073332...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-02-25 13:41 | `c72f585a...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-02-17 12:18 | `40db2821...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-02-14 11:42 | `a622ed48...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-02-14 11:42 | `88c79dfb...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-02-14 11:42 | `f5a00a2a...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-02-13 10:17 | `015e7a94...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-02-13 10:17 | `bdfcbbeb...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-02-13 10:16 | `307fa1fd...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-02-13 10:16 | `050ef20a...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-02-09 01:54 | `621c49b7...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-02-04 11:48 | `67708c17...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-02-04 11:48 | `00f4838d...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-02-04 11:48 | `3a7d95ed...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-02-04 11:48 | `059f5373...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-02-02 21:00 | `8adc23c7...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-02-02 19:53 | `28d752f1...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-01-27 21:12 | `31f9f3e4...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-01-27 21:12 | `122792a6...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-01-27 21:00 | `ba5376e9...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-01-20 03:45 | `4be716b2...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-01-19 13:13 | `53cd6322...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-01-18 11:23 | `d207acb5...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-01-18 11:23 | `a7a5725e...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-01-18 11:23 | `46a0be1e...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-01-18 11:23 | `44454454...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-01-18 11:23 | `d3fdaaf2...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-01-15 20:29 | `7d2111d8...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2026-01-12 01:41 | `2340e0c0...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2025-12-31 01:42 | `98a9a981...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
-| 2025-12-29 12:02 | `92cacd79...` | *(Raw session data)* | 🔄 Restored from Background | 📁 Inactive / Archived | 0 |
+| 2026-03-11 11:13 | `5c47c52a...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 11:05 | `f97b516d...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 11:05 | `5393c0ec...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 11:05 | `ab9e46a4...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 11:05 | `f01a3ee0...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 10:57 | `5c8a84a4...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 10:53 | `6bb729db...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 10:52 | `c33bed00...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 10:52 | `8661e5d9...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 02:51 | `1607c7ee...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 02:50 | `9afad9d8...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 02:50 | `70ceb095...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 02:50 | `25774ddd...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 02:50 | `7b49d56c...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 02:50 | `65b59780...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 02:49 | `2de1e500...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 02:49 | `064b0294...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 02:47 | `9f879a44...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 02:46 | `8143f090...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 02:46 | `7de50666...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 02:46 | `c8584a8c...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 02:27 | `d65673b4...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-03-07 02:27 | `ef140abc...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-02-28 22:41 | `76cb2dd1...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-02-28 03:24 | `8d93570c...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-02-27 23:19 | `a4073332...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-02-25 13:41 | `c72f585a...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-02-17 12:18 | `40db2821...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-02-14 11:42 | `a622ed48...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-02-14 11:42 | `88c79dfb...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-02-14 11:42 | `f5a00a2a...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-02-13 10:17 | `015e7a94...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-02-13 10:17 | `bdfcbbeb...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-02-13 10:16 | `307fa1fd...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-02-13 10:16 | `050ef20a...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-02-09 01:54 | `621c49b7...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-02-04 11:48 | `67708c17...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-02-04 11:48 | `00f4838d...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-02-04 11:48 | `3a7d95ed...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-02-04 11:48 | `059f5373...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-02-02 21:00 | `8adc23c7...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-02-02 19:53 | `28d752f1...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-01-27 21:12 | `31f9f3e4...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-01-27 21:12 | `122792a6...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-01-27 21:00 | `ba5376e9...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-01-20 03:45 | `4be716b2...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-01-19 13:13 | `53cd6322...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-01-18 11:23 | `d207acb5...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-01-18 11:23 | `a7a5725e...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-01-18 11:23 | `46a0be1e...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-01-18 11:23 | `44454454...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-01-18 11:23 | `d3fdaaf2...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-01-15 20:29 | `7d2111d8...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2026-01-12 01:41 | `2340e0c0...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2025-12-31 01:42 | `98a9a981...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
+| 2025-12-29 12:02 | `92cacd79...` | *(Raw session data)* | ⚙️ Background / Implicit | 📁 Inactive / Archived | 0 |
