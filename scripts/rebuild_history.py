@@ -22,6 +22,98 @@ def sanitize_filename(text):
     text = re.sub(r'[\s]+', '-', text)
     return text.strip('-')[:50]
 
+def classify_sidebar_status(sources):
+    has_conv = "conversations" in sources
+    has_impl = "implicit" in sources
+    has_brain = "brain" in sources
+
+    if has_conv and not has_impl:
+        return "📌 Active Sidebar (Original)"
+    elif has_conv and has_impl:
+        return "🔄 Restored from Background"
+    elif has_impl and not has_conv:
+        return "⚙️ Background / Implicit"
+    elif has_brain and not has_conv and not has_impl:
+        return "📁 Brain Storage Only"
+    else:
+        return "❓ Unknown Origin"
+
+def classify_activity_state(last_updated, last_line_content):
+    now = datetime.now(timezone.utc)
+    delta = now - last_updated
+    delta_hours = delta.total_seconds() / 3600.0
+
+    if not last_line_content:
+        if delta_hours < 1:
+            return "🟢 Active Now"
+        elif delta_hours < 24:
+            return "⏳ In Progress (Recent)"
+        elif delta_hours < 24 * 7:
+            return "🔄 Active (This Week)"
+        else:
+            return "📁 Inactive / Archived"
+
+    try:
+        if last_line_content.startswith('{'):
+            data = json.loads(last_line_content)
+            source = data.get("source", "")
+            msg_type = data.get("type", "")
+            status = data.get("status", "")
+            content = data.get("content", "")
+            tool_calls = data.get("tool_calls", [])
+
+            if source == "USER" or msg_type == "USER_REQUEST":
+                if delta_hours < 4:
+                    return "⏳ In Progress (Waiting on AI)"
+                else:
+                    return "⏳ In Progress (Pending AI Response)"
+
+            if tool_calls and not content:
+                if delta_hours < 4:
+                    return "⚡ In Progress (Running Tools)"
+                else:
+                    return "⚡ In Progress (Tool Execution)"
+
+            if source == "MODEL" and content:
+                content_lower = content.lower()
+                completion_keywords = ["successfully", "summary of the work", "accomplishments", "resolved", "completed the task", "all checks passed", "finalizing"]
+                if any(kw in content_lower for kw in completion_keywords):
+                    if delta_hours < 24:
+                        return "✅ Completed (Recent)"
+                    else:
+                        return "✅ Completed"
+                else:
+                    if delta_hours < 1:
+                        return "🟢 Active Now (AI Responded)"
+                    elif delta_hours < 24:
+                        return "🔄 Active / Follow-up"
+                    elif delta_hours < 24 * 7:
+                        return "🔄 Active (This Week)"
+                    else:
+                        return "✅ Completed / Inactive"
+        else:
+            # Legacy text format
+            if delta_hours < 1:
+                return "🟢 Active Now"
+            elif delta_hours < 24:
+                return "⏳ In Progress (Recent)"
+            elif delta_hours < 24 * 7:
+                return "🔄 Active (This Week)"
+            else:
+                return "📁 Inactive / Archived"
+    except Exception:
+        pass
+
+    # Fallback
+    if delta_hours < 1:
+        return "🟢 Active Now"
+    elif delta_hours < 24:
+        return "⏳ In Progress (Recent)"
+    elif delta_hours < 24 * 7:
+        return "🔄 Active (This Week)"
+    else:
+        return "📁 Inactive / Archived"
+
 def get_conversation_data():
     convs = {}
     
@@ -37,7 +129,8 @@ def get_conversation_data():
                 "summaries": [],
                 "last_updated": datetime.fromtimestamp(os.path.getmtime(path), tz=timezone.utc),
                 "artifactsCount": 0,
-                "sources": ["brain"]
+                "sources": ["brain"],
+                "last_line_content": None
             }
             
             # Look for metadata files
@@ -60,39 +153,50 @@ def get_conversation_data():
             
             # Check for overview.txt
             overview_path = os.path.join(path, ".system_generated", "logs", "overview.txt")
+            last_line_content = None
             if os.path.exists(overview_path):
                 mtime = datetime.fromtimestamp(os.path.getmtime(overview_path), tz=timezone.utc)
                 if mtime > conv_data["last_updated"]:
                     conv_data["last_updated"] = mtime
                 
-                if not conv_data["summaries"]:
-                    try:
-                        with open(overview_path, 'r') as f:
-                            first_line = f.readline().strip()
-                            if first_line:
-                                # Handle JSON format
-                                if first_line.startswith('{'):
-                                    try:
-                                        msg_data = json.loads(first_line)
-                                        content = msg_data.get("content", "")
-                                        # Extract from <USER_REQUEST> if present
-                                        match = re.search(r'<USER_REQUEST>(.*?)</USER_REQUEST>', content, re.DOTALL)
-                                        if match:
-                                            summary = match.group(1).strip().split('\n')[0]
-                                        else:
-                                            summary = content.strip().split('\n')[0]
-                                        
-                                        if summary:
-                                            conv_data["summaries"].append(summary)
-                                    except Exception:
-                                        pass
-                                else:
-                                    # Handle legacy format
-                                    first_line = re.sub(r'^USER: ', '', first_line)
-                                    conv_data["summaries"].append(first_line)
-                    except Exception:
-                        pass
+                first_line = None
+                last_line = None
+                try:
+                    with open(overview_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        for line in f:
+                            line_str = line.strip()
+                            if not line_str: continue
+                            if first_line is None:
+                                first_line = line_str
+                            last_line = line_str
+                except Exception:
+                    pass
 
+                # Parse first_line for summary
+                if first_line and not conv_data["summaries"]:
+                    if first_line.startswith('{'):
+                        try:
+                            msg_data = json.loads(first_line)
+                            content = msg_data.get("content", "")
+                            match = re.search(r'<USER_REQUEST>(.*?)</USER_REQUEST>', content, re.DOTALL)
+                            if match:
+                                summary = match.group(1).strip().split('\n')[0]
+                            else:
+                                summary = content.strip().split('\n')[0]
+                            if summary:
+                                conv_data["summaries"].append(summary)
+                        except Exception:
+                            pass
+                    else:
+                        first_line_clean = re.sub(r'^USER: ', '', first_line)
+                        if first_line_clean:
+                            conv_data["summaries"].append(first_line_clean)
+
+                # Store last_line for activity state classification
+                if last_line:
+                    last_line_content = last_line
+
+            conv_data["last_line_content"] = last_line_content
             conv_data["artifactsCount"] = len([f for f in os.listdir(path) if not f.startswith('.')])
             convs[conv_id] = conv_data
 
@@ -115,7 +219,8 @@ def get_conversation_data():
                             "summaries": ["*(Raw session data)*"],
                             "last_updated": pb_mtime,
                             "artifactsCount": 0,
-                            "sources": [label]
+                            "sources": [label],
+                            "last_line_content": None
                         }
 
     return convs
@@ -145,19 +250,21 @@ def generate_markdown(convs):
     sorted_convs = sorted(convs.values(), key=lambda x: x["last_updated"], reverse=True)
     
     lines = [
-        "# Rebuilt Conversation History",
+        "# Rebuilt Conversation History & Status Center",
         f"\nGenerated on: {datetime.now(timezone.utc).isoformat()}\n",
-        "| Last Updated | ID | Summary | Sources | Artifacts |",
-        "| :--- | :--- | :--- | :--- | :--- |"
+        "| Last Updated | ID | Summary | Sidebar Status | Activity State | Artifacts |",
+        "| :--- | :--- | :--- | :--- | :--- | :--- |"
     ]
     
     for c in sorted_convs:
         date_str = c["last_updated"].strftime("%Y-%m-%d %H:%M")
         summary = " / ".join(list(set(c["summaries"]))) if c["summaries"] else "*(No summary)*"
-        if len(summary) > 100: summary = summary[:97] + "..."
-        sources = ", ".join(c["sources"])
+        if len(summary) > 90: summary = summary[:87] + "..."
         
-        row = f"| {date_str} | `{c['id'][:8]}...` | {summary} | {sources} | {c['artifactsCount']} |"
+        sidebar = classify_sidebar_status(c["sources"])
+        activity = classify_activity_state(c["last_updated"], c.get("last_line_content"))
+        
+        row = f"| {date_str} | `{c['id'][:8]}...` | {summary} | {sidebar} | {activity} | {c['artifactsCount']} |"
         lines.append(row)
         
     return "\n".join(lines)
@@ -178,7 +285,13 @@ def distill_to_knowledge(convs):
         content = f"# History: {c['summaries'][0]}\n\n"
         content += f"- **Date**: {c['last_updated'].isoformat()}\n"
         content += f"- **ID**: `{c['id']}`\n"
-        content += f"- **Sources**: {', '.join(c['sources'])}\n\n"
+        content += f"- **Sources**: {', '.join(c['sources'])}\n"
+        
+        sidebar = classify_sidebar_status(c["sources"])
+        activity = classify_activity_state(c["last_updated"], c.get("last_line_content"))
+        content += f"- **Sidebar Status**: {sidebar}\n"
+        content += f"- **Activity State**: {activity}\n\n"
+        
         content += "## Summaries Found\n"
         for s in set(c["summaries"]):
             content += f"- {s}\n"
