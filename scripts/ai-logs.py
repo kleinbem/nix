@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SOURCE OF TRUTH: scripts/ai-logs.py
 import subprocess
 import json
 import sys
@@ -61,7 +62,8 @@ def main():
     # Update health sink if requested
     if args.sink:
         import os
-        sink_path = os.path.expanduser("~/.cache/ai-health.json")
+        flake_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        sink_path = os.path.join(flake_path, "scratch/ai-health.json")
         try:
             os.makedirs(os.path.dirname(sink_path), exist_ok=True)
             with open(sink_path, "w") as f:

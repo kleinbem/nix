@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# SOURCE OF TRUTH: scripts/workspace-mcp.py
 import os
 import json
 import subprocess
@@ -32,15 +34,45 @@ GOOGLE_SCOPES = [
 GOOGLE_TOKEN_PATH = os.path.join(DEFAULT_FLAKE_PATH, "nix-secrets/google_token.json")
 GOOGLE_CREDS_PATH = os.path.join(DEFAULT_FLAKE_PATH, "nix-secrets/google_credentials.json")
 STATE_FILE = os.path.join(DEFAULT_FLAKE_PATH, "scratch/workspace_state.json")
-OLLAMA_REMOTE_IP = "10.85.46.104" # Orin Nano via Mesh
-PAPERLESS_URL = "http://10.85.46.131:28981"
 PAPERLESS_TOKEN_PATH = os.path.join(DEFAULT_FLAKE_PATH, "nix-secrets/paperless_token.txt")
+
+_INVENTORY_CACHE = None
+
+def _get_inventory_cached():
+    global _INVENTORY_CACHE
+    if _INVENTORY_CACHE is not None:
+        return _INVENTORY_CACHE
+    try:
+        inv_path = os.path.join(DEFAULT_FLAKE_PATH, "nix-config/inventory.nix")
+        result = subprocess.run(["nix", "eval", "--json", "--file", inv_path], capture_output=True, text=True, check=True)
+        _INVENTORY_CACHE = json.loads(result.stdout)
+        return _INVENTORY_CACHE
+    except Exception:
+        return {}
+
+def _get_ollama_remote_ip():
+    inv = _get_inventory_cached()
+    try:
+        return inv.get("network", {}).get("nodes", {}).get("ollama-orin", {}).get("ip", "10.85.46.104")
+    except Exception:
+        return "10.85.46.104"
+
+def _get_paperless_url():
+    inv = _get_inventory_cached()
+    try:
+        node = inv.get("network", {}).get("nodes", {}).get("paperless", {})
+        ip = node.get("ip", "10.85.47.131")
+        port = node.get("port", 28981)
+        return f"http://{ip}:{port}"
+    except Exception:
+        return "http://10.85.47.131:28981"
 
 def _get_ai_base_url():
     """Determine the best AI engine endpoint (Ollama or llama.cpp) to use."""
+    ollama_ip = _get_ollama_remote_ip()
     endpoints = [
         "http://localhost:11434",
-        f"http://{OLLAMA_REMOTE_IP}:11434",
+        f"http://{ollama_ip}:11434",
         "http://10.85.46.126:11434" # llama-cpp container IP
     ]
     
@@ -232,9 +264,10 @@ def is_task_running():
 def get_inventory_summary():
     """Get full inventory of hosts and network nodes."""
     try:
-        inv_path = os.path.join(DEFAULT_FLAKE_PATH, "nix-config/inventory.nix")
-        result = subprocess.run(["nix", "eval", "--json", "--file", inv_path], capture_output=True, text=True, check=True)
-        return json.loads(result.stdout)
+        res = _get_inventory_cached()
+        if not res:
+            return {"error": "Failed to evaluate inventory.nix"}
+        return res
     except Exception as e: return {"error": str(e)}
 
 @mcp.tool()
@@ -521,7 +554,7 @@ def get_system_telemetry():
         
         # Check Health Sink from ai-logs.py
         health_status = "Unknown"
-        sink_path = os.path.expanduser("~/.cache/ai-health.json")
+        sink_path = os.path.join(DEFAULT_FLAKE_PATH, "scratch/ai-health.json")
         if os.path.exists(sink_path):
             with open(sink_path, "r") as f:
                 sink_data = json.load(f)
@@ -651,7 +684,8 @@ def search_paperless(query: str):
     if not headers: return "Error: Paperless token not found. Add it to nix-secrets/paperless_token.txt"
     
     try:
-        resp = requests.get(f"{PAPERLESS_URL}/api/documents/?query={query}", headers=headers, timeout=5)
+        paperless_url = _get_paperless_url()
+        resp = requests.get(f"{paperless_url}/api/documents/?query={query}", headers=headers, timeout=5)
         if resp.status_code == 200:
             results = resp.json().get('results', [])
             return [{"id": d['id'], "title": d['title'], "created": d['created']} for d in results[:10]]
@@ -665,7 +699,8 @@ def get_paperless_document(doc_id: int):
     if not headers: return "Error: Paperless token not found."
     
     try:
-        resp = requests.get(f"{PAPERLESS_URL}/api/documents/{doc_id}/", headers=headers, timeout=5)
+        paperless_url = _get_paperless_url()
+        resp = requests.get(f"{paperless_url}/api/documents/{doc_id}/", headers=headers, timeout=5)
         if resp.status_code != 200: return f"Error: Could not find document {doc_id}"
         doc = resp.json()
         
