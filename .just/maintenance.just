@@ -110,6 +110,13 @@ apply:
     @just maintenance::_apply "switch"
 
 [group("Workflow")]
+apply-fast *args="":
+    @{{LOCK_CMD}} {{TIMER}} just git::stage-all
+    @{{LOCK_CMD}} {{TIMER}} just maintenance::update-local
+    @{{LOCK_CMD}} {{TIMER}} just nixos::switch "" {{args}}
+    @{{LOCK_CMD}} {{TIMER}} just maintenance::sync-agent
+
+[group("Workflow")]
 apply-boot:
     @just maintenance::_apply "switch-boot"
 

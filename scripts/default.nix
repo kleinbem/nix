@@ -4,6 +4,9 @@ let
   python = pkgs.python3.withPackages (
     ps: with ps; [
       mcp
+      pydantic
+      pydantic-core
+      psutil
       requests
       authlib
       cryptography

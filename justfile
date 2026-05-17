@@ -20,6 +20,10 @@ apply:
     @just maintenance::apply
 
 [group("Main")]
+apply-fast *args="":
+    @just maintenance::apply-fast {{args}}
+
+[group("Main")]
 apply-boot:
     @just maintenance::apply-boot
 
