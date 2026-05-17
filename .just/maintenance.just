@@ -97,13 +97,21 @@ docs:
     @echo "📚 Generating configuration documentation..."
     @nix build .#docs
 
-[group("Workflow")]
-apply:
+[private]
+_apply switch_target:
     @{{LOCK_CMD}} {{TIMER}} just git::stage-all
     @{{LOCK_CMD}} {{TIMER}} just maintenance::update-local
     @{{LOCK_CMD}} {{TIMER}} just maintenance::check
-    @{{LOCK_CMD}} {{TIMER}} just nixos::switch
+    @{{LOCK_CMD}} {{TIMER}} just nixos::{{switch_target}}
     @{{LOCK_CMD}} {{TIMER}} just maintenance::sync-agent
+
+[group("Workflow")]
+apply:
+    @just maintenance::_apply "switch"
+
+[group("Workflow")]
+apply-boot:
+    @just maintenance::_apply "switch-boot"
 
 [group("System")]
 health-check:

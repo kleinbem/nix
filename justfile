@@ -20,6 +20,10 @@ apply:
     @just maintenance::apply
 
 [group("Main")]
+apply-boot:
+    @just maintenance::apply-boot
+
+[group("Main")]
 check-shells:
     @just maintenance::check-shells
 

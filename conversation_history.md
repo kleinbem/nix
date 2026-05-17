@@ -1,10 +1,14 @@
 # Rebuilt Conversation History & Status Center
 
-Generated on: 2026-05-16T14:20:59.581156+00:00
+Generated on: 2026-05-16T22:07:18.641726+00:00
 
 | Last Updated | ID | Summary | Sidebar Status | Activity State | Artifacts |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| 2026-05-16 14:20 | `ba0af901...` | I will reboot my computer, about the just maintenance::history fix for antigravity, I d... | 📌 Active Sidebar (Original) | ⚡ In Progress (Running Tools) | 0 |
+| 2026-05-16 19:26 | `107399cb...` | whAT  TODO➜ cd Develop/github.com/kleinbem/nix | 📌 Active Sidebar (Original) | 🔄 Active / Follow-up | 0 |
+| 2026-05-16 14:42 | `413d35d1...` | can we continue with the chat  | 📌 Active Sidebar (Original) | ✅ Completed (Recent) | 0 |
+| 2026-05-16 14:37 | `75cccadd...` | thee is a problem with Firefox Icons in launcher (gnome) | 📌 Active Sidebar (Original) | ✅ Completed (Recent) | 0 |
+| 2026-05-16 14:31 | `cc253fc0...` | ~  | 📌 Active Sidebar (Original) | ✅ Completed (Recent) | 0 |
+| 2026-05-16 14:21 | `ba0af901...` | I will reboot my computer, about the just maintenance::history fix for antigravity, I d... | 📌 Active Sidebar (Original) | ✅ Completed (Recent) | 0 |
 | 2026-05-16 12:24 | `eca48871...` | why does this happen? | 📌 Active Sidebar (Original) | 🔄 Active / Follow-up | 0 |
 | 2026-05-16 11:54 | `3000793d...` | is there a help or a apply boot? | 📌 Active Sidebar (Original) | 🔄 Active / Follow-up | 0 |
 | 2026-05-16 11:05 | `08b46ab2...` | I use AI extensivley, | 📌 Active Sidebar (Original) | ✅ Completed (Recent) | 0 |
@@ -26,17 +30,17 @@ Generated on: 2026-05-16T14:20:59.581156+00:00
 | 2026-05-15 22:21 | `47626dd3...` | *(Raw session data)* | ⚙️ Background / Implicit | ⏳ In Progress (Recent) | 0 |
 | 2026-05-15 22:20 | `4c017ca3...` | *(Raw session data)* | ⚙️ Background / Implicit | ⏳ In Progress (Recent) | 0 |
 | 2026-05-15 22:19 | `5b0d7211...` | *(Raw session data)* | ⚙️ Background / Implicit | ⏳ In Progress (Recent) | 0 |
-| 2026-05-15 20:20 | `154dd258...` | *(Raw session data)* | ⚙️ Background / Implicit | ⏳ In Progress (Recent) | 0 |
-| 2026-05-15 20:20 | `e560495b...` | *(Raw session data)* | ⚙️ Background / Implicit | ⏳ In Progress (Recent) | 0 |
-| 2026-05-15 19:28 | `5045d386...` | <USER_REQUEST> | 📌 Active Sidebar (Original) | 🔄 Active / Follow-up | 0 |
-| 2026-05-15 16:43 | `64c7072e...` | <USER_REQUEST> | 📌 Active Sidebar (Original) | 🔄 Active / Follow-up | 0 |
-| 2026-05-15 16:39 | `tempmedi...` | *(No summary)* | 📁 Brain Storage Only | ⏳ In Progress (Recent) | 0 |
+| 2026-05-15 20:20 | `154dd258...` | *(Raw session data)* | ⚙️ Background / Implicit | 🔄 Active (This Week) | 0 |
+| 2026-05-15 20:20 | `e560495b...` | *(Raw session data)* | ⚙️ Background / Implicit | 🔄 Active (This Week) | 0 |
+| 2026-05-15 19:28 | `5045d386...` | <USER_REQUEST> | 📌 Active Sidebar (Original) | 🔄 Active (This Week) | 0 |
+| 2026-05-15 16:43 | `64c7072e...` | <USER_REQUEST> | 📌 Active Sidebar (Original) | 🔄 Active (This Week) | 0 |
+| 2026-05-15 16:39 | `tempmedi...` | *(No summary)* | 📁 Brain Storage Only | 🔄 Active (This Week) | 0 |
 | 2026-05-15 16:37 | `44335079...` | Implementation plan for enhancing Nix testing using Skills and MCP. | 📌 Active Sidebar (Original) | ⚡ In Progress (Tool Execution) | 6 |
 | 2026-05-15 16:37 | `c865f3c8...` | lately there are a lot og worms and comprimises, is there something which can check run... | 📌 Active Sidebar (Original) | ⚡ In Progress (Tool Execution) | 0 |
 | 2026-05-15 16:37 | `67ce1f7a...` | <USER_REQUEST> | 📌 Active Sidebar (Original) | ⚡ In Progress (Tool Execution) | 0 |
 | 2026-05-15 16:37 | `d735dac4...` | we have made several changes recently can you check all | 📌 Active Sidebar (Original) | ⚡ In Progress (Tool Execution) | 0 |
-| 2026-05-15 16:37 | `675a9162...` | is there some input for us  | 📌 Active Sidebar (Original) | 🔄 Active / Follow-up | 12 |
-| 2026-05-15 16:37 | `39498096...` | why does it fail? | 📌 Active Sidebar (Original) | 🔄 Active / Follow-up | 5 |
+| 2026-05-15 16:37 | `675a9162...` | is there some input for us  | 📌 Active Sidebar (Original) | 🔄 Active (This Week) | 12 |
+| 2026-05-15 16:37 | `39498096...` | why does it fail? | 📌 Active Sidebar (Original) | 🔄 Active (This Week) | 5 |
 | 2026-05-15 12:13 | `05a6cde4...` | in my nix cong I have 2 raspberry pi 5, can you list the configuration, what is running... | 📌 Active Sidebar (Original) | 🔄 Active (This Week) | 1 |
 | 2026-05-14 15:50 | `e1a86043...` | I guess I am doing this already | 📌 Active Sidebar (Original) | 🔄 Active (This Week) | 0 |
 | 2026-05-13 22:28 | `78464ee9...` | can you list all firefox extensions on one side and on the other side which profiles ar... | 📌 Active Sidebar (Original) | 🔄 Active (This Week) | 0 |
