@@ -14,6 +14,9 @@ result_*
 # Generated / Runtime State
 conversation_history.md
 force-rebuild-trigger
+.dev-dashboard/cache/
+.dev-dashboard/logs/
+
 
 # Temporary Files
 *.bak
