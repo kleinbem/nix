@@ -40,9 +40,9 @@
 
   # Scripts (Custom CLI commands for your workspace)
   scripts.workspace-status.exec = ''
-    echo "🏗️  Project Root: /home/martin/Develop/github.com/kleinbem/nix"
+    echo "🏗️  Project Root: $DEVENV_ROOT"
     echo -n "🚀 Status: "
-    pushd /home/martin/Develop/github.com/kleinbem/nix > /dev/null
+    pushd "$DEVENV_ROOT" > /dev/null
     devenv tasks run workspace:health
     popd > /dev/null
   '';

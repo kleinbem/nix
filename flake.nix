@@ -36,7 +36,7 @@
 
     # Import Local Devshell to keep tools consistent
     nix-devshells = {
-      url = "github:kleinbem/nix-devshells";
+      url = "git+file:///home/martin/Develop/github.com/kleinbem/nix/nix-devshells";
       inputs = {
         devenv.follows = "devenv";
         nixpkgs.follows = "nixpkgs";
@@ -125,6 +125,7 @@
       perSystem =
         { system, lib, ... }:
         let
+          workspaceRoot = "/home/martin/Develop/github.com/kleinbem/nix";
           pkgs = import inputs.nixpkgs {
             inherit system;
             config.allowUnfree = true;
@@ -165,35 +166,35 @@
 
             apps = {
               imports = [ inputs.nix-devshells.devenvModules.apps ];
-              devenv.root = "/home/martin/Develop/github.com/kleinbem/nix";
+              devenv.root = workspaceRoot;
               _module.args.inputs = inputs;
               _module.args.system = system;
             };
 
             pentest = {
               imports = [ inputs.nix-devshells.devenvModules.pentest ];
-              devenv.root = "/home/martin/Develop/github.com/kleinbem/nix";
+              devenv.root = workspaceRoot;
               _module.args.inputs = inputs;
               _module.args.system = system;
             };
 
             ai-dev = {
               imports = [ inputs.nix-devshells.devenvModules.ai-dev ];
-              devenv.root = "/home/martin/Develop/github.com/kleinbem/nix";
+              devenv.root = workspaceRoot;
               _module.args.inputs = inputs;
               _module.args.system = system;
             };
 
             math = {
               imports = [ inputs.nix-devshells.devenvModules.math ];
-              devenv.root = "/home/martin/Develop/github.com/kleinbem/nix";
+              devenv.root = workspaceRoot;
               _module.args.inputs = inputs;
               _module.args.system = system;
             };
 
             media = {
               imports = [ inputs.nix-devshells.devenvModules.media ];
-              devenv.root = "/home/martin/Develop/github.com/kleinbem/nix";
+              devenv.root = workspaceRoot;
               _module.args.inputs = inputs;
               _module.args.system = system;
             };
@@ -206,7 +207,7 @@
                 inputs.nix-devshells.devenvModules.math
                 inputs.nix-devshells.devenvModules.media
               ];
-              devenv.root = "/home/martin/Develop/github.com/kleinbem/nix";
+              devenv.root = workspaceRoot;
               _module.args.inputs = inputs;
               _module.args.system = system;
 

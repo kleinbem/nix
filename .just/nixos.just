@@ -73,8 +73,9 @@ test-recovery *args="":
 [group("Development")]
 test-vm *args="":
     @echo "🖥️ Building and launching test VM..."
-    nix build .#nixosConfigurations.nixos-nvme.config.system.build.vm {{OVERRIDES}} {{args}}
-    ./result/bin/run-nixos-nvme-vm
+    @{{TIMER}} nix build .#nixosConfigurations.nixos-nvme.config.system.build.vm {{OVERRIDES}} {{args}}
+    @mkdir -p /var/lib/qemu/images
+    NIX_DISK_IMAGE=/var/lib/qemu/images/nixos-nvme.qcow2 ./result/bin/run-nixos-nvme-vm
 
 # --- Workload Profile Management (Specialisations) ---
 

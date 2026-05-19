@@ -23,6 +23,8 @@ stage-all:
     @for repo in {{REPOS}}; do \
         git -C $repo add .; \
     done
+    @git add .
+
 
 [group("Sync")]
 pull:

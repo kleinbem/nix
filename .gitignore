@@ -10,6 +10,10 @@ result
 result-*
 result_*
 
+# Generated / Runtime State
+conversation_history.md
+force-rebuild-trigger
+
 # Temporary Files
 *.bak
 *.tar
