@@ -4,6 +4,7 @@
 .direnv/
 .devenv/
 .tools/
+.pre-commit-config.yaml
 
 # Build Results
 result
