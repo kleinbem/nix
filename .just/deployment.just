@@ -60,6 +60,32 @@ orin-seal:
     @echo "🔐 Sealing Orin Nano TPM keys..."
     @ssh root@orin-nano.local "tpm2_pcrseal -g sha256 -l 7 -o /persist/tpm-seal.bin"
 
+[group("Provisioning")]
+[confirm("💿 WIPE the USB SSD and install NixOS for Orin Nano? This is destructive.")]
+orin-install-usb device="/dev/sdb":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "💿 Wiping and partitioning {{device}}..."
+    sudo vgchange -an vg_orin || true
+    disk_name=$(basename {{device}})
+    if [ -d "/sys/class/block/$disk_name" ]; then
+        for holder in /sys/class/block/$disk_name/*/holders/*; do
+            if [ -e "$holder" ]; then
+                dm_name=$(basename "$(readlink "$holder")")
+                sudo cryptsetup close "$dm_name" || true
+            fi
+        done
+    fi
+    sudo nix run github:nix-community/disko -- --mode destroy,format,mount --argstr device {{device}} --arg secondDiskDevice null --root-mountpoint /mnt/orin ./nix-config/hosts/orin-nano/disko.nix
+    echo "🏗️ Installing NixOS closure to {{device}} mounted at /mnt/orin..."
+    sudo nixos-install --root /mnt/orin --flake .#orin-nano --no-root-passwd --option builders "" --option sandbox false
+    echo "🔌 Cleaning up and unmounting..."
+    sudo umount -R /mnt/orin || true
+    sudo vgchange -an vg_orin || true
+    sudo cryptsetup close orin_crypt || true
+    echo "✅ Orin Nano SSD installation complete! You can now safely unplug it and insert it into the Jetson."
+
+
 # --- Router LXC ---
 
 [group("Router")]

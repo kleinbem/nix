@@ -1681,11 +1681,11 @@
         "zon2nix": "zon2nix"
       },
       "locked": {
-        "lastModified": 1779247875,
-        "narHash": "sha256-YeygpqCIz18TjG/+wHkCEx3rvWcymHjeWoNmlRoMOrs=",
+        "lastModified": 1779289041,
+        "narHash": "sha256-TVO8+Ky5MSCp2A92vel6QJALvGjikRPSCG2iLPogmms=",
         "owner": "mitchellh",
         "repo": "ghostty",
-        "rev": "19e20f7664dc7a755d2d7a16ab545b2503f26caf",
+        "rev": "25596541ec42f08d2a98ac54337b81a6244a5328",
         "type": "github"
       },
       "original": {
@@ -3032,11 +3032,11 @@
         "treefmt-nix": "treefmt-nix_3"
       },
       "locked": {
-        "lastModified": 1779275103,
-        "narHash": "sha256-efAVHbMU2swPlDYqRCaWlvRMrYKrxJeFPU+Mp23SaQc=",
+        "lastModified": 1779282959,
+        "narHash": "sha256-WwjT0X9EFWqu2EbFE6zS+UOWwvAWO/9NcCRGvheKSYo=",
         "ref": "refs/heads/main",
-        "rev": "b20091999b699c19e526ffc68791834b9e5a8c6b",
-        "revCount": 174,
+        "rev": "7c06adf9bb10a0e3ae602316572b8bb1bbc8e4c1",
+        "revCount": 175,
         "type": "git",
         "url": "file:///home/martin/Develop/github.com/kleinbem/nix/nix-config"
       },
@@ -4154,11 +4154,11 @@
     },
     "nixpkgs-master_3": {
       "locked": {
-        "lastModified": 1779277785,
-        "narHash": "sha256-qWiVELlpYModVVwj8RqDz2391GPYSrUpQPXwJ38CSs0=",
+        "lastModified": 1779294088,
+        "narHash": "sha256-uJODX9C3f7bRyowDQM7LubHr4BZhjytofGXg0i3JTxA=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "00e16e88fac47cb8da7d0ba82fdc6f3e169c3354",
+        "rev": "23948bc5bed5b6c234e19806b7dd9cfbe356161e",
         "type": "github"
       },
       "original": {
