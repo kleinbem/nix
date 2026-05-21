@@ -67,18 +67,16 @@ orin-install-usb device="/dev/sdb":
     set -euo pipefail
     echo "💿 Wiping and partitioning {{device}}..."
     sudo vgchange -an vg_orin || true
+    # Close any open dm devices backed by this disk (partitions included)
     disk_name=$(basename {{device}})
-    if [ -d "/sys/class/block/$disk_name" ]; then
-        for holder in /sys/class/block/$disk_name/*/holders/*; do
-            if [ -e "$holder" ]; then
-                dm_name=$(basename "$(readlink "$holder")")
-                sudo cryptsetup close "$dm_name" || true
-            fi
-        done
-    fi
+    for part in /sys/class/block/${disk_name}*/holders/*; do
+        [ -e "$part" ] && sudo cryptsetup close "$(basename "$(readlink "$part")")" 2>/dev/null || true
+    done
+    # Wipe first 1200M: clears GPT, the 1G ESP, and the LUKS header at the start of partition 2
+    sudo dd if=/dev/zero of={{device}} bs=1M count=1200 status=none
     sudo nix run github:nix-community/disko -- --mode destroy,format,mount --argstr device {{device}} --arg secondDiskDevice null --root-mountpoint /mnt/orin ./nix-config/hosts/orin-nano/disko.nix
     echo "🏗️ Installing NixOS closure to {{device}} mounted at /mnt/orin..."
-    sudo nixos-install --root /mnt/orin --flake .#orin-nano --no-root-passwd --option builders "" --option sandbox false
+    sudo nixos-install --root /mnt/orin --flake .#orin-nano --no-root-passwd --option builders ""
     echo "🔌 Cleaning up and unmounting..."
     sudo umount -R /mnt/orin || true
     sudo vgchange -an vg_orin || true

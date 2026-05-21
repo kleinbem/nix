@@ -100,7 +100,7 @@
     mk-shell-bin.url = "github:rrbutani/nix-mk-shell-bin";
     jetpack-nixos = {
       url = "github:anduril/jetpack-nixos";
-      inputs.nixpkgs.follows = "nixpkgs";
+      # intentionally NOT following nixpkgs — anduril's cache is built with jetpack's pinned nixpkgs
     };
 
     nix-on-droid = {
