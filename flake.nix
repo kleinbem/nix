@@ -58,6 +58,7 @@
         sops-nix.follows = "sops-nix";
         home-manager.follows = "home-manager";
         nix-secrets.follows = "nix-secrets";
+        jetpack-nixos.follows = "jetpack-nixos";
       };
     };
 
