@@ -565,33 +565,6 @@
         "type": "github"
       }
     },
-    "cuda-legacy_2": {
-      "inputs": {
-        "flake-parts": [
-          "nix-config",
-          "jetpack-nixos",
-          "cuda-legacy"
-        ],
-        "nixpkgs": [
-          "nix-config",
-          "jetpack-nixos",
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1768505959,
-        "narHash": "sha256-oFCx/ApQ+S1/apUKWsvT9vq+Eo1m2vINWEDkW7/nckA=",
-        "owner": "nixos-cuda",
-        "repo": "cuda-legacy",
-        "rev": "86ad7e2c2e314f0234539cbbc66b5cd7746bcd32",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nixos-cuda",
-        "repo": "cuda-legacy",
-        "type": "github"
-      }
-    },
     "devenv": {
       "inputs": {
         "cachix": "cachix",
@@ -2804,28 +2777,6 @@
         "type": "github"
       }
     },
-    "jetpack-nixos_2": {
-      "inputs": {
-        "cuda-legacy": "cuda-legacy_2",
-        "nixpkgs": [
-          "nix-config",
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1778198474,
-        "narHash": "sha256-/wU5i23kEyVYR+L8qaLVXgE62lg2gxn4t2b0fijmr+o=",
-        "owner": "anduril",
-        "repo": "jetpack-nixos",
-        "rev": "d4bf99f08d624b3d5c43c16d8390a484bac841ea",
-        "type": "github"
-      },
-      "original": {
-        "owner": "anduril",
-        "repo": "jetpack-nixos",
-        "type": "github"
-      }
-    },
     "jovian": {
       "inputs": {
         "nix-github-actions": "nix-github-actions",
@@ -2989,7 +2940,9 @@
           "home-manager"
         ],
         "impermanence": "impermanence",
-        "jetpack-nixos": "jetpack-nixos_2",
+        "jetpack-nixos": [
+          "jetpack-nixos"
+        ],
         "lanzaboote": "lanzaboote",
         "nix-devshells": [
           "nix-devshells"
@@ -3030,11 +2983,11 @@
         "treefmt-nix": "treefmt-nix_3"
       },
       "locked": {
-        "lastModified": 1779282959,
-        "narHash": "sha256-WwjT0X9EFWqu2EbFE6zS+UOWwvAWO/9NcCRGvheKSYo=",
+        "lastModified": 1779357890,
+        "narHash": "sha256-MwR583kh8MbdmMzeq0eHmi7zJ+cRsPoqHteVqijscb4=",
         "ref": "refs/heads/main",
-        "rev": "7c06adf9bb10a0e3ae602316572b8bb1bbc8e4c1",
-        "revCount": 175,
+        "rev": "e76c81943dce66c1661f84edfff8594a0fe7b232",
+        "revCount": 178,
         "type": "git",
         "url": "file:///home/martin/Develop/github.com/kleinbem/nix/nix-config"
       },
