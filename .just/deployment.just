@@ -15,6 +15,24 @@ deploy-orin:
     @echo "🟢 Deploying to Orin Nano..."
     colmena apply --on orin-nano
 
+[group("Provisioning")]
+[confirm("💿 Re-install full orin-nano config onto the bootstrapped Orin? Builds natively on the device (no cross-compilation). This reformats the SSD.")]
+[doc("Requires bootstrap running, SSH key working, and LUKS passphrase ready. Builds the full aarch64 closure on the Orin then reformats disk with LUKS+LVM+impermanence layout.")]
+orin-promote host="root@orin-nano-bootstrap.local":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "🔑 Enter the LUKS passphrase for the new orin-nano install:"
+    read -s -r LUKS_KEY
+    echo "🔨 Building and installing full orin-nano config (native aarch64 build on the Orin)..."
+    # nixos-anywhere: --build-on-remote avoids x86_64 → aarch64 cross-compilation.
+    # The generated LUKS passphrase is only for initial setup; seal TPM2 afterwards with: just orin-seal
+    echo "$LUKS_KEY" | nix run github:nix-community/nixos-anywhere -- \
+        --flake ./nix-config#orin-nano \
+        --build-on-remote \
+        --disk-encryption-keys /dev/stdin - \
+        {{host}}
+    echo "✅ Full orin-nano installed! Now seal TPM2 with: just orin-seal"
+
 [group("Fleet")]
 deploy-edge:
     @echo "📡 Deploying to AI Edge (Orin + Raspberry Pi)..."
@@ -61,6 +79,26 @@ orin-seal:
     @ssh root@orin-nano.local "tpm2_pcrseal -g sha256 -l 7 -o /persist/tpm-seal.bin"
 
 [group("Provisioning")]
+[confirm("🟢 Install minimal NixOS bootstrap onto USB SSD for Orin Nano? This is destructive.")]
+orin-install-bootstrap device="/dev/sdb":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "💿 Wiping {{device}} for bootstrap install..."
+    sudo vgchange -an vg_orin || true
+    disk_name=$(basename {{device}})
+    for part in /sys/class/block/${disk_name}*/holders/*; do
+        [ -e "$part" ] && sudo cryptsetup close "$(basename "$(readlink "$part")")" 2>/dev/null || true
+    done
+    sudo dd if=/dev/zero of={{device}} bs=1M count=1200 status=none
+    echo "🗂️  Partitioning and formatting via disko..."
+    sudo nix run github:nix-community/disko -- --mode destroy,format,mount --argstr device {{device}} --root-mountpoint /mnt/orin-bootstrap ./nix-config/hosts/orin-nano-bootstrap/disko.nix
+    echo "🏗️  Installing bootstrap NixOS closure..."
+    sudo nixos-install --root /mnt/orin-bootstrap --flake ./nix-config#orin-nano-bootstrap --no-root-passwd --option builders ""
+    echo "🔌 Cleaning up..."
+    sudo umount -R /mnt/orin-bootstrap || true
+    echo "✅ Bootstrap done! Plug the SSD into the Orin, boot it, then SSH in and run: just deploy-orin-self"
+
+[group("Provisioning")]
 [confirm("💿 WIPE the USB SSD and install NixOS for Orin Nano? This is destructive.")]
 orin-install-usb device="/dev/sdb":
     #!/usr/bin/env bash
@@ -76,7 +114,7 @@ orin-install-usb device="/dev/sdb":
     sudo dd if=/dev/zero of={{device}} bs=1M count=1200 status=none
     sudo nix run github:nix-community/disko -- --mode destroy,format,mount --argstr device {{device}} --arg secondDiskDevice null --root-mountpoint /mnt/orin ./nix-config/hosts/orin-nano/disko.nix
     echo "🏗️ Installing NixOS closure to {{device}} mounted at /mnt/orin..."
-    sudo nixos-install --root /mnt/orin --flake .#orin-nano --no-root-passwd --option builders ""
+    sudo nixos-install --root /mnt/orin --flake ./nix-config#orin-nano --no-root-passwd --option builders ""
     echo "🔌 Cleaning up and unmounting..."
     sudo umount -R /mnt/orin || true
     sudo vgchange -an vg_orin || true
