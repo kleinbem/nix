@@ -17,21 +17,25 @@ deploy-orin:
 
 [group("Provisioning")]
 [confirm("💿 Re-install full orin-nano config onto the bootstrapped Orin? Builds natively on the device (no cross-compilation). This reformats the SSD.")]
-[doc("Requires bootstrap running, SSH key working, and LUKS passphrase ready. Builds the full aarch64 closure on the Orin then reformats disk with LUKS+LVM+impermanence layout.")]
+[doc("Requires bootstrap running and SSH key working. Builds aarch64 closure on the Orin itself, reformats disk with full LUKS+LVM+impermanence layout. LUKS passphrase is prompted interactively. Seal TPM2 afterwards with: just deployment::orin-seal")]
 orin-promote host="root@orin-nano-bootstrap.local":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    echo "🔑 Enter the LUKS passphrase for the new orin-nano install:"
-    read -s -r LUKS_KEY
-    echo "🔨 Building and installing full orin-nano config (native aarch64 build on the Orin)..."
-    # nixos-anywhere: --build-on-remote avoids x86_64 → aarch64 cross-compilation.
-    # The generated LUKS passphrase is only for initial setup; seal TPM2 afterwards with: just orin-seal
-    echo "$LUKS_KEY" | nix run github:nix-community/nixos-anywhere -- \
+    @echo "🔨 Building and installing full orin-nano config (native aarch64 build on the Orin)..."
+    @echo "   LUKS passphrase will be prompted interactively. Seal TPM2 afterwards with: just deployment::orin-seal"
+    nix run github:nix-community/nixos-anywhere -- \
         --flake ./nix-config#orin-nano \
         --build-on-remote \
-        --disk-encryption-keys /dev/stdin - \
+        --phases kexec,disko,install,reboot \
         {{host}}
-    echo "✅ Full orin-nano installed! Now seal TPM2 with: just orin-seal"
+
+[group("Provisioning")]
+[confirm("💿 Install full orin-nano config skipping kexec? Use this when kexec fails (e.g. Jetson). Target must be reachable and disk not in active use.")]
+orin-promote-nokexec host="root@orin-nano-bootstrap.local":
+    @echo "🔨 Building and installing full orin-nano config (no kexec — skips RAM boot)..."
+    nix run github:nix-community/nixos-anywhere -- \
+        --flake ./nix-config#orin-nano \
+        --build-on-remote \
+        --phases disko,install,reboot \
+        {{host}}
 
 [group("Fleet")]
 deploy-edge:
@@ -66,13 +70,6 @@ orin-shell:
     @ssh root@orin-nano.local
 
 [group("Provisioning")]
-[confirm("💿 WIPE the Orin Nano and perform a fresh NixOS installation? This is destructive.")]
-orin-install target="root@orin-nano.local":
-    @echo "💿 Preparing Orin Nano for NixOS..."
-    @nix run github:nix-community/disko -- --mode zap_create_mount ./hosts/orin-nano/disko.nix
-    @nixos-install --flake .#orin-nano --target-host {{target}}
-
-[group("Provisioning")]
 [confirm("🔐 Seal the TPM key on the Orin Nano? This can only be done once after boot.")]
 orin-seal:
     @echo "🔐 Sealing Orin Nano TPM keys..."
@@ -83,43 +80,231 @@ orin-seal:
 orin-install-bootstrap device="/dev/sdb":
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "💿 Wiping {{device}} for bootstrap install..."
-    sudo vgchange -an vg_orin || true
+    echo "🔍 Ensuring clean state before install..."
+    sudo umount -R /mnt/orin-bootstrap 2>/dev/null || true
+    sudo vgchange -an vg_orin 2>/dev/null || true
     disk_name=$(basename {{device}})
     for part in /sys/class/block/${disk_name}*/holders/*; do
         [ -e "$part" ] && sudo cryptsetup close "$(basename "$(readlink "$part")")" 2>/dev/null || true
     done
+    sudo cryptsetup close orin_crypt 2>/dev/null || true
+    echo "💿 Wiping {{device}}..."
     sudo dd if=/dev/zero of={{device}} bs=1M count=1200 status=none
+    sudo wipefs -a {{device}} 2>/dev/null || true
+    for part in $(ls {{device}}* 2>/dev/null | grep -v "^{{device}}$"); do
+        sudo wipefs -a "$part" 2>/dev/null || true
+    done
+    sudo partprobe {{device}} 2>/dev/null || true
     echo "🗂️  Partitioning and formatting via disko..."
     sudo nix run github:nix-community/disko -- --mode destroy,format,mount --argstr device {{device}} --root-mountpoint /mnt/orin-bootstrap ./nix-config/hosts/orin-nano-bootstrap/disko.nix
-    echo "🏗️  Installing bootstrap NixOS closure..."
-    sudo nixos-install --root /mnt/orin-bootstrap --flake ./nix-config#orin-nano-bootstrap --no-root-passwd --option builders ""
+    echo "🔨 Building aarch64 closure (sandbox disabled for QEMU JIT, skipping offline remote builder)..."
+    # nixos-install does not forward --option to its internal nix build, so we pre-build here
+    # where sandbox=false and builders="" are honoured, then hand the result to --system.
+    nix build ./nix-config#nixosConfigurations.orin-nano-bootstrap.config.system.build.toplevel \
+        --option sandbox false \
+        --option builders "" \
+        --out-link /tmp/orin-bootstrap-system
+    echo "🏗️  Installing bootstrap NixOS closure (skipping bootloader — installed manually below)..."
+    # --no-bootloader: nixos-install's bootloader step chroots into aarch64 binaries via QEMU,
+    # but QEMU's uname() returns x86_64, causing bootctl to bail with exit 255.
+    # All bootloader files are just static copies; we do them from the host side instead.
+    sudo nixos-install --root /mnt/orin-bootstrap --system "$(readlink /tmp/orin-bootstrap-system)" --no-root-passwd --no-bootloader
+
+    echo "💾 Installing systemd-boot to ESP (host-side, no aarch64 execution required)..."
+    SYSTEM="$(readlink /tmp/orin-bootstrap-system)"
+    ESP="/mnt/orin-bootstrap/boot"
+
+    BOOT_EFI="$(find /mnt/orin-bootstrap/nix/store -maxdepth 6 -name "systemd-bootaa64.efi" 2>/dev/null | head -1)"
+    [ -n "$BOOT_EFI" ] || { echo "❌ systemd-bootaa64.efi not found in store" >&2; exit 1; }
+
+    KERNEL_SRC="$(realpath "${SYSTEM}/kernel")"
+    INITRD_SRC="$(realpath "${SYSTEM}/initrd")"
+    KERNEL_PARAMS="$(cat "${SYSTEM}/kernel-params")"
+    SYS_STORE_PATH="/nix/store/$(basename "${SYSTEM}")"
+
+    sudo mkdir -p "${ESP}/EFI/systemd" "${ESP}/EFI/BOOT" "${ESP}/EFI/nixos" "${ESP}/loader/entries"
+    sudo cp "${BOOT_EFI}" "${ESP}/EFI/systemd/systemd-bootaa64.efi"
+    sudo cp "${BOOT_EFI}" "${ESP}/EFI/BOOT/BOOTAA64.EFI"
+    sudo cp "${KERNEL_SRC}" "${ESP}/EFI/nixos/kernel"
+    sudo cp "${INITRD_SRC}" "${ESP}/EFI/nixos/initrd"
+
+    printf 'timeout 5\ndefault nixos-1.conf\neditor no\n' | sudo tee "${ESP}/loader/loader.conf" > /dev/null
+
+    ENTRY="$(mktemp)"
+    printf 'title NixOS Bootstrap\nlinux /EFI/nixos/kernel\ninitrd /EFI/nixos/initrd\noptions init=%s/init %s\n' \
+        "${SYS_STORE_PATH}" "${KERNEL_PARAMS}" > "${ENTRY}"
+    sudo cp "${ENTRY}" "${ESP}/loader/entries/nixos-1.conf"
+    rm "${ENTRY}"
+
+    rm -f /tmp/orin-bootstrap-system
     echo "🔌 Cleaning up..."
     sudo umount -R /mnt/orin-bootstrap || true
-    echo "✅ Bootstrap done! Plug the SSD into the Orin, boot it, then SSH in and run: just deploy-orin-self"
+    echo "✅ Bootstrap done! Plug the SSD into the Orin, boot it, then run: just deployment::orin-promote"
 
 [group("Provisioning")]
 [confirm("💿 WIPE the USB SSD and install NixOS for Orin Nano? This is destructive.")]
 orin-install-usb device="/dev/sdb":
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "💿 Wiping and partitioning {{device}}..."
-    sudo vgchange -an vg_orin || true
-    # Close any open dm devices backed by this disk (partitions included)
-    disk_name=$(basename {{device}})
-    for part in /sys/class/block/${disk_name}*/holders/*; do
-        [ -e "$part" ] && sudo cryptsetup close "$(basename "$(readlink "$part")")" 2>/dev/null || true
-    done
-    # Wipe first 1200M: clears GPT, the 1G ESP, and the LUKS header at the start of partition 2
-    sudo dd if=/dev/zero of={{device}} bs=1M count=1200 status=none
-    sudo nix run github:nix-community/disko -- --mode destroy,format,mount --argstr device {{device}} --arg secondDiskDevice null --root-mountpoint /mnt/orin ./nix-config/hosts/orin-nano/disko.nix
+
+    _cleanup_dm() {
+        # Deactivate LVM VG, close any LUKS mapped from partitions of this disk, then
+        # force-remove residual device-mapper entries.  A lingering orin_crypt (from a
+        # previous failed run) causes disko to skip luksOpen and pvcreate to see stale
+        # LVM signatures; a 0-sector orin_crypt left after a --persistent dm-table
+        # reload causes pvcreate to report "device is not in a usable state".
+        sudo umount -R /mnt/orin 2>/dev/null || true
+        sudo vgchange -an vg_orin 2>/dev/null || true
+        local disk_name
+        disk_name=$(basename {{device}})
+        for part in /sys/class/block/${disk_name}*/holders/*; do
+            [ -e "$part" ] && sudo cryptsetup close "$(basename "$(readlink "$part")")" 2>/dev/null || true
+        done
+        sudo cryptsetup close orin_crypt 2>/dev/null || true
+        sudo dmsetup remove -f orin_crypt 2>/dev/null || true
+        for dm in $(sudo dmsetup ls 2>/dev/null | awk '{print $1}' | grep -E '^vg_orin'); do
+            sudo dmsetup remove -f "$dm" 2>/dev/null || true
+        done
+        sudo udevadm settle 2>/dev/null || true
+    }
+
+    _wipe_disk() {
+        # Wipe first 1200 MiB: clears GPT, the 1 GiB ESP, and the LUKS header at the
+        # start of partition 2.  Avoid wiping individual partition nodes — the kernel
+        # may already have removed them after the GPT was zeroed, and running wipefs on
+        # stale sdb1/sdb2 nodes can confuse the USB controller's partition-size cache.
+        echo "💿 Wiping {{device}}..."
+        sudo dd if=/dev/zero of={{device}} bs=1M count=1200 status=none
+        sudo sync
+        sudo wipefs -a {{device}} 2>/dev/null || true
+        sudo blockdev --rereadpt {{device}} 2>/dev/null || sudo partprobe {{device}} 2>/dev/null || true
+        sudo udevadm settle 2>/dev/null || true
+    }
+
+    _run_disko() {
+        sudo nix run github:nix-community/disko -- \
+            --mode destroy,format,mount \
+            --argstr device {{device}} \
+            --arg secondDiskDevice null \
+            --root-mountpoint /mnt/orin \
+            ./nix-config/hosts/orin-nano/disko.nix
+    }
+
+    echo "🔍 Ensuring clean state before install..."
+    _cleanup_dm
+    _wipe_disk
+
+    # disko's luksOpen uses --allow-discards --persistent, which writes back to the
+    # raw LUKS header.  On USB-NVMe enclosures this header write can trigger a UAS
+    # command abort that momentarily presents the dm-crypt mapping with 0 sectors,
+    # causing pvcreate to fail with "device is not in a usable state".  The fix is to
+    # detect this state, close and reopen the mapping, and retry once.
+    if ! _run_disko; then
+        echo "⚠️  disko failed — checking if orin_crypt is a 0-sector USB timing artifact..."
+        crypt_size=$(sudo blockdev --getsize64 /dev/mapper/orin_crypt 2>/dev/null || echo 0)
+        if [ "$crypt_size" = "0" ]; then
+            echo "🔄 Confirmed 0-sector dm-crypt device (USB re-enumeration race).  Closing and reopening..."
+            sudo cryptsetup close orin_crypt 2>/dev/null || true
+            sudo dmsetup remove -f orin_crypt 2>/dev/null || true
+            sudo udevadm settle
+        else
+            echo "❌ disko failed for a different reason (orin_crypt size: ${crypt_size}).  Aborting."
+            exit 1
+        fi
+        echo "🔄 Retrying full disko install from scratch..."
+        _cleanup_dm
+        _wipe_disk
+        _run_disko
+    fi
+
+    _setup_host_identity() {
+        # Generates SSH host keys and the sops age key into the persist volume while
+        # the SSD is still mounted, then wires the public age key into .sops.yaml and
+        # re-encrypts secrets.  This means the first boot has all secrets available
+        # without any post-boot manual steps.
+        local persist="/mnt/orin/nix/persist"
+        echo "🔑 Setting up host identity..."
+
+        sudo mkdir -p "${persist}/etc/ssh" "${persist}/var/lib/sops/age"
+        sudo chmod 700 "${persist}/var/lib/sops/age"
+
+        # Generate persistent SSH host keys (stored in /nix/persist via impermanence)
+        if [ ! -f "${persist}/etc/ssh/ssh_host_ed25519_key" ]; then
+            sudo ssh-keygen -t ed25519 -f "${persist}/etc/ssh/ssh_host_ed25519_key" -N "" -C "orin-nano" -q
+            sudo ssh-keygen -t rsa -b 4096 -f "${persist}/etc/ssh/ssh_host_rsa_key" -N "" -C "orin-nano" -q
+            sudo chmod 600 "${persist}/etc/ssh/ssh_host_ed25519_key" "${persist}/etc/ssh/ssh_host_rsa_key"
+            sudo chmod 644 "${persist}/etc/ssh/ssh_host_ed25519_key.pub" "${persist}/etc/ssh/ssh_host_rsa_key.pub"
+        fi
+
+        # Derive age keys from the SSH ed25519 host key.
+        # Run ssh-to-age as the current user (it reads from stdin to avoid sudo PATH issues).
+        local age_pubkey
+        age_pubkey=$(sudo cat "${persist}/etc/ssh/ssh_host_ed25519_key.pub" | ssh-to-age)
+        sudo cat "${persist}/etc/ssh/ssh_host_ed25519_key" \
+            | ssh-to-age --private-key \
+            | sudo tee "${persist}/var/lib/sops/age/host.txt" > /dev/null
+        sudo chmod 600 "${persist}/var/lib/sops/age/host.txt"
+
+        # Stable machine-id for journald / systemd (persisted via impermanence)
+        if [ ! -f "${persist}/etc/machine-id" ]; then
+            systemd-id128 new | sudo tee "${persist}/etc/machine-id" > /dev/null
+            sudo chmod 444 "${persist}/etc/machine-id"
+        fi
+
+        echo "📋 orin-nano age public key: ${age_pubkey}"
+
+        # Add the age public key to .sops.yaml and re-encrypt secrets so that
+        # the Orin can decrypt them on first boot without any further intervention.
+        local sops_yaml="./nix-secrets/.sops.yaml"
+        if grep -qF "${age_pubkey}" "${sops_yaml}"; then
+            echo "   Age key already in .sops.yaml — skipping re-encryption."
+            return
+        fi
+
+        # Insert after the last age key line using awk (preserves comments)
+        awk -v key="${age_pubkey}" '
+            /^[[:space:]]*- "age1/ { last = NR }
+            { lines[NR] = $0 }
+            END {
+                for (i = 1; i <= NR; i++) {
+                    print lines[i]
+                    if (i == last) {
+                        print "          # Host Key (orin-nano)"
+                        print "          - \"" key "\""
+                    }
+                }
+            }
+        ' "${sops_yaml}" > /tmp/sops_updated.yaml && mv /tmp/sops_updated.yaml "${sops_yaml}"
+
+        echo "🔐 Re-encrypting secrets (YubiKey touch may be required)..."
+        sops updatekeys --yes ./nix-secrets/secrets.yaml
+        echo "✅ Secrets updated."
+        echo ""
+        echo "   Commit nix-secrets + nix-config before deploying:"
+        echo "   just git::save 'feat: add orin-nano host key and re-encrypt secrets'"
+    }
+
     echo "🏗️ Installing NixOS closure to {{device}} mounted at /mnt/orin..."
-    sudo nixos-install --root /mnt/orin --flake ./nix-config#orin-nano --no-root-passwd --option builders ""
+    nix build ./nix-config#nixosConfigurations.orin-nano.config.system.build.toplevel \
+        --option sandbox false \
+        --option builders "" \
+        --out-link /tmp/orin-system
+    sudo nixos-install --root /mnt/orin --system "$(readlink /tmp/orin-system)" --no-root-passwd
+    rm -f /tmp/orin-system
+
+    _setup_host_identity
+
     echo "🔌 Cleaning up and unmounting..."
     sudo umount -R /mnt/orin || true
     sudo vgchange -an vg_orin || true
     sudo cryptsetup close orin_crypt || true
-    echo "✅ Orin Nano SSD installation complete! You can now safely unplug it and insert it into the Jetson."
+    echo ""
+    echo "✅ Orin Nano SSD installation complete!"
+    echo "   Next steps:"
+    echo "   1. Commit: just git::save 'feat: orin-nano install'"
+    echo "   2. Plug SSD into the Jetson and boot"
+    echo "   3. Deploy config: just deployment::deploy-orin"
+    echo "   4. Seal TPM2: just deployment::orin-seal"
 
 
 # --- Router LXC ---
