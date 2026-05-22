@@ -8,12 +8,12 @@ set working-directory := ".."
 [confirm("🚀 Deploy configuration to the ENTIRE FLEET via Colmena?")]
 deploy-fleet:
     @echo "🚀 Deploying to entire fleet via Colmena..."
-    colmena apply --show-trace
+    colmena -f ./nix-config/flake.nix apply --impure --show-trace
 
 [group("Fleet")]
 deploy-orin:
     @echo "🟢 Deploying to Orin Nano..."
-    colmena apply --on orin-nano
+    colmena -f ./nix-config/flake.nix apply --impure --on orin-nano
 
 [group("Provisioning")]
 [confirm("💿 Re-install full orin-nano config onto the bootstrapped Orin? Builds natively on the device (no cross-compilation). This reformats the SSD.")]
@@ -40,7 +40,7 @@ orin-promote-nokexec host="root@orin-nano-bootstrap.local":
 [group("Fleet")]
 deploy-edge:
     @echo "📡 Deploying to AI Edge (Orin + Raspberry Pi)..."
-    colmena apply --on orin-nano,core-pi,hass-pi
+    colmena -f ./nix-config/flake.nix apply --impure --on orin-nano,core-pi,hass-pi
 
 [group("Status")]
 fleet mode="minimal":
