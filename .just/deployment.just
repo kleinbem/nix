@@ -370,6 +370,57 @@ orin-install-usb device="/dev/sdb":
     echo "   4. Seal TPM2: just deployment::orin-seal"
 
 
+[group("Provisioning")]
+[confirm("🔄 Re-install orin-nano config to an ALREADY-PROVISIONED SSD in the USB reader (NO wipe)? Mounts the existing LUKS/LVM, rebuilds, and refreshes the closure + bootloader.")]
+[doc("Non-destructive in-place update of an installed Orin SSD. Mounts the existing disk via disko (prompts for the LUKS passphrase), rebuilds the closure with local overrides, reinstalls it, and re-writes systemd-boot host-side. Use after config changes (e.g. clevis/disko tweaks) without re-wiping or re-copying from scratch.")]
+orin-update-usb device="/dev/sdb":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "🔓 Mounting existing SSD via disko (enter the Orin LUKS passphrase when prompted)..."
+    sudo nix run github:nix-community/disko -- \
+        --mode mount \
+        --argstr device {{device}} \
+        --arg secondDiskDevice null \
+        --root-mountpoint /mnt/orin \
+        ./nix-config/hosts/orin-nano/disko.nix
+
+    echo "🏗️ Building orin-nano closure..."
+    nix build ./nix-config#nixosConfigurations.orin-nano.config.system.build.toplevel \
+        --option sandbox false \
+        --option builders "" \
+        {{OVERRIDES}} \
+        --out-link /tmp/orin-system
+
+    SYSTEM="$(readlink /tmp/orin-system)"
+    ESP="/mnt/orin/boot"
+
+    echo "💿 Installing closure (skipping bootloader — done host-side below)..."
+    sudo nixos-install --root /mnt/orin --system "${SYSTEM}" --no-root-passwd --no-bootloader
+
+    echo "💾 Installing systemd-boot to ESP (host-side, no aarch64 execution)..."
+    BOOT_EFI="$(find /mnt/orin/nix/store -maxdepth 6 -name "systemd-bootaa64.efi" 2>/dev/null | head -1)"
+    [ -n "$BOOT_EFI" ] || { echo "❌ systemd-bootaa64.efi not found in store" >&2; exit 1; }
+    sudo mkdir -p "${ESP}/EFI/systemd" "${ESP}/EFI/BOOT" "${ESP}/EFI/nixos" "${ESP}/loader/entries"
+    sudo cp "${BOOT_EFI}" "${ESP}/EFI/systemd/systemd-bootaa64.efi"
+    sudo cp "${BOOT_EFI}" "${ESP}/EFI/BOOT/BOOTAA64.EFI"
+    sudo cp "$(realpath "${SYSTEM}/kernel")" "${ESP}/EFI/nixos/kernel"
+    sudo cp "$(realpath "${SYSTEM}/initrd")" "${ESP}/EFI/nixos/initrd"
+    printf 'timeout 5\ndefault nixos-1.conf\neditor no\n' | sudo tee "${ESP}/loader/loader.conf" > /dev/null
+    ENTRY="$(mktemp)"
+    printf 'title NixOS\nlinux /EFI/nixos/kernel\ninitrd /EFI/nixos/initrd\noptions init=%s/init %s\n' \
+        "/nix/store/$(basename "${SYSTEM}")" "$(cat "${SYSTEM}/kernel-params")" > "${ENTRY}"
+    sudo cp "${ENTRY}" "${ESP}/loader/entries/nixos-1.conf"
+    rm "${ENTRY}"
+    rm -f /tmp/orin-system
+
+    echo "🔌 Unmounting..."
+    sudo umount -R /mnt/orin || true
+    sudo vgchange -an vg_orin || true
+    sudo cryptsetup close orin_crypt || true
+    echo "✅ In-place update complete — put the SSD in the Orin, plug in ethernet, and boot."
+
+
 # --- Router LXC ---
 
 [group("Router")]
