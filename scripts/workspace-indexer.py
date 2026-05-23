@@ -9,8 +9,45 @@ import sys
 
 VAULT_PATH = "/home/martin/Documents/Notes"
 INDEX_PATH = "/home/martin/Develop/github.com/kleinbem/nix/scratch/semantic_index.json"
-OLLAMA_URL = "http://localhost:11434/api/embeddings"
 MODEL = "nomic-embed-text"
+
+def get_ollama_url():
+    """Find the active Ollama API endpoint."""
+    import subprocess
+    # Default fallback endpoints
+    endpoints = [
+        "http://localhost:11434/api/embeddings",
+        "http://10.85.46.104:11434/api/embeddings",
+        "http://10.85.46.126:11434/api/embeddings"
+    ]
+    
+    # Try to extract the Orin IP from the inventory if possible
+    try:
+        inv_path = "/home/martin/Develop/github.com/kleinbem/nix/nix-config/inventory.nix"
+        if os.path.exists(inv_path):
+            result = subprocess.run(["nix", "eval", "--json", "--file", inv_path], capture_output=True, text=True, timeout=2)
+            if result.returncode == 0:
+                inv = json.loads(result.stdout)
+                orin_ip = inv.get("network", {}).get("nodes", {}).get("ollama-orin", {}).get("ip")
+                if orin_ip and f"http://{orin_ip}:11434/api/embeddings" not in endpoints:
+                    endpoints.insert(1, f"http://{orin_ip}:11434/api/embeddings")
+    except Exception:
+        pass
+
+    for url in endpoints:
+        try:
+            # Quick check if endpoint is online
+            base_url = url.rsplit('/', 1)[0]
+            resp = requests.get(f"{base_url}/tags", timeout=0.5)
+            if resp.status_code == 200:
+                return url
+        except Exception:
+            pass
+            
+    return "http://localhost:11434/api/embeddings" # Default fallback
+
+OLLAMA_URL = get_ollama_url()
+print(f"🤖 Using Ollama embedding endpoint: {OLLAMA_URL}")
 
 def get_embedding(text):
     try:
@@ -20,6 +57,7 @@ def get_embedding(text):
     except Exception:
         pass
     return None
+
 
 def index_vault():
     print(f"🔍 Indexing vault: {VAULT_PATH}")

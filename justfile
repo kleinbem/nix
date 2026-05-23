@@ -88,3 +88,4 @@ hub:
     )
 
     [ -n "$SELECTED" ] && just $(echo "$SELECTED" | awk '{print $2}')
+

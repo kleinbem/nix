@@ -103,6 +103,7 @@ orin-install-bootstrap device="/dev/sdb":
     nix build ./nix-config#nixosConfigurations.orin-nano-bootstrap.config.system.build.toplevel \
         --option sandbox false \
         --option builders "" \
+        {{OVERRIDES}} \
         --out-link /tmp/orin-bootstrap-system
     echo "🏗️  Installing bootstrap NixOS closure (skipping bootloader — installed manually below)..."
     # --no-bootloader: nixos-install's bootloader step chroots into aarch64 binaries via QEMU,
@@ -153,18 +154,41 @@ orin-install-usb device="/dev/sdb":
         # previous failed run) causes disko to skip luksOpen and pvcreate to see stale
         # LVM signatures; a 0-sector orin_crypt left after a --persistent dm-table
         # reload causes pvcreate to report "device is not in a usable state".
-        sudo umount -R /mnt/orin 2>/dev/null || true
+        # Tear down strictly top-down: unmount -> remove LV dm devices -> close LUKS.
+        # A previous run can leave vg_orin LVs *active and mounted* on top of orin_crypt
+        # while a later pvcreate has already overwritten the on-disk PV metadata.  In
+        # that state `vgchange -an`/`vgremove` are no-ops (LVM no longer recognises the
+        # VG), yet the kernel dm devices and the /dev/vg_orin node persist and block the
+        # next vgcreate with "/dev/vg_orin already exists in filesystem".
+        # A real (non-lazy) unmount is required: lazy unmount leaves the LVs held open,
+        # so dmsetup only defers removal and /dev/vg_orin stays alive.  A plain
+        # `umount -R` fails "busy" when a stray process (or a half-finished installer)
+        # still has the LV open, so kill holders with fuser before unmounting each
+        # mountpoint, deepest first.
+        for mp in $(awk '$2 ~ "^/mnt/orin" {print $2}' /proc/mounts | sort -r); do
+            sudo fuser -km "$mp" 2>/dev/null || true
+            sudo umount "$mp" 2>/dev/null || sudo umount -l "$mp" 2>/dev/null || true
+        done
+        sudo sync
         sudo vgchange -an vg_orin 2>/dev/null || true
+        # Force-remove every vg_orin LV dm device (works even when LVM has lost the VG)
+        for dm in $(sudo dmsetup ls 2>/dev/null | awk '{print $1}' | grep -E '^vg_orin'); do
+            sudo dmsetup remove -f --retry "$dm" 2>/dev/null || true
+        done
+        sudo vgremove -f vg_orin 2>/dev/null || true
+        # Nothing sits on orin_crypt now — close the LUKS container and any crypt on this disk
         local disk_name
         disk_name=$(basename {{device}})
         for part in /sys/class/block/${disk_name}*/holders/*; do
             [ -e "$part" ] && sudo cryptsetup close "$(basename "$(readlink "$part")")" 2>/dev/null || true
         done
         sudo cryptsetup close orin_crypt 2>/dev/null || true
-        sudo dmsetup remove -f orin_crypt 2>/dev/null || true
-        for dm in $(sudo dmsetup ls 2>/dev/null | awk '{print $1}' | grep -E '^vg_orin'); do
-            sudo dmsetup remove -f "$dm" 2>/dev/null || true
-        done
+        sudo dmsetup remove -f --retry orin_crypt 2>/dev/null || true
+        # Remove LVM backup/archive so udev can't auto-restore vg_orin after pvcreate
+        sudo rm -f /etc/lvm/backup/vg_orin 2>/dev/null || true
+        sudo rm -f /etc/lvm/archive/vg_orin_*.vg 2>/dev/null || true
+        # Remove stale /dev/vg_orin node (left when LVs were force-removed while mounted)
+        sudo rm -rf /dev/vg_orin 2>/dev/null || true
         sudo udevadm settle 2>/dev/null || true
     }
 
@@ -194,27 +218,33 @@ orin-install-usb device="/dev/sdb":
     _cleanup_dm
     _wipe_disk
 
-    # disko's luksOpen uses --allow-discards --persistent, which writes back to the
-    # raw LUKS header.  On USB-NVMe enclosures this header write can trigger a UAS
-    # command abort that momentarily presents the dm-crypt mapping with 0 sectors,
-    # causing pvcreate to fail with "device is not in a usable state".  The fix is to
-    # detect this state, close and reopen the mapping, and retry once.
+    # disko can fail on USB-NVMe enclosures in two recoverable ways:
+    #   1. 0-sector dm-crypt: disko's luksOpen uses --allow-discards --persistent,
+    #      which writes back to the raw LUKS header.  On UAS enclosures this can
+    #      trigger a command abort that momentarily presents orin_crypt with 0
+    #      sectors, so pvcreate fails with "device is not in a usable state".
+    #   2. Stale /dev/vg_orin node: udev leaves the directory node behind from a
+    #      prior attempt's brief auto-activation.  LVM has no such VG (vgdisplay
+    #      fails), yet vgcreate refuses because the /dev node already exists.
+    # Both are fixed by a clean wipe + one full retry — no reboot required.
     if ! _run_disko; then
-        echo "⚠️  disko failed — checking if orin_crypt is a 0-sector USB timing artifact..."
         crypt_size=$(sudo blockdev --getsize64 /dev/mapper/orin_crypt 2>/dev/null || echo 0)
         if [ "$crypt_size" = "0" ]; then
-            echo "🔄 Confirmed 0-sector dm-crypt device (USB re-enumeration race).  Closing and reopening..."
-            sudo cryptsetup close orin_crypt 2>/dev/null || true
-            sudo dmsetup remove -f orin_crypt 2>/dev/null || true
-            sudo udevadm settle
+            echo "🔄 disko failed: 0-sector dm-crypt device (USB re-enumeration race)."
+        elif [ -d /dev/vg_orin ] && ! sudo vgdisplay vg_orin >/dev/null 2>&1; then
+            echo "🔄 disko failed: stale /dev/vg_orin node with no backing VG (udev leftover)."
         else
-            echo "❌ disko failed for a different reason (orin_crypt size: ${crypt_size}).  Aborting."
+            echo "❌ disko failed for an unrecognized reason (orin_crypt size: ${crypt_size}).  Aborting."
             exit 1
         fi
         echo "🔄 Retrying full disko install from scratch..."
         _cleanup_dm
         _wipe_disk
-        _run_disko
+        if ! _run_disko; then
+            echo "❌ disko failed again after recovery — manual intervention needed."
+            echo "   Try: sudo cryptsetup close orin_crypt; sudo rm -rf /dev/vg_orin; sudo udevadm settle"
+            exit 1
+        fi
     fi
 
     _setup_host_identity() {
@@ -277,7 +307,9 @@ orin-install-usb device="/dev/sdb":
         ' "${sops_yaml}" > /tmp/sops_updated.yaml && mv /tmp/sops_updated.yaml "${sops_yaml}"
 
         echo "🔐 Re-encrypting secrets (YubiKey touch may be required)..."
-        sops updatekeys --yes ./nix-secrets/secrets.yaml
+        # Run from inside nix-secrets: sops resolves .sops.yaml relative to the CWD,
+        # so invoking it from the repo root fails with "config file not found".
+        ( cd ./nix-secrets && sops updatekeys --yes secrets.yaml )
         echo "✅ Secrets updated."
         echo ""
         echo "   Commit nix-secrets + nix-config before deploying:"
@@ -288,8 +320,39 @@ orin-install-usb device="/dev/sdb":
     nix build ./nix-config#nixosConfigurations.orin-nano.config.system.build.toplevel \
         --option sandbox false \
         --option builders "" \
+        {{OVERRIDES}} \
         --out-link /tmp/orin-system
-    sudo nixos-install --root /mnt/orin --system "$(readlink /tmp/orin-system)" --no-root-passwd
+    # --no-bootloader: nixos-install's bootloader step chroots into aarch64 binaries via
+    # QEMU, but QEMU's uname() returns x86_64, so bootctl bails with exit 255.  The ESP
+    # files are static copies, installed host-side below (mirrors orin-install-bootstrap).
+    sudo nixos-install --root /mnt/orin --system "$(readlink /tmp/orin-system)" --no-root-passwd --no-bootloader
+
+    echo "💾 Installing systemd-boot to ESP (host-side, no aarch64 execution required)..."
+    SYSTEM="$(readlink /tmp/orin-system)"
+    ESP="/mnt/orin/boot"
+
+    BOOT_EFI="$(find /mnt/orin/nix/store -maxdepth 6 -name "systemd-bootaa64.efi" 2>/dev/null | head -1)"
+    [ -n "$BOOT_EFI" ] || { echo "❌ systemd-bootaa64.efi not found in store" >&2; exit 1; }
+
+    KERNEL_SRC="$(realpath "${SYSTEM}/kernel")"
+    INITRD_SRC="$(realpath "${SYSTEM}/initrd")"
+    KERNEL_PARAMS="$(cat "${SYSTEM}/kernel-params")"
+    SYS_STORE_PATH="/nix/store/$(basename "${SYSTEM}")"
+
+    sudo mkdir -p "${ESP}/EFI/systemd" "${ESP}/EFI/BOOT" "${ESP}/EFI/nixos" "${ESP}/loader/entries"
+    sudo cp "${BOOT_EFI}" "${ESP}/EFI/systemd/systemd-bootaa64.efi"
+    sudo cp "${BOOT_EFI}" "${ESP}/EFI/BOOT/BOOTAA64.EFI"
+    sudo cp "${KERNEL_SRC}" "${ESP}/EFI/nixos/kernel"
+    sudo cp "${INITRD_SRC}" "${ESP}/EFI/nixos/initrd"
+
+    printf 'timeout 5\ndefault nixos-1.conf\neditor no\n' | sudo tee "${ESP}/loader/loader.conf" > /dev/null
+
+    ENTRY="$(mktemp)"
+    printf 'title NixOS\nlinux /EFI/nixos/kernel\ninitrd /EFI/nixos/initrd\noptions init=%s/init %s\n' \
+        "${SYS_STORE_PATH}" "${KERNEL_PARAMS}" > "${ENTRY}"
+    sudo cp "${ENTRY}" "${ESP}/loader/entries/nixos-1.conf"
+    rm "${ENTRY}"
+
     rm -f /tmp/orin-system
 
     _setup_host_identity

@@ -47,4 +47,4 @@ state.vscdb*
 # Agentic AI State (Unreviewed/Sensitive)
 .agent/knowledge/
 .agent/tasks/
-
+.mcp.json
