@@ -185,6 +185,7 @@ update-core *args="":
 [group("Updates")]
 update-local:
     @just maintenance::update-core
+    @just maintenance::lock-refresh
 
 [group("Updates")]
 sync-agent:
@@ -193,13 +194,17 @@ sync-agent:
 
 [group("Updates")]
 lock-refresh:
-    @echo "🔄 Refreshing all sub-flake lock files..."
+    @echo "🔄 Refreshing all sub-flake lock files with local overrides..."
     @for repo in {{REPOS}}; do \
         if [ -f "$repo/flake.nix" ]; then \
             echo "Updating $repo..."; \
-            nix flake update --flake "./$repo" || echo "Failed to update $repo"; \
+            nix flake update --flake "./$repo" {{OVERRIDES}} || echo "Failed to update $repo"; \
         fi; \
     done
+
+[group("Audit")]
+audit-locks:
+    @python3 ./scripts/audit_locks.py
 
 [group("System")]
 who:

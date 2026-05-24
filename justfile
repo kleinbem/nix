@@ -40,6 +40,10 @@ status:
     @just git::status
 
 [group("Main")]
+audit-locks:
+    @just maintenance::audit-locks
+
+[group("Main")]
 phone *args:
     @just android::phone {{args}}
 
