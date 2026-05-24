@@ -10,6 +10,7 @@ mod deployment '.just/deployment.just'
 mod maintenance '.just/maintenance.just'
 mod devshell '.just/devshell.just'
 mod orin '.just/orin.just'
+mod extensions '.just/extensions.just'
 
 [group("Main")]
 default:
@@ -77,6 +78,7 @@ hub:
         else if ($1 ~ /^deployment::/) icon="🚀";
         else if ($1 ~ /^maintenance::/) icon="🧹";
         else if ($1 ~ /^orin::/) icon="🏎️";
+        else if ($1 ~ /^extensions::/) icon="🧩";
         else if ($1 ~ /^(status|switch|phone|tablet|apply)/) icon="✨";
         print icon " " $1
     }')
