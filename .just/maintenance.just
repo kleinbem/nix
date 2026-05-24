@@ -184,8 +184,7 @@ update-core *args="":
 
 [group("Updates")]
 update-local:
-    @just maintenance::update-core
-    @just maintenance::lock-refresh
+    @python3 ./scripts/sync_locks.py
 
 [group("Updates")]
 sync-agent:
