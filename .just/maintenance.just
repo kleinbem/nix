@@ -198,7 +198,14 @@ lock-refresh:
     @for repo in {{REPOS}}; do \
         if [ -f "$repo/flake.nix" ]; then \
             echo "Updating $repo..."; \
-            nix flake update --flake "./$repo" {{OVERRIDES}} || echo "Failed to update $repo"; \
+            inputs=$(jq -r '.nodes.root.inputs | keys[]' "$repo/flake.lock" 2>/dev/null || true); \
+            overrides=""; \
+            for dep in {{REPOS}}; do \
+                if echo "$inputs" | grep -q "^$dep$"; then \
+                    overrides="$overrides --override-input $dep git+file://{{ROOT}}/$dep"; \
+                fi; \
+            done; \
+            nix flake update --flake "./$repo" $overrides || echo "Failed to update $repo"; \
         fi; \
     done
 
