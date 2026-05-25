@@ -8,72 +8,72 @@ set working-directory := ".."
 switch mode="" *args="":
     @echo "🏗️ Switching System Configuration..."
     @if [ -n "{{mode}}" ]; then \
-        {{TIMER}} nh os switch . --specialisation {{mode}} -- {{OVERRIDES}} {{args}}; \
+        {{LOCK_CMD}} {{TIMER}} nh os switch . --specialisation {{mode}} -- {{OVERRIDES}} {{args}}; \
     else \
-        {{TIMER}} nh os switch . -- {{OVERRIDES}} {{args}}; \
+        {{LOCK_CMD}} {{TIMER}} nh os switch . -- {{OVERRIDES}} {{args}}; \
     fi
 
 [group("System")]
 build *args="":
     @echo "🔨 Building System Configuration..."
-    @{{TIMER}} nh os build . -- {{OVERRIDES}} {{args}}
+    @{{LOCK_CMD}} {{TIMER}} nh os build . -- {{OVERRIDES}} {{args}}
 
 [group("Development")]
 dry-run *args="":
     @echo "🧪 Dry Run: Testing configuration activation..."
-    @{{TIMER}} nh os test . --dry --map -- {{OVERRIDES}} {{args}}
+    @{{LOCK_CMD}} {{TIMER}} nh os test . --dry -- {{OVERRIDES}} {{args}}
 
 [group("Development")]
 test *args="":
     @echo "🚦 Testing System Configuration (Activation Only)..."
-    @{{TIMER}} nh os test . -- {{OVERRIDES}} {{args}}
+    @{{LOCK_CMD}} {{TIMER}} nh os test . -- {{OVERRIDES}} {{args}}
 
 [group("System")]
 [confirm("👢 This will make the current configuration the DEFAULT at boot. Proceed?")]
 switch-boot:
     @echo "👢 Building and setting as boot default..."
-    nh os boot . -- {{OVERRIDES}}
+    @{{LOCK_CMD}} nh os boot . -- {{OVERRIDES}}
 
 [group("Debugging")]
 switch-debug:
     @echo "🐛 Switching with trace output..."
-    nh os switch . -- --show-trace --verbose {{OVERRIDES}}
+    @{{LOCK_CMD}} nh os switch . -- --show-trace --verbose {{OVERRIDES}}
 
 [group("Debugging")]
 switch-boot-debug:
     @echo "👢 Debugging bootloader generation..."
-    nh os boot . -- --show-trace --verbose {{OVERRIDES}}
+    @{{LOCK_CMD}} nh os boot . -- --show-trace --verbose {{OVERRIDES}}
 
 [group("Development")]
 sys-plan:
     @echo "📋 Reviewing system derivation changes..."
-    @nix build .#nixosConfigurations.nixos-nvme.config.system.build.toplevel --no-link --print-out-paths {{OVERRIDES}} > /tmp/new-system
-    nvd diff /run/current-system $(cat /tmp/new-system)
+    @{{LOCK_CMD}} nix build .#nixosConfigurations.nixos-nvme.config.system.build.toplevel --no-link --print-out-paths {{OVERRIDES}} > /tmp/new-system
+    @{{LOCK_CMD}} nvd diff /run/current-system $(cat /tmp/new-system)
 
 [group("Development")]
 build-pkg pkg_name:
     @echo "📦 Building package: {{pkg_name}}..."
-    @{{TIMER}} nix build .#{{pkg_name}} {{OVERRIDES}}
+    @{{LOCK_CMD}} {{TIMER}} nix build .#{{pkg_name}} {{OVERRIDES}}
 
 [group("Development")]
 test-integration *args="":
     @echo "🧪 Running ALL integration tests..."
-    @{{TIMER}} nix flake check . --system x86_64-linux {{OVERRIDES}} {{args}}
+    @{{LOCK_CMD}} {{TIMER}} nix flake check . --system x86_64-linux {{OVERRIDES}} {{args}}
 
 [group("Development")]
 test-caddy *args="":
     @echo "🧪 Running TARGETED Caddy integration test..."
-    nix build .#checks.x86_64-linux.caddy-test {{OVERRIDES}} {{args}}
+    @{{LOCK_CMD}} nix build .#checks.x86_64-linux.caddy-test {{OVERRIDES}} {{args}}
 
 [group("Development")]
 test-recovery *args="":
     @echo "🧪 Running Recovery & Restore integration test..."
-    nix build .#checks.x86_64-linux.recovery-test {{OVERRIDES}} {{args}}
+    @{{LOCK_CMD}} nix build .#checks.x86_64-linux.recovery-test {{OVERRIDES}} {{args}}
 
 [group("Development")]
 test-vm *args="":
     @echo "🖥️ Building and launching test VM..."
-    @{{TIMER}} nix build .#nixosConfigurations.nixos-nvme.config.system.build.vm {{OVERRIDES}} {{args}}
+    @{{LOCK_CMD}} {{TIMER}} nix build .#nixosConfigurations.nixos-nvme.config.system.build.vm {{OVERRIDES}} {{args}}
     @mkdir -p /var/lib/qemu/images
     NIX_DISK_IMAGE=/var/lib/qemu/images/nixos-nvme.qcow2 ./result/bin/run-nixos-nvme-vm
 
@@ -90,7 +90,7 @@ mode name:
 
 [group("Modes")]
 reset-mode *args="":
-    @nh os switch . -- {{OVERRIDES}} {{args}}
+    @{{LOCK_CMD}} nh os switch . -- {{OVERRIDES}} {{args}}
 
 [group("Debugging")]
 verify-caddy:

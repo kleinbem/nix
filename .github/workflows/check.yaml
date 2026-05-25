@@ -1,4 +1,4 @@
-name: "Check Workspace"
+name: "Nix CI & Cache"
 
 on:
   push:
@@ -9,10 +9,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  check:
+  lint-and-format:
+    name: "Lint & Format Audit"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository (recursive)
+        uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
@@ -20,24 +22,64 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
 
-      - name: Magic Nix Cache
-        uses: DeterminateSystems/magic-nix-cache-action@main
-
-      - name: Check all flakes
+      - name: Run treefmt check
         run: |
-          npx just check-all
+          nix shell nixpkgs#treefmt -c treefmt --fail-on-change
 
-  integration-test:
-    # Only run this job if triggered manually via the GitHub Actions UI
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: [self-hosted, nixos]
+  flake-checks:
+    name: "Nix Flake Evaluation & Checks"
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository (recursive)
+        uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Rebuild NixOS testing VM configuration
-        run: |
-          nix flake check -L
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
 
+      - name: Set up Cachix
+        uses: cachix/cachix-action@v14
+        with:
+          name: kleinbem
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          # If triggered by a PR from a fork, authToken won't be available,
+          # so we only require it for pushes to main or internal PRs.
+          skipPush: ${{ github.actor == 'dependabot[bot]' || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+
+      - name: Run root flake checks
+        run: |
+          nix flake check --impure --no-build
+
+      - name: Run sub-flake evaluation checks
+        run: |
+          for repo in nix-*; do
+            if [ -f "$repo/flake.nix" ]; then
+              echo "Checking evaluation of $repo..."
+              nix flake check "./$repo" --impure --no-build
+            fi
+          done
+
+  integration-tests:
+    name: "System Integration & VM Tests"
+    # Only run heavy integration/VM builds on self-hosted runners when requested manually or on push to main
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: [self-hosted, nixos]
+    steps:
+      - name: Checkout repository (recursive)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Cachix
+        uses: cachix/cachix-action@v14
+        with:
+          name: kleinbem
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+
+      - name: Run integration VM build tests
+        run: |
+          # Build workstation VM target to verify system derivation integrity
+          nix build .#nixosConfigurations.nixos-nvme.config.system.build.vm --impure -L

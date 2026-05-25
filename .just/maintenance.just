@@ -25,24 +25,24 @@ check-all *args="--impure":
     @for repo in {{REPOS}}; do \
         if [ -f "$repo/flake.nix" ]; then \
             echo "🔍 Auditing sub-flake: $repo..."; \
-            nix flake check ./$repo --impure {{OVERRIDES}} {{args}} 2>&1 | grep -v "does not match any input" || true; \
+            {{LOCK_CMD}} nix flake check ./$repo --impure {{OVERRIDES}} {{args}} 2>&1 | grep -v "does not match any input" || true; \
         fi; \
     done
     @echo "------------------------------------------------------------"
     @echo "🌐 Auditing root workspace (Aggregated Checks)..."
-    @{{TIMER}} nix flake check . {{OVERRIDES}} {{args}} 2>&1 | grep -v "does not match any input" || true
+    @{{LOCK_CMD}} {{TIMER}} nix flake check . {{OVERRIDES}} {{args}} 2>&1 | grep -v "does not match any input" || true
     @echo "------------------------------------------------------------"
     @echo "✅ All workspace checks completed!"
 
 [group("Linter")]
 check-hosts *args="--impure":
     @echo "🏗️  Verifying all Host Configurations (Evaluation & Build)..."
-    @{{TIMER}} nix flake check ./nix-config {{OVERRIDES}} {{args}}
+    @{{LOCK_CMD}} {{TIMER}} nix flake check ./nix-config {{OVERRIDES}} {{args}}
 
 [group("Linter")]
 check-containers *args="--impure":
     @echo "📦 Verifying all Container Presets (Evaluation Test)..."
-    @{{TIMER}} nix flake check ./nix-presets {{OVERRIDES}} {{args}}
+    @{{LOCK_CMD}} {{TIMER}} nix flake check ./nix-presets {{OVERRIDES}} {{args}}
 
 [group("Linter")]
 ci:
@@ -51,7 +51,7 @@ ci:
 [group("Linter")]
 check:
     @echo "✅ Verifying NixOS configuration..."
-    @{{TIMER}} nix eval .#nixosConfigurations.nixos-nvme.config.system.build.toplevel {{OVERRIDES}} --impure
+    @{{LOCK_CMD}} {{TIMER}} nix eval .#nixosConfigurations.nixos-nvme.config.system.build.toplevel {{OVERRIDES}} --impure
 
 [group("Linter")]
 check-shells:
@@ -60,14 +60,14 @@ check-shells:
 [group("Security")]
 audit *args="":
     @echo "🕵️ Running security audit..."
-    @{{TIMER}} nix run nixpkgs#vulnix -- --system {{args}}
+    @{{LOCK_CMD}} {{TIMER}} nix run nixpkgs#vulnix -- --system {{args}}
 
 [group("Cleanup")]
 [confirm("🧹 This will delete OLD system generations. Proceed?")]
 clean *args="":
     @echo "🧹 Cleaning up workspace and system..."
-    @{{TIMER}} nix-env --delete-generations +{{KEEP}} {{args}}
-    @{{TIMER}} nix-collect-garbage -d {{args}}
+    @{{LOCK_CMD}} {{TIMER}} nix-env --delete-generations +{{KEEP}} {{args}}
+    @{{LOCK_CMD}} {{TIMER}} nix-collect-garbage -d {{args}}
     @for repo in {{REPOS}}; do \
         git -C $repo gc --prune=now; \
     done
@@ -83,7 +83,7 @@ cache-use name="kleinbem":
 [group("Cachix")]
 cache-push name="kleinbem":
     @echo "⬆️ Pushing build results to {{name}}..."
-    @nix build --no-link --print-out-paths . {{OVERRIDES}} | cachix push {{name}}
+    @{{LOCK_CMD}} nix build --no-link --print-out-paths . {{OVERRIDES}} | cachix push {{name}}
 
 [group("System")]
 hooks-refresh:
@@ -95,15 +95,15 @@ hooks-refresh:
 [group("System")]
 docs:
     @echo "📚 Generating configuration documentation..."
-    @nix build .#docs
+    @{{LOCK_CMD}} nix build .#docs
 
 [private]
 _apply switch_target:
-    @{{LOCK_CMD}} {{TIMER}} just git::stage-all
-    @{{LOCK_CMD}} {{TIMER}} just maintenance::update-local
-    @{{LOCK_CMD}} {{TIMER}} just maintenance::check
-    @{{LOCK_CMD}} {{TIMER}} just nixos::{{switch_target}}
-    @{{LOCK_CMD}} {{TIMER}} just maintenance::sync-agent
+    @just git::stage-all
+    @just maintenance::update-local
+    @just maintenance::check
+    @just nixos::{{switch_target}}
+    @just maintenance::sync-agent
 
 [group("Workflow")]
 apply:
@@ -111,10 +111,10 @@ apply:
 
 [group("Workflow")]
 apply-fast *args="":
-    @{{LOCK_CMD}} {{TIMER}} just git::stage-all
-    @{{LOCK_CMD}} {{TIMER}} just maintenance::update-local
-    @{{LOCK_CMD}} {{TIMER}} just nixos::switch "" {{args}}
-    @{{LOCK_CMD}} {{TIMER}} just maintenance::sync-agent
+    @just git::stage-all
+    @just maintenance::update-local
+    @just nixos::switch "" {{args}}
+    @just maintenance::sync-agent
 
 [group("Workflow")]
 apply-boot:
@@ -180,11 +180,11 @@ reset-firefox-laboratory:
 [group("Updates")]
 [private]
 update-core *args="":
-    @nix flake update {{OVERRIDES}} {{args}}
+    @{{LOCK_CMD}} nix flake update {{OVERRIDES}} {{args}}
 
 [group("Updates")]
 update-local:
-    @python3 ./scripts/sync_locks.py
+    @{{LOCK_CMD}} python3 ./scripts/sync_locks.py
 
 [group("Updates")]
 sync-agent:
@@ -204,7 +204,7 @@ lock-refresh:
                     overrides="$overrides --override-input $dep git+file://{{ROOT}}/$dep"; \
                 fi; \
             done; \
-            nix flake update --flake "./$repo" $overrides || echo "Failed to update $repo"; \
+            {{LOCK_CMD}} nix flake update --flake "./$repo" $overrides || echo "Failed to update $repo"; \
         fi; \
     done
 
@@ -218,7 +218,7 @@ who:
 
 update-all *args="":
     @echo "🚀 Starting Comprehensive System Update (Bluefin Style)..."
-    @nix flake update {{OVERRIDES}} {{args}}
+    @{{LOCK_CMD}} nix flake update {{OVERRIDES}} {{args}}
     @echo "📦 Updating Flatpaks..."
     @flatpak update -y
     @echo "🏗️  Applying system changes..."
