@@ -114,7 +114,7 @@ def main():
             run_cmd(["git", "add", "flake.lock"], cwd=sub_path)
             # Use pre-commit skip if present to avoid hook loops
             success, _ = run_cmd(
-                ["git", "commit", "-m", "chore: auto-update lockfile", "--no-verify", "--no-gpg-sign"],
+                ["git", "commit", "-m", "chore: auto-update lockfile", "--no-verify"],
                 cwd=sub_path,
                 capture=True
             )

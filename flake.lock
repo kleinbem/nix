@@ -2983,11 +2983,11 @@
         "treefmt-nix": "treefmt-nix_3"
       },
       "locked": {
-        "lastModified": 1779716838,
-        "narHash": "sha256-IeCzPNgrt2npu/lnu/PVUNTdd/sdqtfOBCeDgfsnZeA=",
+        "lastModified": 1779716956,
+        "narHash": "sha256-N7glB4E/aT1+c4MBF0xRlesICE3dF2rYT1oaQE4CjG8=",
         "ref": "refs/heads/main",
-        "rev": "5bc1ec1998c1dce3f5e88d194dd6091e2f4d2da8",
-        "revCount": 222,
+        "rev": "35080e8c1ef396f78e5126a6cceaf496fabc7ac2",
+        "revCount": 223,
         "type": "git",
         "url": "file:///home/martin/Develop/github.com/kleinbem/nix/nix-config"
       },
@@ -3017,10 +3017,10 @@
         "treefmt-nix": "treefmt-nix_4"
       },
       "locked": {
-        "lastModified": 1779716819,
+        "lastModified": 1779716903,
         "narHash": "sha256-/kLhNXJZO/ySqVn+ampGEt6sbWa/r/BwMD2C55pVfv4=",
         "ref": "refs/heads/main",
-        "rev": "1ec0e746a7cde85879608d23a8c8252d20edafcb",
+        "rev": "8c8f4408b69f7529cb77cc009cb851174590247b",
         "revCount": 39,
         "type": "git",
         "url": "file:///home/martin/Develop/github.com/kleinbem/nix/nix-devshells"
@@ -3048,10 +3048,10 @@
         "treefmt-nix": "treefmt-nix_6"
       },
       "locked": {
-        "lastModified": 1779716819,
+        "lastModified": 1779716903,
         "narHash": "sha256-/kLhNXJZO/ySqVn+ampGEt6sbWa/r/BwMD2C55pVfv4=",
         "ref": "refs/heads/main",
-        "rev": "1ec0e746a7cde85879608d23a8c8252d20edafcb",
+        "rev": "8c8f4408b69f7529cb77cc009cb851174590247b",
         "revCount": 39,
         "type": "git",
         "url": "file:///home/martin/Develop/github.com/kleinbem/nix/nix-devshells"
@@ -3147,11 +3147,11 @@
         "treefmt-nix": "treefmt-nix_7"
       },
       "locked": {
-        "lastModified": 1779716821,
-        "narHash": "sha256-tDwSFZ/eEotmaBP9ST3QcYd0rklLbWAwLV2z7bHKD8o=",
+        "lastModified": 1779716941,
+        "narHash": "sha256-BWZ8kcoBf3sPK9EPaGV8AexHzvcqrz+ZoZmZEeFBCII=",
         "ref": "refs/heads/main",
-        "rev": "b45120831eac201df8b002e71d7068e25deffae5",
-        "revCount": 44,
+        "rev": "a5bc1f668200c20d4bf9f3e93fbbfba7a18e4af2",
+        "revCount": 45,
         "type": "git",
         "url": "file:///home/martin/Develop/github.com/kleinbem/nix/nix-hardware"
       },
@@ -3271,11 +3271,11 @@
         "treefmt-nix": "treefmt-nix_8"
       },
       "locked": {
-        "lastModified": 1779716823,
-        "narHash": "sha256-ttg1zC5n+LSzUMQYy/aQ7/SFaVw8f9m3qoAYj4tUMmI=",
+        "lastModified": 1779716943,
+        "narHash": "sha256-9jIEAs/3HTh1N6SRxgZ0umuL0S/8YEp9TDsVwZjgPxk=",
         "ref": "refs/heads/main",
-        "rev": "b05f79407143a1dfa959a9d8e65cffae48d04b62",
-        "revCount": 41,
+        "rev": "8c9bb2af6199c54c320632b350acd83ecb82fcc7",
+        "revCount": 42,
         "type": "git",
         "url": "file:///home/martin/Develop/github.com/kleinbem/nix/nix-packages"
       },
@@ -3303,11 +3303,11 @@
         "treefmt-nix": "treefmt-nix_9"
       },
       "locked": {
-        "lastModified": 1779716828,
-        "narHash": "sha256-diGx0SAapUSs9nkxwY2rIid5Bh0Dy5F60maVTHvV+X4=",
+        "lastModified": 1779716947,
+        "narHash": "sha256-yGpp03ZK2DSGtLEXN0bEzAwliWV48qfOA0pRSsQsZ2o=",
         "ref": "refs/heads/main",
-        "rev": "c55886943a7dc399e4e95ef984d98f668726d3bb",
-        "revCount": 97,
+        "rev": "81a30442b66b7e7c5c6a8f9474c01729c86f3870",
+        "revCount": 98,
         "type": "git",
         "url": "file:///home/martin/Develop/github.com/kleinbem/nix/nix-presets"
       },
@@ -3346,11 +3346,11 @@
         "treefmt-nix": "treefmt-nix_10"
       },
       "locked": {
-        "lastModified": 1779716825,
-        "narHash": "sha256-hKIRy1mZyXFieHyCtIwhv/l0LGyw+LBAqPOq8a92bbk=",
+        "lastModified": 1779716945,
+        "narHash": "sha256-yIhRu4wKckYXYaz0MwWdKxNX3ViaIZm55lhFRkEN+ms=",
         "ref": "refs/heads/main",
-        "rev": "fd43638f5969b87972d1a1fa25ef4233f455fabb",
-        "revCount": 36,
+        "rev": "224f80436c686d6fcd44ab436b9917b0875fe3b6",
+        "revCount": 37,
         "type": "git",
         "url": "file:///home/martin/Develop/github.com/kleinbem/nix/nix-templates"
       },
