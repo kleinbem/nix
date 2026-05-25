@@ -35,3 +35,8 @@ ultimate:
 arm:
     @echo "📱 Entering ARM-Specific Shell..."
     @nix develop .#arm
+
+[group("Shells")]
+android:
+    @echo "🤖 Entering Android DevShell..."
+    @nix develop .#android

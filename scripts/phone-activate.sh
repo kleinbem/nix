@@ -8,33 +8,33 @@ set -e
 echo "🔍 Finding Git in the Nix store..."
 GIT=$(ls /nix/store/*git-2*/bin/git | head -n 1)
 if [ -z "$GIT" ]; then
-    echo "❌ Git not found! Trying to run it via nix-run..."
-    GIT="nix run nixpkgs#git --"
+  echo "❌ Git not found! Trying to run it via nix-run..."
+  GIT="nix run nixpkgs#git --"
 fi
 
 echo "🔄 Initializing Git repositories for all components..."
 cd ~/nix-config
 for d in nix-*; do
-    if [ -d "$d" ]; then
-        echo "  -> Setting up $d..."
-        cd "$d"
-        $GIT init >/dev/null 2>&1 || true
-        $GIT add . >/dev/null 2>&1 || true
-        cd ..
-    fi
+  if [ -d "$d" ]; then
+    echo "  -> Setting up $d..."
+    cd "$d"
+    $GIT init >/dev/null 2>&1 || true
+    $GIT add . >/dev/null 2>&1 || true
+    cd ..
+  fi
 done
 
 echo "🏗️ Building activation package (with local overrides)..."
 cd ~/nix-config
 nix build ".#nixOnDroidConfigurations.phone.activationPackage" --impure \
-    --override-input nix-config . \
-    --override-input nix-presets ../nix-presets \
-    --override-input nix-devshells ../nix-devshells \
-    --override-input nix-hardware ../nix-hardware \
-    --override-input nix-packages ../nix-packages \
-    --override-input nix-templates ../nix-templates \
-    --override-input nix-secrets ../nix-secrets \
-    |& cat
+  --override-input nix-config . \
+  --override-input nix-presets ../nix-presets \
+  --override-input nix-devshells ../nix-devshells \
+  --override-input nix-hardware ../nix-hardware \
+  --override-input nix-packages ../nix-packages \
+  --override-input nix-templates ../nix-templates \
+  --override-input nix-secrets ../nix-secrets |&
+  cat
 
 echo "🏁 Applying Manual PTY Bypass (Atomic Switch)..."
 CONF_PATH=$(readlink -f ./result)

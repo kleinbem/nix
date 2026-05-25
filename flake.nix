@@ -200,6 +200,13 @@
               _module.args.system = system;
             };
 
+            android = {
+              imports = [ inputs.nix-devshells.devenvModules.android ];
+              devenv.root = workspaceRoot;
+              _module.args.inputs = inputs;
+              _module.args.system = system;
+            };
+
             ultimate = {
               imports = [
                 inputs.nix-devshells.devenvModules.apps

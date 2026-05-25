@@ -13,7 +13,7 @@ echo "🔍 Generating System Reference for Antigravity..."
 HOSTS=$(nix eval --json --file "$REPO_ROOT/nix-config/inventory.nix" hosts --apply "builtins.attrNames" | jq -r '.[]')
 SERVICES=$(nix eval --json --file "$REPO_ROOT/nix-config/inventory.nix" network.nodes --apply "builtins.attrNames" | jq -r '.[]')
 
-cat <<EOF > "$OUTPUT_FILE"
+cat <<EOF >"$OUTPUT_FILE"
 # 🏗️ System Reference (Auto-generated)
 *Last Updated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")*
 
@@ -26,43 +26,43 @@ EOF
 
 # Extract nixpkgs revision
 NIXPKGS_REV=$(grep -A 10 '"nixpkgs":' "$REPO_ROOT/flake.lock" | grep '"rev":' | head -n 1 | awk -F'"' '{print $4}')
-echo "- **nixpkgs**: [\`$NIXPKGS_REV\`](https://github.com/NixOS/nixpkgs/commit/$NIXPKGS_REV)" >> "$OUTPUT_FILE"
+echo "- **nixpkgs**: [\`$NIXPKGS_REV\`](https://github.com/NixOS/nixpkgs/commit/$NIXPKGS_REV)" >>"$OUTPUT_FILE"
 
 # Extract other key inputs
 inputs=("home-manager" "devenv" "sops-nix" "nix-config" "nix-packages" "nix-hardware")
 for input in "${inputs[@]}"; do
-    REV=$(grep -A 10 "\"$input\":" "$REPO_ROOT/flake.lock" | grep '"rev":' | head -n 1 | awk -F'"' '{print $4}')
-    if [ -n "$REV" ]; then
-        echo "- **$input**: \`$REV\`" >> "$OUTPUT_FILE"
-    fi
+  REV=$(grep -A 10 "\"$input\":" "$REPO_ROOT/flake.lock" | grep '"rev":' | head -n 1 | awk -F'"' '{print $4}')
+  if [ -n "$REV" ]; then
+    echo "- **$input**: \`$REV\`" >>"$OUTPUT_FILE"
+  fi
 done
 
-echo -e "\n## 🖥️ Managed Hosts" >> "$OUTPUT_FILE"
+echo -e "\n## 🖥️ Managed Hosts" >>"$OUTPUT_FILE"
 for host in $HOSTS; do
-    echo "- **$host**" >> "$OUTPUT_FILE"
+  echo "- **$host**" >>"$OUTPUT_FILE"
 done
 
-echo -e "\n## 📡 Network Services" >> "$OUTPUT_FILE"
+echo -e "\n## 📡 Network Services" >>"$OUTPUT_FILE"
 for svc in $SERVICES; do
-    echo "- **$svc**" >> "$OUTPUT_FILE"
+  echo "- **$svc**" >>"$OUTPUT_FILE"
 done
 
-echo -e "\n## 🛠️ Workspace Status" >> "$OUTPUT_FILE"
-if command -v devenv &> /dev/null; then
-    echo "- **Devenv**: Available" >> "$OUTPUT_FILE"
+echo -e "\n## 🛠️ Workspace Status" >>"$OUTPUT_FILE"
+if command -v devenv &>/dev/null; then
+  echo "- **Devenv**: Available" >>"$OUTPUT_FILE"
 else
-    echo "- **Devenv**: Not found in path" >> "$OUTPUT_FILE"
+  echo "- **Devenv**: Not found in path" >>"$OUTPUT_FILE"
 fi
 
 # Check for Guardian service
-if systemctl --user is-active workspace-guardian.service &> /dev/null; then
-    echo "- **Autonomous Guardian**: Active ✅" >> "$OUTPUT_FILE"
+if systemctl --user is-active workspace-guardian.service &>/dev/null; then
+  echo "- **Autonomous Guardian**: Active ✅" >>"$OUTPUT_FILE"
 else
-    echo "- **Autonomous Guardian**: Inactive ❌" >> "$OUTPUT_FILE"
+  echo "- **Autonomous Guardian**: Inactive ❌" >>"$OUTPUT_FILE"
 fi
 
-echo -e "\n## 🤖 AI Capabilities (MCP Tools)" >> "$OUTPUT_FILE"
+echo -e "\n## 🤖 AI Capabilities (MCP Tools)" >>"$OUTPUT_FILE"
 # Extract tools from workspace-mcp.py
-grep "@mcp.tool()" -A 1 "$REPO_ROOT/scripts/workspace-mcp.py" | grep "def " | sed 's/def //; s/(.*):/- **/; s/$/\**/' >> "$OUTPUT_FILE"
+grep "@mcp.tool()" -A 1 "$REPO_ROOT/scripts/workspace-mcp.py" | grep "def " | sed 's/def //; s/(.*):/- **/; s/$/\**/' >>"$OUTPUT_FILE"
 
 echo "✅ System Reference updated at $OUTPUT_FILE"

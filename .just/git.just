@@ -50,6 +50,7 @@ save message:
 
 [group("Sync")]
 push:
+    @./scripts/git-sign-all.sh
     @echo "📤 Pushing all changes..."
     @for repo in {{REPOS}}; do \
         git -C $repo push; \

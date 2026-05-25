@@ -15,12 +15,12 @@ echo "🌐 Deploying to phone at $PHONE_IP:$PHONE_PORT..."
 # 1. Sync the meta-repo (excluding large/unnecessary items)
 echo "📦 Syncing files via Rsync..."
 rsync -avz --delete -h --progress --info=progress2 \
-    --exclude ".git/" \
-    --exclude ".direnv/" \
-    --exclude "result" \
-    --exclude "*.tar.gz" \
-    -e "ssh -p $PHONE_PORT" \
-    ./ "$PHONE_IP:$TARGET_DIR/"
+  --exclude ".git/" \
+  --exclude ".direnv/" \
+  --exclude "result" \
+  --exclude "*.tar.gz" \
+  -e "ssh -p $PHONE_PORT" \
+  ./ "$PHONE_IP:$TARGET_DIR/"
 
 # 2. Trigger activation remotely
 echo "🚀 Activating configuration on phone..."
