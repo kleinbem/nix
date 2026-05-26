@@ -8,18 +8,6 @@ on:
   pull_request:
   workflow_dispatch:
 
-# All sub-flakes are pinned to local file:// paths in flake.lock (the workspace
-# uses OVERRIDES locally). Every nix command must redirect them to the
-# checked-out submodule paths via --override-input.
-env:
-  NIX_OVERRIDES: >-
-    --override-input nix-secrets /tmp/dummy-secrets
-    --override-input nix-config git+file://$GITHUB_WORKSPACE/nix-config
-    --override-input nix-devshells git+file://$GITHUB_WORKSPACE/nix-devshells
-    --override-input nix-presets git+file://$GITHUB_WORKSPACE/nix-presets
-    --override-input nix-hardware git+file://$GITHUB_WORKSPACE/nix-hardware
-    --override-input nix-packages git+file://$GITHUB_WORKSPACE/nix-packages
-
 jobs:
   lint-and-format:
     name: "Lint & Format Audit"
@@ -39,6 +27,16 @@ jobs:
         run: |
           mkdir -p /tmp/dummy-secrets
           echo "{}" > /tmp/dummy-secrets/secrets.yaml
+
+      - name: Set Nix input overrides
+        run: |
+          echo "NIX_OVERRIDES=\
+            --override-input nix-secrets /tmp/dummy-secrets \
+            --override-input nix-config git+file://$GITHUB_WORKSPACE/nix-config \
+            --override-input nix-devshells git+file://$GITHUB_WORKSPACE/nix-devshells \
+            --override-input nix-presets git+file://$GITHUB_WORKSPACE/nix-presets \
+            --override-input nix-hardware git+file://$GITHUB_WORKSPACE/nix-hardware \
+            --override-input nix-packages git+file://$GITHUB_WORKSPACE/nix-packages" >> "$GITHUB_ENV"
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
@@ -64,6 +62,16 @@ jobs:
         run: |
           mkdir -p /tmp/dummy-secrets
           echo "{}" > /tmp/dummy-secrets/secrets.yaml
+
+      - name: Set Nix input overrides
+        run: |
+          echo "NIX_OVERRIDES=\
+            --override-input nix-secrets /tmp/dummy-secrets \
+            --override-input nix-config git+file://$GITHUB_WORKSPACE/nix-config \
+            --override-input nix-devshells git+file://$GITHUB_WORKSPACE/nix-devshells \
+            --override-input nix-presets git+file://$GITHUB_WORKSPACE/nix-presets \
+            --override-input nix-hardware git+file://$GITHUB_WORKSPACE/nix-hardware \
+            --override-input nix-packages git+file://$GITHUB_WORKSPACE/nix-packages" >> "$GITHUB_ENV"
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
@@ -108,7 +116,15 @@ jobs:
           mkdir -p /tmp/dummy-secrets
           echo "{}" > /tmp/dummy-secrets/secrets.yaml
 
-      - name: Run integration VM build tests
+      - name: Set Nix input overrides
         run: |
-          nix build .#nixosConfigurations.nixos-nvme.config.system.build.vm \
-            --impure -L $NIX_OVERRIDES
+          echo "NIX_OVERRIDES=\
+            --override-input nix-secrets /tmp/dummy-secrets \
+            --override-input nix-config git+file://$GITHUB_WORKSPACE/nix-config \
+            --override-input nix-devshells git+file://$GITHUB_WORKSPACE/nix-devshells \
+            --override-input nix-presets git+file://$GITHUB_WORKSPACE/nix-presets \
+            --override-input nix-hardware git+file://$GITHUB_WORKSPACE/nix-hardware \
+            --override-input nix-packages git+file://$GITHUB_WORKSPACE/nix-packages" >> "$GITHUB_ENV"
+
+      - name: Run integration VM build tests
+        run: nix build .#nixosConfigurations.nixos-nvme.config.system.build.vm --impure -L $NIX_OVERRIDES
