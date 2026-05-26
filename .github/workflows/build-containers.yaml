@@ -27,11 +27,13 @@ jobs:
     name: "Build & Cache"
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository (recursive)
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
           fetch-depth: 0
+
+      - name: Init submodules (skip nix-secrets)
+        run: git -c submodule."nix-secrets".update=none submodule update --init --recursive
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main

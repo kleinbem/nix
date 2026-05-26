@@ -13,11 +13,13 @@ jobs:
     name: "Lint & Format Audit"
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository (recursive)
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
           fetch-depth: 0
+
+      - name: Init submodules (skip nix-secrets)
+        run: git -c submodule."nix-secrets".update=none submodule update --init --recursive
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
@@ -30,11 +32,13 @@ jobs:
     name: "Nix Flake Evaluation & Checks"
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository (recursive)
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
           fetch-depth: 0
+
+      - name: Init submodules (skip nix-secrets)
+        run: git -c submodule."nix-secrets".update=none submodule update --init --recursive
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
@@ -71,11 +75,13 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: [self-hosted, nixos]
     steps:
-      - name: Checkout repository (recursive)
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
           fetch-depth: 0
+
+      - name: Init submodules (skip nix-secrets)
+        run: git -c submodule."nix-secrets".update=none submodule update --init --recursive
 
       - name: Set up Cachix
         uses: cachix/cachix-action@v14
