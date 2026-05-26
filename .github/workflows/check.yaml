@@ -48,16 +48,21 @@ jobs:
           # so we only require it for pushes to main or internal PRs.
           skipPush: ${{ github.actor == 'dependabot[bot]' || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
 
+      - name: Set up dummy secrets
+        run: |
+          mkdir -p /tmp/dummy-secrets
+          echo "{}" > /tmp/dummy-secrets/secrets.yaml
+
       - name: Run root flake checks
         run: |
-          nix flake check --impure --no-build
+          nix flake check --impure --no-build --override-input nix-secrets /tmp/dummy-secrets
 
       - name: Run sub-flake evaluation checks
         run: |
           for repo in nix-*; do
             if [ -f "$repo/flake.nix" ]; then
               echo "Checking evaluation of $repo..."
-              nix flake check "./$repo" --impure --no-build
+              nix flake check "./$repo" --impure --no-build --override-input nix-secrets /tmp/dummy-secrets
             fi
           done
   integration-tests:
