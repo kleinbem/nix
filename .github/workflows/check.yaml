@@ -19,7 +19,9 @@ jobs:
           fetch-depth: 0
 
       - name: Init submodules (skip nix-secrets)
-        run: git -c submodule."nix-secrets".update=none submodule update --init --recursive
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git -c submodule."nix-secrets".update=none submodule update --init --recursive
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
@@ -38,7 +40,9 @@ jobs:
           fetch-depth: 0
 
       - name: Init submodules (skip nix-secrets)
-        run: git -c submodule."nix-secrets".update=none submodule update --init --recursive
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git -c submodule."nix-secrets".update=none submodule update --init --recursive
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
@@ -81,7 +85,9 @@ jobs:
           fetch-depth: 0
 
       - name: Init submodules (skip nix-secrets)
-        run: git -c submodule."nix-secrets".update=none submodule update --init --recursive
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git -c submodule."nix-secrets".update=none submodule update --init --recursive
 
       - name: Set up Cachix
         uses: cachix/cachix-action@v14
