@@ -5,12 +5,24 @@ set working-directory := ".."
 # --- NixOS Operations ---
 
 [group("System")]
-switch mode="" *args="":
-    @echo "🏗️ Switching System Configuration..."
-    @if [ -n "{{mode}}" ]; then \
-        {{LOCK_CMD}} {{TIMER}} nh os switch . --specialisation {{mode}} -- {{OVERRIDES}} {{args}}; \
-    else \
-        {{LOCK_CMD}} {{TIMER}} nh os switch . -- {{OVERRIDES}} {{args}}; \
+switch auth="" mode="" *args="":
+    #!/usr/bin/env bash
+    ACTUAL_MODE="{{mode}}"
+    if [ "{{auth}}" = "sudo" ] || [ "{{auth}}" = "preauth" ] || [ "{{auth}}" = "auth" ]; then
+        sudo -v
+        while true; do sudo -nv; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+        SUDO_PID=$!
+        trap 'kill $SUDO_PID 2>/dev/null || true' EXIT
+    else
+        if [ -n "{{auth}}" ]; then
+            ACTUAL_MODE="{{auth}}"
+        fi
+    fi
+    echo "🏗️ Switching System Configuration..."
+    if [ -n "$ACTUAL_MODE" ]; then
+        {{LOCK_CMD}} {{TIMER}} nh os switch . --specialisation "$ACTUAL_MODE" -- {{OVERRIDES}} {{args}}
+    else
+        {{LOCK_CMD}} {{TIMER}} nh os switch . -- {{OVERRIDES}} {{args}}
     fi
 
 [group("System")]
@@ -30,19 +42,49 @@ test *args="":
 
 [group("System")]
 [confirm("👢 This will make the current configuration the DEFAULT at boot. Proceed?")]
-switch-boot:
-    @echo "👢 Building and setting as boot default..."
-    @{{LOCK_CMD}} nh os boot . -- {{OVERRIDES}}
+switch-boot auth="":
+    #!/usr/bin/env bash
+    if [ "{{auth}}" = "sudo" ] || [ "{{auth}}" = "preauth" ] || [ "{{auth}}" = "auth" ]; then
+        sudo -v
+        while true; do sudo -nv; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+        SUDO_PID=$!
+        trap 'kill $SUDO_PID 2>/dev/null || true' EXIT
+    fi
+    echo "👢 Building and setting as boot default..."
+    {{LOCK_CMD}} nh os boot . -- {{OVERRIDES}}
 
 [group("Debugging")]
-switch-debug:
-    @echo "🐛 Switching with trace output..."
-    @{{LOCK_CMD}} nh os switch . -- --show-trace --verbose {{OVERRIDES}}
+switch-debug auth="" mode="" *args="":
+    #!/usr/bin/env bash
+    ACTUAL_MODE="{{mode}}"
+    if [ "{{auth}}" = "sudo" ] || [ "{{auth}}" = "preauth" ] || [ "{{auth}}" = "auth" ]; then
+        sudo -v
+        while true; do sudo -nv; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+        SUDO_PID=$!
+        trap 'kill $SUDO_PID 2>/dev/null || true' EXIT
+    else
+        if [ -n "{{auth}}" ]; then
+            ACTUAL_MODE="{{auth}}"
+        fi
+    fi
+    echo "🐛 Switching with trace output..."
+    if [ -n "$ACTUAL_MODE" ]; then
+        {{LOCK_CMD}} nh os switch . --specialisation "$ACTUAL_MODE" -- --show-trace --verbose {{OVERRIDES}} {{args}}
+    else
+        {{LOCK_CMD}} nh os switch . -- --show-trace --verbose {{OVERRIDES}} {{args}}
+    fi
 
 [group("Debugging")]
-switch-boot-debug:
-    @echo "👢 Debugging bootloader generation..."
-    @{{LOCK_CMD}} nh os boot . -- --show-trace --verbose {{OVERRIDES}}
+switch-boot-debug auth="":
+    #!/usr/bin/env bash
+    if [ "{{auth}}" = "sudo" ] || [ "{{auth}}" = "preauth" ] || [ "{{auth}}" = "auth" ]; then
+        sudo -v
+        while true; do sudo -nv; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+        SUDO_PID=$!
+        trap 'kill $SUDO_PID 2>/dev/null || true' EXIT
+    fi
+    echo "👢 Debugging bootloader generation..."
+    {{LOCK_CMD}} nh os boot . -- --show-trace --verbose {{OVERRIDES}}
 
 [group("Development")]
 sys-plan:

@@ -98,27 +98,41 @@ docs:
     @{{LOCK_CMD}} nix build .#docs
 
 [private]
-_apply switch_target:
-    @just git::stage-all
-    @just maintenance::update-local
-    @just maintenance::check
-    @just nixos::{{switch_target}}
-    @just maintenance::sync-agent
+_apply switch_target auth="":
+    #!/usr/bin/env bash
+    if [ "{{auth}}" = "sudo" ] || [ "{{auth}}" = "preauth" ] || [ "{{auth}}" = "auth" ]; then
+        sudo -v
+        while true; do sudo -nv; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+        SUDO_PID=$!
+        trap 'kill $SUDO_PID 2>/dev/null || true' EXIT
+    fi
+    just git::stage-all
+    just maintenance::update-local
+    just maintenance::check
+    just nixos::{{switch_target}} "{{auth}}"
+    just maintenance::sync-agent
 
 [group("Workflow")]
-apply:
-    @just maintenance::_apply "switch"
+apply auth="":
+    @just maintenance::_apply "switch" "{{auth}}"
 
 [group("Workflow")]
-apply-fast *args="":
-    @just git::stage-all
-    @just maintenance::update-local
-    @just nixos::switch "" {{args}}
-    @just maintenance::sync-agent
+apply-fast auth="" *args="":
+    #!/usr/bin/env bash
+    if [ "{{auth}}" = "sudo" ] || [ "{{auth}}" = "preauth" ] || [ "{{auth}}" = "auth" ]; then
+        sudo -v
+        while true; do sudo -nv; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+        SUDO_PID=$!
+        trap 'kill $SUDO_PID 2>/dev/null || true' EXIT
+    fi
+    just git::stage-all
+    just maintenance::update-local
+    just nixos::switch "{{auth}}" "" {{args}}
+    just maintenance::sync-agent
 
 [group("Workflow")]
-apply-boot:
-    @just maintenance::_apply "switch-boot"
+apply-boot auth="":
+    @just maintenance::_apply "switch-boot" "{{auth}}"
 
 [group("System")]
 health-check:

@@ -1,0 +1,48 @@
+name: "Build & Cache Decoupled Containers"
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - ".github/workflows/build-containers.yaml"
+      - "nix-presets/containers/**"
+      - "nix-config/hosts/**"
+      - "nix-config/flake.nix"
+      - "nix-config/flake.lock"
+      - "scripts/container-deploy.sh"
+  pull_request:
+    paths:
+      - ".github/workflows/build-containers.yaml"
+      - "nix-presets/containers/**"
+      - "nix-config/hosts/**"
+      - "nix-config/flake.nix"
+      - "nix-config/flake.lock"
+      - "scripts/container-deploy.sh"
+  workflow_dispatch:
+
+jobs:
+  build-decoupled-containers:
+    name: "Build & Cache"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository (recursive)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Set up Cachix
+        uses: cachix/cachix-action@v14
+        with:
+          name: kleinbem
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          skipPush: ${{ github.actor == 'dependabot[bot]' || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+
+      - name: Build and Cache n8n Container
+        run: |
+          nix build .#nixosConfigurations.container-factory.config.containers.n8n.path --impure --no-link -L

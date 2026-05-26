@@ -60,7 +60,6 @@ jobs:
               nix flake check "./$repo" --impure --no-build
             fi
           done
-
   integration-tests:
     name: "System Integration & VM Tests"
     # Only run heavy integration/VM builds on self-hosted runners when requested manually or on push to main

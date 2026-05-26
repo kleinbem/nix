@@ -17,23 +17,23 @@ default:
     @just hub
 
 [group("Main")]
-apply:
-    @just maintenance::apply
+apply auth="":
+    @just maintenance::apply "{{auth}}"
 
 [group("Main")]
 apply-fast *args="":
     @just maintenance::apply-fast {{args}}
 
 [group("Main")]
-apply-boot:
-    @just maintenance::apply-boot
+apply-boot auth="":
+    @just maintenance::apply-boot "{{auth}}"
 
 [group("Main")]
 check-shells:
     @just maintenance::check-shells
 
 [group("Main")]
-switch *args:
+switch *args="":
     @just nixos::switch {{args}}
 
 [group("Main")]
