@@ -47,6 +47,16 @@ jobs:
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
           skipPush: ${{ github.actor == 'dependabot[bot]' || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
 
+      - name: Set up dummy secrets
+        run: |
+          mkdir -p /tmp/dummy-secrets
+          echo "{}" > /tmp/dummy-secrets/secrets.yaml
+
       - name: Build and Cache n8n Container
         run: |
-          nix build .#nixosConfigurations.container-factory.config.containers.n8n.path --impure --no-link -L
+          nix build .#nixosConfigurations.container-factory.config.containers.n8n.path \
+            --impure --no-link -L \
+            --override-input nix-secrets /tmp/dummy-secrets \
+            --override-input nix-config "git+file://$GITHUB_WORKSPACE/nix-config" \
+            --override-input nix-devshells "git+file://$GITHUB_WORKSPACE/nix-devshells" \
+            --override-input nix-presets "git+file://$GITHUB_WORKSPACE/nix-presets"
