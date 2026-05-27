@@ -5,6 +5,9 @@ import glob
 import sys
 import re
 import shutil
+import sqlite3
+import base64
+import subprocess
 from datetime import datetime, timezone
 
 BRAIN_DIR = os.path.expanduser("~/.gemini/antigravity/brain")
@@ -244,6 +247,291 @@ def sync_missing_to_app(convs):
                     print(f"  [ERROR] Failed cleaning {conv_id}: {e}")
     return count
 
+def decode_varint(data, pos):
+    val = 0
+    shift = 0
+    while True:
+        b = data[pos]
+        pos += 1
+        val |= (b & 0x7f) << shift
+        if not (b & 0x80):
+            break
+        shift += 7
+    return val, pos
+
+def encode_varint(val):
+    out = bytearray()
+    while True:
+        towrite = val & 0x7f
+        val >>= 7
+        if val > 0:
+            out.append(towrite | 0x80)
+        else:
+            out.append(towrite)
+            break
+    return bytes(out)
+
+def encode_length_delimited(field_number, data):
+    key = (field_number << 3) | 2
+    return encode_varint(key) + encode_varint(len(data)) + data
+
+def encode_varint_field(field_number, val):
+    key = (field_number << 3) | 0
+    return encode_varint(key) + encode_varint(val)
+
+def parse_trajectory_summaries(data):
+    entries = []
+    pos = 0
+    while pos < len(data):
+        try:
+            tag_var, pos = decode_varint(data, pos)
+            field = tag_var >> 3
+            wire = tag_var & 0x07
+            
+            if field == 1 and wire == 2:
+                length, pos = decode_varint(data, pos)
+                entry_bytes = data[pos:pos+length]
+                pos += length
+                
+                uuid_val = None
+                meta_b64 = None
+                field2_val = None
+                other_fields = []
+                
+                sub_pos = 0
+                while sub_pos < len(entry_bytes):
+                    sub_tag, sub_pos = decode_varint(entry_bytes, sub_pos)
+                    sub_field = sub_tag >> 3
+                    sub_wire = sub_tag & 0x07
+                    
+                    if sub_field == 1 and sub_wire == 2:
+                        l, sub_pos = decode_varint(entry_bytes, sub_pos)
+                        uuid_val = entry_bytes[sub_pos:sub_pos+l].decode('utf-8')
+                        sub_pos += l
+                    elif sub_field == 2 and sub_wire == 2:
+                        l, sub_pos = decode_varint(entry_bytes, sub_pos)
+                        meta_bytes = entry_bytes[sub_pos:sub_pos+l]
+                        sub_pos += l
+                        
+                        m_pos = 0
+                        while m_pos < len(meta_bytes):
+                            m_tag, m_pos = decode_varint(meta_bytes, m_pos)
+                            m_field = m_tag >> 3
+                            m_wire = m_tag & 0x07
+                            
+                            if m_field == 1 and m_wire == 2:
+                                l_str, m_pos = decode_varint(meta_bytes, m_pos)
+                                meta_b64 = meta_bytes[m_pos:m_pos+l_str].decode('utf-8')
+                                m_pos += l_str
+                            elif m_field == 2 and m_wire == 0:
+                                field2_val, m_pos = decode_varint(meta_bytes, m_pos)
+                            else:
+                                if m_wire == 0:
+                                    _, m_pos = decode_varint(meta_bytes, m_pos)
+                                elif m_wire == 2:
+                                    l_s, m_pos = decode_varint(meta_bytes, m_pos)
+                                    m_pos += l_s
+                    else:
+                        if sub_wire == 0:
+                            v, sub_pos = decode_varint(entry_bytes, sub_pos)
+                            other_fields.append((sub_field, sub_wire, v))
+                        elif sub_wire == 2:
+                            l, sub_pos = decode_varint(entry_bytes, sub_pos)
+                            v = entry_bytes[sub_pos:sub_pos+l]
+                            sub_pos += l
+                            other_fields.append((sub_field, sub_wire, v))
+                
+                if uuid_val:
+                    entries.append({
+                        'uuid': uuid_val,
+                        'meta_b64': meta_b64,
+                        'field2': field2_val,
+                        'other_fields': other_fields
+                    })
+            else:
+                if wire == 0:
+                    _, pos = decode_varint(data, pos)
+                elif wire == 2:
+                    l, pos = decode_varint(data, pos)
+                    pos += l
+        except Exception:
+            break
+    return entries
+
+def serialize_trajectory_summaries(entries):
+    out = bytearray()
+    for entry in entries:
+        wrapper_bytes = bytearray()
+        if entry['meta_b64'] is not None:
+            wrapper_bytes.extend(encode_length_delimited(1, entry['meta_b64'].encode('utf-8')))
+        if entry['field2'] is not None:
+            wrapper_bytes.extend(encode_varint_field(2, entry['field2']))
+        
+        entry_bytes = bytearray()
+        entry_bytes.extend(encode_length_delimited(1, entry['uuid'].encode('utf-8')))
+        entry_bytes.extend(encode_length_delimited(2, bytes(wrapper_bytes)))
+        for field, wire, val in entry['other_fields']:
+            if wire == 0:
+                entry_bytes.extend(encode_varint_field(field, val))
+            elif wire == 2:
+                entry_bytes.extend(encode_length_delimited(field, val))
+        
+        out.extend(encode_length_delimited(1, bytes(entry_bytes)))
+    return bytes(out)
+
+def encode_timestamp(seconds, nanos=0):
+    return encode_varint_field(1, seconds) + encode_varint_field(2, nanos)
+
+def build_workspace_msg():
+    w_sub = encode_length_delimited(1, b"kleinbem/nix") + encode_length_delimited(2, b"https://github.com/kleinbem/nix.git")
+    return (
+        encode_length_delimited(1, b"file:///home/martin/Develop/github.com/kleinbem/nix") +
+        encode_length_delimited(2, b"file:///home/martin/Develop/github.com/kleinbem/nix") +
+        encode_length_delimited(3, w_sub) +
+        encode_length_delimited(4, b"main")
+    )
+
+def build_trajectory_metadata_b64(uuid, title, steps_count, start_sec, mod_sec):
+    workspace_msg = build_workspace_msg()
+    metadata_bytes = (
+        encode_length_delimited(1, title.encode('utf-8')) +
+        encode_varint_field(2, steps_count) +
+        encode_length_delimited(3, encode_timestamp(mod_sec)) +
+        encode_length_delimited(4, uuid.encode('utf-8')) +
+        encode_varint_field(5, 1) +
+        encode_length_delimited(7, encode_timestamp(start_sec)) +
+        encode_length_delimited(9, workspace_msg) +
+        encode_length_delimited(10, encode_timestamp(mod_sec))
+    )
+    return base64.b64encode(metadata_bytes).decode('utf-8')
+
+def sync_database_index(convs):
+    """Sync the Antigravity IDE global SQLite database with the authoritative conversations on disk."""
+    db_path = os.path.expanduser("~/.config/antigravity/data/User/globalStorage/state.vscdb")
+    if not os.path.exists(db_path):
+        print(f"⚠️ SQLite database not found at {db_path}. Skipping DB index sync.")
+        return False
+        
+    is_running = False
+    try:
+        proc = subprocess.run(["pgrep", "-f", "antigravity"], capture_output=True, text=True)
+        if proc.returncode == 0:
+            is_running = True
+    except Exception:
+        pass
+        
+    if is_running:
+        print("⚠️ WARNING: Antigravity IDE is currently running!")
+        print("  Please restart/reopen the IDE after the sync completes to load the updated sidebar.")
+    
+    backup_path = db_path + ".backup"
+    try:
+        shutil.copy2(db_path, backup_path)
+        print(f"💾 Backed up global storage database to {backup_path}")
+    except Exception as e:
+        print(f"❌ Failed to back up SQLite database: {e}")
+        return False
+        
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT value FROM ItemTable WHERE key='antigravityUnifiedStateSync.trajectorySummaries';")
+        row = cursor.fetchone()
+        
+        original_bytes = b""
+        if row:
+            original_bytes = base64.b64decode(row[0])
+            
+        existing_entries = parse_trajectory_summaries(original_bytes)
+        existing_dict = {entry['uuid']: entry for entry in existing_entries}
+        
+        disk_uuids = set()
+        if os.path.exists(CONVERSATIONS_DIR):
+            for f in os.listdir(CONVERSATIONS_DIR):
+                if f.endswith(".pb"):
+                    disk_uuids.add(f[:-3])
+                    
+        print(f"📊 Disk has {len(disk_uuids)} sessions. DB index currently has {len(existing_dict)} sessions.")
+        
+        new_entries = []
+        injected_count = 0
+        removed_count = 0
+        
+        for uuid in sorted(list(disk_uuids)):
+            if uuid in existing_dict:
+                new_entries.append(existing_dict[uuid])
+            else:
+                title = "Restored Conversation"
+                steps_count = 1
+                start_sec = int(datetime.now(timezone.utc).timestamp())
+                mod_sec = start_sec
+                
+                c_data = convs.get(uuid)
+                if c_data:
+                    if c_data["summaries"]:
+                        title = c_data["summaries"][0]
+                    mod_sec = int(c_data["last_updated"].timestamp())
+                    start_sec = mod_sec
+                    
+                brain_path = os.path.expanduser(f"~/.gemini/antigravity/brain/{uuid}")
+                overview_path = os.path.join(brain_path, ".system_generated/logs/overview.txt")
+                if os.path.exists(overview_path):
+                    try:
+                        with open(overview_path, 'r', encoding='utf-8', errors='ignore') as f:
+                            lines = f.readlines()
+                            steps_count = len([l for l in lines if l.strip()])
+                    except Exception:
+                        pass
+                
+                if os.path.exists(overview_path):
+                    try:
+                        with open(overview_path, 'r', encoding='utf-8', errors='ignore') as f:
+                            first_line = f.readline()
+                            if first_line.startswith('{'):
+                                f_data = json.loads(first_line)
+                                if "created_at" in f_data:
+                                    dt = datetime.fromisoformat(f_data["created_at"].replace("Z", "+00:00"))
+                                    start_sec = int(dt.timestamp())
+                    except Exception:
+                        pass
+                
+                meta_b64 = build_trajectory_metadata_b64(uuid, title, steps_count, start_sec, mod_sec)
+                
+                new_entry = {
+                    'uuid': uuid,
+                    'meta_b64': meta_b64,
+                    'field2': None,
+                    'other_fields': []
+                }
+                new_entries.append(new_entry)
+                injected_count += 1
+                
+        final_entries = []
+        for entry in new_entries:
+            if entry['uuid'] in disk_uuids:
+                final_entries.append(entry)
+            else:
+                removed_count += 1
+                
+        serialized_bytes = serialize_trajectory_summaries(final_entries)
+        new_b64 = base64.b64encode(serialized_bytes).decode('utf-8')
+        
+        cursor.execute(
+            "INSERT OR REPLACE INTO ItemTable (key, value) VALUES ('antigravityUnifiedStateSync.trajectorySummaries', ?);",
+            (new_b64,)
+        )
+        conn.commit()
+        conn.close()
+        
+        print(f"✅ DB Index Synced successfully:")
+        print(f"  - Injected {injected_count} new conversations into the sidebar index.")
+        print(f"  - Removed {removed_count} stale/deleted conversations from the sidebar index.")
+        print(f"  - Total sidebar entries now: {len(final_entries)}")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to sync SQLite database index: {e}")
+        return False
+
 def generate_markdown(convs):
     sorted_convs = sorted(convs.values(), key=lambda x: x["last_updated"], reverse=True)
     
@@ -315,6 +603,9 @@ if __name__ == "__main__":
             data = get_conversation_data()
         else:
             print("✨ UI sidebar is clean (no subagent clutter found).")
+        
+        # Sync to SQLite database
+        sync_database_index(data)
 
     md = generate_markdown(data)
     with open(OUTPUT_FILE, 'w') as f:
