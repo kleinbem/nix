@@ -149,3 +149,16 @@ topology:
     @nix build .#topology.x86_64-linux.config.build.svg --no-link --print-out-paths > /tmp/topo-path
     @echo "✅ Rendered to: $(cat /tmp/topo-path)/main.svg"
     @if [ -n "$DISPLAY" ]; then xdg-open "$(cat /tmp/topo-path)/main.svg"; else echo "🔗 File path: $(cat /tmp/topo-path)/main.svg"; fi
+
+[group("System")]
+attic-token:
+    @echo "🔑 Generating new Attic Admin Token (Valid for 1y)..."
+    #!/usr/bin/env bash
+    sudo nixos-container run attic -- sh -c ' \
+      set -a; \
+      . /etc/atticd-env; \
+      export ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64="$$ATTIC_SERVER_TOKEN_RS256_SECRET"; \
+      ATTICADM=$$(ls -1 /nix/store/*-attic-*/bin/atticadm | head -n 1); \
+      CONFIG=$$(ls -1 /nix/store/*-checked-attic-server.toml | head -n 1); \
+      $$ATTICADM -f $$CONFIG make-token --sub "admin" --validity "1y" --pull "*" --push "*" --create-cache "*" --configure-cache "*" --configure-cache-retention "*" --destroy-cache "*" \
+    '
