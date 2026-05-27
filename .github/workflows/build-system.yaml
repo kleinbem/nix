@@ -114,14 +114,18 @@ jobs:
             sandbox = false
             trusted-users = root runner
 
-      - name: Set up Cachix
-        uses: cachix/cachix-action@v17
+      - name: Setup Attic Cache
+        uses: rjbrown57/setup-attic@v1
         with:
-          name: kleinbem
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-          skipPush: false
+          endpoint: https://cache.kleinbem.dev/
+          cache: system
+          token: ${{ secrets.ATTIC_PUSH_TOKEN }}
 
       - name: Build System Top-Level
         run: |
           nix build .#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel \
-            --impure --no-link -L $NIX_OVERRIDES
+            --impure -L $NIX_OVERRIDES
+
+      - name: Push to Attic
+        run: |
+          attic push system $(nix-store -qR result)

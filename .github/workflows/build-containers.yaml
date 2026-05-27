@@ -57,14 +57,18 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v22
 
-      - name: Set up Cachix
-        uses: cachix/cachix-action@v17
+      - name: Setup Attic Cache
+        uses: rjbrown57/setup-attic@v1
         with:
-          name: kleinbem
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-          skipPush: ${{ !secrets.CACHIX_AUTH_TOKEN || github.actor == 'dependabot[bot]' || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+          endpoint: https://cache.kleinbem.dev/
+          cache: system
+          token: ${{ secrets.ATTIC_PUSH_TOKEN }}
 
       - name: Build and Cache n8n Container
         run: |
           nix build .#nixosConfigurations.container-factory.config.containers.n8n.path \
-            --impure --no-link -L $NIX_OVERRIDES
+            --impure -L $NIX_OVERRIDES
+          
+      - name: Push to Attic
+        run: |
+          attic push system $(nix-store -qR result)
