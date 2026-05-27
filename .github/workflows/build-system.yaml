@@ -1,0 +1,127 @@
+name: "Build & Cache NixOS System"
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  # ---------------------------------------------------------
+  # STAGE 1: The "Scout" - Discover all NixOS Configurations
+  # ---------------------------------------------------------
+  generate-matrix:
+    name: "Discover Fleet Matrix"
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Init submodules (skip nix-secrets)
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git -c submodule."nix-secrets".update=none submodule update --init --recursive
+
+      - name: Set up dummy secrets
+        run: |
+          mkdir -p /tmp/dummy-secrets
+          echo "{}" > /tmp/dummy-secrets/secrets.yaml
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v22
+
+      - name: Generate Dynamic Matrix
+        id: set-matrix
+        run: |
+          # Evaluate flake.nix and cross-reference with inventory.nix to find all deployed hosts and their architectures
+          MATRIX_JSON=$(nix eval .#nixosConfigurations --impure --apply 'configs:
+            let
+              inv = import ./nix-config/inventory.nix;
+              getRunner = sys: if sys == "aarch64-linux" then "ubuntu-24.04-arm" else "ubuntu-latest";
+              # Filter out helper hosts that we do not want to build as full standalone OS closures
+              hosts = builtins.filter (h: h != "container-factory" && h != "orin-nano-bootstrap") (builtins.attrNames configs);
+            in
+              builtins.filter (x: x != null) (builtins.map (name:
+                let meta = inv.hosts.${name} or {}; in
+                if meta ? system then {
+                  host = name;
+                  runner = getRunner meta.system;
+                } else null
+              ) hosts)
+          ' --json)
+          
+          echo "Discovered Matrix: $MATRIX_JSON"
+          echo "matrix=$MATRIX_JSON" >> "$GITHUB_OUTPUT"
+
+  # ---------------------------------------------------------
+  # STAGE 2: The "Fleet" - Dynamically Build All Discovered Hosts
+  # ---------------------------------------------------------
+  build-system:
+    name: "Build ${{ matrix.host }}"
+    needs: generate-matrix
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+    steps:
+      - name: Maximize Build Space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 512
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-docker-images: 'true'
+          remove-codeql: 'true'
+
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Init submodules (skip nix-secrets)
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git -c submodule."nix-secrets".update=none submodule update --init --recursive
+
+      - name: Set up dummy secrets
+        run: |
+          mkdir -p /tmp/dummy-secrets
+          echo "{}" > /tmp/dummy-secrets/secrets.yaml
+
+      - name: Set Nix input overrides
+        run: |
+          echo "NIX_OVERRIDES=\
+            --override-input nix-secrets /tmp/dummy-secrets \
+            --override-input nix-config git+file://$GITHUB_WORKSPACE/nix-config \
+            --override-input nix-devshells git+file://$GITHUB_WORKSPACE/nix-devshells \
+            --override-input nix-presets git+file://$GITHUB_WORKSPACE/nix-presets \
+            --override-input nix-hardware git+file://$GITHUB_WORKSPACE/nix-hardware \
+            --override-input nix-packages git+file://$GITHUB_WORKSPACE/nix-packages \
+            --override-input nix-templates git+file://$GITHUB_WORKSPACE/nix-templates" >> "$GITHUB_ENV"
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v22
+        with:
+          extra-conf: |
+            sandbox = false
+            trusted-users = root runner
+
+      - name: Set up Cachix
+        uses: cachix/cachix-action@v17
+        with:
+          name: kleinbem
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          skipPush: false
+
+      - name: Build System Top-Level
+        run: |
+          nix build .#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel \
+            --impure --no-link -L $NIX_OVERRIDES
