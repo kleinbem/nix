@@ -157,7 +157,9 @@ attic-token:
     sudo nixos-container run attic -- sh -c ' \
       set -a; \
       . /etc/atticd-env; \
-      export ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64="$$ATTIC_SERVER_TOKEN_RS256_SECRET"; \
+      if [ -z "$$ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64" ]; then \
+        export ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64="$$ATTIC_SERVER_TOKEN_RS256_SECRET"; \
+      fi; \
       ATTICADM=$$(ls -1 /nix/store/*-attic-*/bin/atticadm | head -n 1); \
       CONFIG=$$(ls -1 /nix/store/*-checked-attic-server.toml | head -n 1); \
       $$ATTICADM -f $$CONFIG make-token --sub "admin" --validity "1y" --pull "*" --push "*" --create-cache "*" --configure-cache "*" --configure-cache-retention "*" --destroy-cache "*" \
