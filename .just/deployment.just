@@ -443,3 +443,10 @@ router-secrets file="site.yml":
 router-provision:
     @echo "⚙️  Provisioning OpenWrt routers via Ansible..."
     @cd ../openwrt/openwrt-config && just provision
+
+# --- Cloudflare ---
+
+[group("Cloudflare")]
+[doc("Deploy Cloudflare Tunnel and wildcard CNAME records via OpenTofu")]
+cf-apply:
+    @./scripts/tf-apply.sh

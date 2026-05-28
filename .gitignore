@@ -48,3 +48,9 @@ state.vscdb*
 .agent/knowledge/
 .agent/tasks/
 .mcp.json
+
+# Terraform / OpenTofu
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
