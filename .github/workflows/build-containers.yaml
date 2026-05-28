@@ -41,7 +41,11 @@ jobs:
       - name: Set up dummy secrets
         run: |
           mkdir -p /tmp/dummy-secrets
-          echo "{}" > /tmp/dummy-secrets/secrets.yaml
+          cat <<'EOF' > /tmp/dummy-secrets/secrets.yaml
+martin_password_hash: "$6$dummy$x"
+root_password_hash: "$6$dummy$x"
+paperless_password: "dummy"
+EOF
 
       - name: Set Nix input overrides
         run: |

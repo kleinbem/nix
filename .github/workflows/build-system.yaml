@@ -30,7 +30,11 @@ jobs:
       - name: Set up dummy secrets
         run: |
           mkdir -p /tmp/dummy-secrets
-          echo "{}" > /tmp/dummy-secrets/secrets.yaml
+          cat <<'EOF' > /tmp/dummy-secrets/secrets.yaml
+martin_password_hash: "$6$dummy$x"
+root_password_hash: "$6$dummy$x"
+paperless_password: "dummy"
+EOF
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v22
@@ -53,7 +57,7 @@ jobs:
           MATRIX_JSON=$(nix eval .#nixosConfigurations --impure --apply 'configs:
             let
               inv = import ./nix-config/inventory.nix;
-              getRunner = sys: if sys == "aarch64-linux" then "ubuntu-24.04-arm" else "ubuntu-latest";
+              getRunner = sys: if sys == "aarch64-linux" then "ubuntu-24.04-arm" else [ "self-hosted" "nixos" ];
               # Filter out helper hosts that we do not want to build as full standalone OS closures
               hosts = builtins.filter (h: h != "container-factory" && h != "orin-nano-bootstrap") (builtins.attrNames configs);
             in
@@ -106,7 +110,11 @@ jobs:
       - name: Set up dummy secrets
         run: |
           mkdir -p /tmp/dummy-secrets
-          echo "{}" > /tmp/dummy-secrets/secrets.yaml
+          cat <<'EOF' > /tmp/dummy-secrets/secrets.yaml
+martin_password_hash: "$6$dummy$x"
+root_password_hash: "$6$dummy$x"
+paperless_password: "dummy"
+EOF
 
       - name: Set Nix input overrides
         run: |
