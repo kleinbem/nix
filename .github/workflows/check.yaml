@@ -26,11 +26,9 @@ jobs:
       - name: Set up dummy secrets
         run: |
           mkdir -p /tmp/dummy-secrets
-          cat <<'EOF' > /tmp/dummy-secrets/secrets.yaml
-martin_password_hash: "$6$dummy$x"
-root_password_hash: "$6$dummy$x"
-paperless_password: "dummy"
-EOF
+          echo 'martin_password_hash: "$6$dummy$x"' > /tmp/dummy-secrets/secrets.yaml
+          echo 'root_password_hash: "$6$dummy$x"' >> /tmp/dummy-secrets/secrets.yaml
+          echo 'paperless_password: "dummy"' >> /tmp/dummy-secrets/secrets.yaml
 
       - name: Set Nix input overrides
         run: |
@@ -66,11 +64,9 @@ EOF
       - name: Set up dummy secrets
         run: |
           mkdir -p /tmp/dummy-secrets
-          cat <<'EOF' > /tmp/dummy-secrets/secrets.yaml
-martin_password_hash: "$6$dummy$x"
-root_password_hash: "$6$dummy$x"
-paperless_password: "dummy"
-EOF
+          echo 'martin_password_hash: "$6$dummy$x"' > /tmp/dummy-secrets/secrets.yaml
+          echo 'root_password_hash: "$6$dummy$x"' >> /tmp/dummy-secrets/secrets.yaml
+          echo 'paperless_password: "dummy"' >> /tmp/dummy-secrets/secrets.yaml
 
       - name: Set Nix input overrides
         run: |
@@ -124,11 +120,9 @@ EOF
       - name: Set up dummy secrets
         run: |
           mkdir -p /tmp/dummy-secrets
-          cat <<'EOF' > /tmp/dummy-secrets/secrets.yaml
-martin_password_hash: "$6$dummy$x"
-root_password_hash: "$6$dummy$x"
-paperless_password: "dummy"
-EOF
+          echo 'martin_password_hash: "$6$dummy$x"' > /tmp/dummy-secrets/secrets.yaml
+          echo 'root_password_hash: "$6$dummy$x"' >> /tmp/dummy-secrets/secrets.yaml
+          echo 'paperless_password: "dummy"' >> /tmp/dummy-secrets/secrets.yaml
 
       - name: Set Nix input overrides
         run: |
