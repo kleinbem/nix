@@ -79,7 +79,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v22
 
       - name: Setup Attic Cache
-        uses: rjbrown57/setup-attic@v1
+        uses: ryanccn/attic-action@v0
         with:
           endpoint: https://cache.kleinbem.dev/
           cache: system

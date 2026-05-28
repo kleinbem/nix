@@ -126,7 +126,7 @@ jobs:
             trusted-users = root runner
 
       - name: Setup Attic Cache
-        uses: rjbrown57/setup-attic@v1
+        uses: ryanccn/attic-action@v0
         with:
           endpoint: https://cache.kleinbem.dev/
           cache: system
