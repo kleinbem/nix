@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# This script creates a dummy secrets file used during evaluation in CI pipelines.
+# It includes dummy entries for all keys referenced in sops.secrets declarations.
+
+TARGET_DIR="/tmp/dummy-secrets"
+mkdir -p "$TARGET_DIR"
+
+cat <<'EOF' >"$TARGET_DIR/secrets.yaml"
+martin_password_hash: "$6$dummy$x"
+root_password_hash: "$6$dummy$x"
+paperless_password: "dummy"
+netbird_setup_key: "dummy"
+rclone_config: "dummy"
+github_read_all_token: "dummy"
+local_github_actions_runner: "dummy"
+github_runner_nix: "dummy"
+github_runner_nix_config: "dummy"
+u2f_keys: "dummy"
+n8n_encryption_key: "dummy"
+n8n_basic_auth_password: "dummy"
+n8n_jwt_secret: "dummy"
+n8n_user_management_main_user_email: "dummy"
+n8n_user_management_main_user_password: "dummy"
+webui_secret_key: "dummy"
+langfuse_nextauth_secret: "dummy"
+langfuse_salt: "dummy"
+github_pat: "dummy"
+brave_api_key: "dummy"
+github_app_id: "dummy"
+github_app_installation_id: "dummy"
+github_app_private_key: "dummy"
+vllm_huggingface_token: "dummy"
+langfuse_public_key: "dummy"
+langfuse_secret_key: "dummy"
+restic_password: "dummy"
+restic_system_password: "dummy"
+authelia_session_secret: "dummy"
+authelia_jwt_secret: "dummy"
+authelia_storage_encryption_key: "dummy"
+homepage_n8n_key: "dummy"
+homepage_openwebui_key: "dummy"
+attic_server_token_rs256: "dummy"
+cloudflare_account_id: "dummy"
+cloudflare_tunnel_id: "dummy"
+cloudflare_tunnel_secret: "dummy"
+EOF
+
+echo "Created dummy secrets at $TARGET_DIR/secrets.yaml"

@@ -24,11 +24,7 @@ jobs:
           git -c submodule."nix-secrets".update=none submodule update --init --recursive
 
       - name: Set up dummy secrets
-        run: |
-          mkdir -p /tmp/dummy-secrets
-          echo 'martin_password_hash: "$6$dummy$x"' > /tmp/dummy-secrets/secrets.yaml
-          echo 'root_password_hash: "$6$dummy$x"' >> /tmp/dummy-secrets/secrets.yaml
-          echo 'paperless_password: "dummy"' >> /tmp/dummy-secrets/secrets.yaml
+        run: ./scripts/write-dummy-secrets.sh
 
       - name: Set Nix input overrides
         run: |
@@ -62,11 +58,7 @@ jobs:
           git -c submodule."nix-secrets".update=none submodule update --init --recursive
 
       - name: Set up dummy secrets
-        run: |
-          mkdir -p /tmp/dummy-secrets
-          echo 'martin_password_hash: "$6$dummy$x"' > /tmp/dummy-secrets/secrets.yaml
-          echo 'root_password_hash: "$6$dummy$x"' >> /tmp/dummy-secrets/secrets.yaml
-          echo 'paperless_password: "dummy"' >> /tmp/dummy-secrets/secrets.yaml
+        run: ./scripts/write-dummy-secrets.sh
 
       - name: Set Nix input overrides
         run: |
@@ -118,11 +110,7 @@ jobs:
           git -c submodule."nix-secrets".update=none submodule update --init --recursive
 
       - name: Set up dummy secrets
-        run: |
-          mkdir -p /tmp/dummy-secrets
-          echo 'martin_password_hash: "$6$dummy$x"' > /tmp/dummy-secrets/secrets.yaml
-          echo 'root_password_hash: "$6$dummy$x"' >> /tmp/dummy-secrets/secrets.yaml
-          echo 'paperless_password: "dummy"' >> /tmp/dummy-secrets/secrets.yaml
+        run: ./scripts/write-dummy-secrets.sh
 
       - name: Set Nix input overrides
         run: |
