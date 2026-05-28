@@ -26,13 +26,13 @@ fi
 
 echo -e "\n${BOLD}[1/4] Decrypting and checking secrets...${RESET}"
 echo -e "${YELLOW}👉 Touch your YubiKey if it flashes to authorize decryption of secrets.yaml...${RESET}"
-SECRETS_JSON=$(sops decrypt --json "$SECRETS_FILE")
+DECRYPTED_YAML=$(sops -d "$SECRETS_FILE")
 
 # Check if we have api token and account id
-API_TOKEN=$(echo "$SECRETS_JSON" | jq -r '.cloudflare_api_token // empty')
-ACCOUNT_ID=$(echo "$SECRETS_JSON" | jq -r '.cloudflare_account_id // empty')
+API_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.cloudflare_api_token')
+ACCOUNT_ID=$(echo "$DECRYPTED_YAML" | yq '.cloudflare_account_id')
 
-if [ -z "$API_TOKEN" ] || [ -z "$ACCOUNT_ID" ]; then
+if [ "$API_TOKEN" = "null" ] || [ -z "$API_TOKEN" ] || [ "$ACCOUNT_ID" = "null" ] || [ -z "$ACCOUNT_ID" ]; then
   echo -e "${RED}❌ Missing cloudflare_api_token or cloudflare_account_id in secrets.yaml.${RESET}"
   echo -e "Please edit $SECRETS_FILE and add:"
   echo -e "  • cloudflare_api_token: \"your-api-token\""
@@ -41,12 +41,14 @@ if [ -z "$API_TOKEN" ] || [ -z "$ACCOUNT_ID" ]; then
 fi
 
 # Generate tunnel secret if missing
-TUNNEL_SECRET=$(echo "$SECRETS_JSON" | jq -r '.cloudflare_tunnel_secret // empty')
-if [ -z "$TUNNEL_SECRET" ]; then
+TUNNEL_SECRET=$(echo "$DECRYPTED_YAML" | yq '.cloudflare_tunnel_secret')
+if [ "$TUNNEL_SECRET" = "null" ] || [ -z "$TUNNEL_SECRET" ]; then
   echo -e "${YELLOW}Generating new 32-byte base64 tunnel secret...${RESET}"
   TUNNEL_SECRET=$(openssl rand -base64 32)
   sops --set "[\"cloudflare_tunnel_secret\"] \"$TUNNEL_SECRET\"" "$SECRETS_FILE"
   echo -e "🟢 Generated and saved cloudflare_tunnel_secret to secrets.yaml"
+  # Refresh decrypted YAML state after write
+  DECRYPTED_YAML=$(sops -d "$SECRETS_FILE")
 fi
 
 # Export variables for OpenTofu
@@ -73,7 +75,7 @@ fi
 echo -e "🟢 Tunnel ID: ${BOLD}$TUNNEL_ID${RESET}"
 
 # Write Tunnel ID to secrets.yaml (if it changed)
-CURRENT_TUNNEL_ID=$(echo "$SECRETS_JSON" | jq -r '.cloudflare_tunnel_id // empty')
+CURRENT_TUNNEL_ID=$(echo "$DECRYPTED_YAML" | yq '.cloudflare_tunnel_id')
 if [ "$CURRENT_TUNNEL_ID" != "$TUNNEL_ID" ]; then
   echo -e "Updating cloudflare_tunnel_id in secrets.yaml..."
   sops --set "[\"cloudflare_tunnel_id\"] \"$TUNNEL_ID\"" "$SECRETS_FILE"
