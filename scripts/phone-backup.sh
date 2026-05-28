@@ -7,6 +7,7 @@ set -e
 BACKUP_NAME="/sdcard/Download/nix-on-droid-snapshot-$(date +%F).tar"
 
 echo "📦 Finding tar binary..."
+# shellcheck disable=SC2012
 TAR=$(ls /nix/store/*gnutar*/bin/tar | head -n 1)
 
 echo "📂 Moving to app root..."

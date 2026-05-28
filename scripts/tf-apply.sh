@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Ensure we have the required tools
-if ! command -v tofu &> /dev/null || ! command -v sops &> /dev/null || ! command -v jq &> /dev/null; then
+if ! command -v tofu &>/dev/null || ! command -v sops &>/dev/null || ! command -v jq &>/dev/null; then
   echo "📦 Launching in nix shell with opentofu, sops, and jq..."
   exec nix shell nixpkgs#opentofu nixpkgs#jq nixpkgs#sops -c "$0" "$@"
 fi
@@ -35,8 +35,8 @@ ACCOUNT_ID=$(echo "$DECRYPTED_YAML" | yq '.cloudflare_account_id')
 if [ "$API_TOKEN" = "null" ] || [ -z "$API_TOKEN" ] || [ "$ACCOUNT_ID" = "null" ] || [ -z "$ACCOUNT_ID" ]; then
   echo -e "${RED}❌ Missing cloudflare_api_token or cloudflare_account_id in secrets.yaml.${RESET}"
   echo -e "Please edit $SECRETS_FILE and add:"
-  echo -e "  • cloudflare_api_token: \"your-api-token\""
-  echo -e "  • cloudflare_account_id: \"your-account-id\""
+  echo -e '  • cloudflare_api_token: "your-api-token"'
+  echo -e '  • cloudflare_account_id: "your-account-id"'
   exit 1
 fi
 

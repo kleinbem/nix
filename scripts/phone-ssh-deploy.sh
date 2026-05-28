@@ -7,7 +7,7 @@ set -e
 # Configuration
 PHONE_IP=${1:-"192.168.178.69"}
 PHONE_PORT=${2:-"8022"}
-PHONE_USER="nix-on-droid" # Standard for Nix-on-Droid
+# shellcheck disable=SC2088
 TARGET_DIR="~/nix-config"
 
 echo "🌐 Deploying to phone at $PHONE_IP:$PHONE_PORT..."

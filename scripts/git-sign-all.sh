@@ -7,7 +7,6 @@ set -euo pipefail
 # Colors
 GREEN="\033[1;32m"
 RED="\033[1;31m"
-YELLOW="\033[1;33m"
 CYAN="\033[1;36m"
 BOLD="\033[1m"
 RESET="\033[0m"
@@ -17,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Read repos from common.just (nix-* folders in root)
-REPOS=($(find "$ROOT_DIR" -maxdepth 1 -name 'nix-*' -type d -printf '%f\n' | sort))
+mapfile -t REPOS < <(find "$ROOT_DIR" -maxdepth 1 -name 'nix-*' -type d -printf '%f\n' | sort)
 # Add root repo to the list
 REPOS+=(".")
 

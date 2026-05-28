@@ -6,6 +6,7 @@
 set -e
 
 echo "🔍 Finding Git in the Nix store..."
+# shellcheck disable=SC2012
 GIT=$(ls /nix/store/*git-2*/bin/git | head -n 1)
 if [ -z "$GIT" ]; then
   echo "❌ Git not found! Trying to run it via nix-run..."
@@ -42,6 +43,7 @@ CONF_PATH=$(readlink -f ./result)
 ln -sfn "$CONF_PATH" /nix/var/nix/profiles/nix-on-droid-path
 
 # Find the nested bin folder (XCover 6 Pro / Nix-on-Droid specific structure)
+# shellcheck disable=SC2012
 NESTED_BIN=$(ls -d /nix/var/nix/profiles/nix-on-droid-path/*/bin | head -n 1)
 
 echo "🔗 Linking core binaries from $NESTED_BIN..."
