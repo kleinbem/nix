@@ -164,3 +164,24 @@ attic-token:
       CONFIG=$(ls -1 /nix/store/*-checked-attic-server.toml | head -n 1); \
       $ATTICADM -f $CONFIG make-token --sub "admin" --validity "1y" --pull "*" --push "*" --create-cache "*" --configure-cache "*" --configure-cache-retention "*" --destroy-cache "*" \
     '
+
+# Mint a LEAST-PRIVILEGE Attic token for CI (push/pull on one cache only — no
+# create/configure/destroy). Use this for the ATTIC_PUSH_TOKEN stored in CI,
+# NOT the admin token above. Pipe into sops, e.g.:
+#   TOKEN=$(just nixos::attic-ci-token | grep '^eyJ')
+#   sops --set "[\"attic_push_token\"] \"$TOKEN\"" nix-secrets/secrets.yaml
+# Usage: just nixos::attic-ci-token                  # github-ci, system, 1y
+#        just nixos::attic-ci-token github-ci system 10y
+[group("System")]
+attic-ci-token sub="github-ci" cache="system" validity="1y":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    sudo nixos-container run attic -- sh -c '
+      set -a; . /etc/atticd-env
+      [ -z "${ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64:-}" ] && \
+        export ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64="$ATTIC_SERVER_TOKEN_RS256_SECRET"
+      ATTICADM=$(ls -1 /nix/store/*-attic-*/bin/atticadm | head -n 1)
+      CONFIG=$(ls -1 /nix/store/*-checked-attic-server.toml | head -n 1)
+      "$ATTICADM" -f "$CONFIG" make-token \
+        --sub "{{ sub }}" --validity "{{ validity }}" --pull "{{ cache }}" --push "{{ cache }}"
+    '

@@ -2,9 +2,9 @@
 set -euo pipefail
 
 # Ensure we have the required tools
-if ! command -v tofu &>/dev/null || ! command -v sops &>/dev/null || ! command -v jq &>/dev/null; then
-  echo "📦 Launching in nix shell with opentofu, sops, and jq..."
-  exec nix shell nixpkgs#opentofu nixpkgs#jq nixpkgs#sops -c "$0" "$@"
+if ! command -v tofu &>/dev/null || ! command -v sops &>/dev/null || ! command -v jq &>/dev/null || ! command -v yq &>/dev/null; then
+  echo "📦 Launching in nix shell with opentofu, sops, jq, and yq..."
+  exec nix shell nixpkgs#opentofu nixpkgs#jq nixpkgs#yq-go nixpkgs#sops -c "$0" "$@"
 fi
 
 # Colors
@@ -55,6 +55,29 @@ fi
 export TF_VAR_cloudflare_api_token="$API_TOKEN"
 export TF_VAR_cloudflare_account_id="$ACCOUNT_ID"
 export TF_VAR_cloudflare_tunnel_secret="$TUNNEL_SECRET"
+
+# --- GitHub provider inputs (sourced from sops) ---
+# Reuses the existing spare `github_pat` sops key as the CI automation PAT
+# distributed to repos as GH_PAT. `github_tf_token` is the admin PAT the
+# provider authenticates with; `attic_push_token` becomes the ATTIC_PUSH_TOKEN
+# secret. Add these keys to nix-secrets/secrets.yaml to manage GitHub via IaC.
+GH_TF_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.github_tf_token')
+GH_CI_PAT=$(echo "$DECRYPTED_YAML" | yq '.github_pat')
+ATTIC_PUSH=$(echo "$DECRYPTED_YAML" | yq '.attic_push_token')
+
+# Normalise missing keys ("null") to empty strings
+[ "$GH_TF_TOKEN" = "null" ] && GH_TF_TOKEN=""
+[ "$GH_CI_PAT" = "null" ] && GH_CI_PAT=""
+[ "$ATTIC_PUSH" = "null" ] && ATTIC_PUSH=""
+
+if [ -z "$GH_TF_TOKEN" ]; then
+  echo -e "${YELLOW}⚠️  github_tf_token not set in secrets.yaml — GitHub resources will fail to authenticate."
+  echo -e "    Add an admin PAT (classic: repo + workflow) under key 'github_tf_token' to manage GitHub via IaC.${RESET}"
+fi
+
+export TF_VAR_github_tf_token="$GH_TF_TOKEN"
+export TF_VAR_github_ci_pat="$GH_CI_PAT"
+export TF_VAR_attic_push_token="$ATTIC_PUSH"
 
 # 2. OpenTofu Init & Apply
 echo -e "\n${BOLD}[2/4] Initializing and applying OpenTofu plan...${RESET}"
