@@ -3179,11 +3179,11 @@
         "treefmt-nix": "treefmt-nix_4"
       },
       "locked": {
-        "lastModified": 1780006428,
-        "narHash": "sha256-/Zc1RxdYQqtbxccl7jCkB0LJMXXVU3MhHqLqLxB/BAk=",
+        "lastModified": 1780018106,
+        "narHash": "sha256-u2lbF2hKpBnkAYjYwYOoTBd/SACiKtS5yYa99p4GEnc=",
         "ref": "refs/heads/main",
-        "rev": "ac3b031c53f07cf4e62921a4b7933e55d6e270ff",
-        "revCount": 69,
+        "rev": "29b778425fe0ee1fa59ce134edf08b3d505f1ba4",
+        "revCount": 72,
         "type": "git",
         "url": "file:///home/martin/Develop/github.com/kleinbem/nix/nix-devshells"
       },
