@@ -1,0 +1,102 @@
+name: "Build & Cache Packages"
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - ".github/workflows/build-packages.yaml"
+      - "flake.nix"
+      - "flake.lock"
+      - "nix-packages/**"
+      - "nix-presets/**"
+      - "scripts/**"
+  pull_request:
+    paths:
+      - ".github/workflows/build-packages.yaml"
+      - "flake.nix"
+      - "flake.lock"
+      - "nix-packages/**"
+      - "nix-presets/**"
+      - "scripts/**"
+  workflow_dispatch:
+
+jobs:
+  build-packages:
+    name: "Build & Cache Packages"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Maximize Build Space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 512
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-docker-images: 'true'
+          remove-codeql: 'true'
+
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Init submodules (skip nix-secrets)
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git -c submodule."nix-secrets".update=none submodule update --init --recursive
+
+      - name: Set up dummy secrets
+        run: ./scripts/write-dummy-secrets.sh
+
+      - name: Set Nix input overrides
+        run: |
+          echo "NIX_OVERRIDES=\
+            --override-input nix-secrets /tmp/dummy-secrets \
+            --override-input nix-config git+file://$GITHUB_WORKSPACE/nix-config \
+            --override-input nix-devshells git+file://$GITHUB_WORKSPACE/nix-devshells \
+            --override-input nix-presets git+file://$GITHUB_WORKSPACE/nix-presets \
+            --override-input nix-hardware git+file://$GITHUB_WORKSPACE/nix-hardware \
+            --override-input nix-packages git+file://$GITHUB_WORKSPACE/nix-packages \
+            --override-input nix-templates git+file://$GITHUB_WORKSPACE/nix-templates" >> "$GITHUB_ENV"
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v22
+        with:
+          extra-conf: |
+            sandbox = false
+            trusted-users = root runner
+
+      - name: Setup Attic Cache
+        uses: ryanccn/attic-action@v0
+        with:
+          endpoint: https://cache.kleinbem.dev/
+          cache: system
+          token: ${{ secrets.ATTIC_PUSH_TOKEN }}
+
+      - name: Build & cache every package
+        run: |
+          set -uo pipefail
+          # Exclude devenv-generated helper outputs (process-compose / container /
+          # shell wrappers) that the devenv flake-module injects per shell — only
+          # real packages from nix-packages / nix-presets are worth caching.
+          PKGS=$(nix eval .#packages.x86_64-linux --impure --apply \
+            'pkgs: builtins.filter (n: builtins.match ".*(devenv-(up|test)|container-(shell|processes))" n == null) (builtins.attrNames pkgs)' \
+            --json $NIX_OVERRIDES | jq -r '.[]')
+          echo "Discovered packages:"; echo "$PKGS"
+          FAILED=()
+          for pkg in $PKGS; do
+            echo "::group::Building $pkg"
+            if nix build ".#packages.x86_64-linux.$pkg" --impure -L $NIX_OVERRIDES --out-link "result-$pkg"; then
+              attic push system $(nix-store -qR "result-$pkg")
+            else
+              echo "::warning::Failed to build package: $pkg"
+              FAILED+=("$pkg")
+            fi
+            echo "::endgroup::"
+          done
+          if [ ${#FAILED[@]} -ne 0 ]; then
+            echo "::warning::The following packages failed to build: ${FAILED[*]}"
+          fi

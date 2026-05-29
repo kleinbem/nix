@@ -1,0 +1,73 @@
+name: "Update Flake Lock & Warm Cache"
+
+on:
+  schedule:
+    # Every Sunday at 05:00 UTC
+    - cron: '0 5 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  update:
+    name: "Update lock & open PR"
+    runs-on: ubuntu-latest
+    outputs:
+      branch: ${{ steps.cpr.outputs.pull-request-branch }}
+      created: ${{ steps.cpr.outputs.pull-request-operation }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Init submodules (skip nix-secrets)
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git -c submodule."nix-secrets".update=none submodule update --init --recursive
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v22
+        with:
+          extra-conf: |
+            access-tokens = github.com=${{ secrets.GH_PAT }}
+
+      - name: Update flake.lock
+        run: nix flake update
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          # Use a PAT so opening the PR triggers downstream CI / cache-warming
+          token: ${{ secrets.GH_PAT }}
+          commit-message: "chore(flake): update inputs"
+          title: "chore(flake): update inputs"
+          body: |
+            Automated update of root `flake.lock`.
+
+            Cache-warming CI runs automatically on this PR
+            (devshells, packages, containers) and `build-system`
+            is dispatched against this branch. Once everything is
+            green, `just apply` should pull binaries instead of
+            rebuilding locally.
+          branch: "automation/flake-update"
+          delete-branch: true
+
+  warm-system:
+    name: "Warm system closures"
+    needs: update
+    if: needs.update.outputs.created != 'none'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch build-system against the update branch
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          gh workflow run build-system.yaml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref "${{ needs.update.outputs.branch }}"

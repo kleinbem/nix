@@ -1,4 +1,4 @@
-name: "Build & Cache Decoupled Containers"
+name: "Build & Cache Devshells"
 
 on:
   push:
@@ -6,28 +6,26 @@ on:
       - main
       - master
     paths:
-      - ".github/workflows/build-containers.yaml"
-      - "nix-presets/containers/**"
-      - "nix-config/hosts/**"
-      - "nix-config/flake.nix"
-      - "nix-config/flake.lock"
-      - "scripts/container-deploy.sh"
+      - ".github/workflows/build-devshells.yaml"
+      - "flake.nix"
+      - "flake.lock"
+      - "devenv.nix"
+      - "nix-devshells/**"
   pull_request:
     paths:
-      - ".github/workflows/build-containers.yaml"
-      - "nix-presets/containers/**"
-      - "nix-config/hosts/**"
-      - "nix-config/flake.nix"
-      - "nix-config/flake.lock"
-      - "scripts/container-deploy.sh"
+      - ".github/workflows/build-devshells.yaml"
+      - "flake.nix"
+      - "flake.lock"
+      - "devenv.nix"
+      - "nix-devshells/**"
   workflow_dispatch:
 
 jobs:
   # ---------------------------------------------------------
-  # STAGE 1: Discover every container declared by container-factory
+  # STAGE 1: Discover all exposed devShells
   # ---------------------------------------------------------
   generate-matrix:
-    name: "Discover Container Matrix"
+    name: "Discover Devshell Matrix"
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -62,22 +60,21 @@ jobs:
       - name: Generate Dynamic Matrix
         id: set-matrix
         run: |
-          MATRIX_JSON=$(nix eval .#nixosConfigurations.container-factory.config.containers \
-            --impure --apply 'builtins.attrNames' --json $NIX_OVERRIDES)
-          echo "Discovered Containers: $MATRIX_JSON"
+          MATRIX_JSON=$(nix eval .#devShells.x86_64-linux --impure --apply 'builtins.attrNames' --json $NIX_OVERRIDES)
+          echo "Discovered Devshells: $MATRIX_JSON"
           echo "matrix=$MATRIX_JSON" >> "$GITHUB_OUTPUT"
 
   # ---------------------------------------------------------
-  # STAGE 2: Build & cache each container's system path
+  # STAGE 2: Build & cache each devshell closure
   # ---------------------------------------------------------
-  build-container:
-    name: "Build container ${{ matrix.container }}"
+  build-devshell:
+    name: "Build devShell ${{ matrix.shell }}"
     needs: generate-matrix
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        container: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+        shell: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
     steps:
       - name: Maximize Build Space
         uses: easimon/maximize-build-space@master
@@ -128,9 +125,9 @@ jobs:
           cache: system
           token: ${{ secrets.ATTIC_PUSH_TOKEN }}
 
-      - name: Build container path
+      - name: Build devShell closure
         run: |
-          nix build ".#nixosConfigurations.container-factory.config.containers.${{ matrix.container }}.path" \
+          nix build ".#devShells.x86_64-linux.${{ matrix.shell }}" \
             --impure -L $NIX_OVERRIDES
 
       - name: Push to Attic
