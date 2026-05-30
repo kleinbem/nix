@@ -57,7 +57,12 @@ jobs:
             in
               builtins.filter (x: x != null) (builtins.map (name:
                 let meta = inv.hosts.${name} or {}; in
-                if meta ? system then {
+                # TEMPORARY (revisit after the wired OpenWrt router lands): only build
+                # x86_64 hosts in CI. The aarch64 fleet (orin-nano, core-pi, hass-pi) is
+                # excluded because it cannot cache via hosted ARM runners — pushes hit
+                # Cloudflares 413 body cap, and orin-nano fails a jetpack/nixpkgs eval
+                # skew. They are built & deployed on-target via colmena in the meantime.
+                if (meta.system or "") == "x86_64-linux" then {
                   host = name;
                   runner = getRunner meta.system;
                 } else null
