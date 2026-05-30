@@ -81,6 +81,9 @@ jobs:
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
+      # Serialize host builds so they don't push to Attic concurrently — parallel
+      # pushes raced on shared chunks (e.g. etc-machine-id) → "Bad chunk hash or size".
+      max-parallel: 1
       matrix:
         include: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
     steps:

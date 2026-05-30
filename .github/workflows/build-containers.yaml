@@ -76,6 +76,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      # Serialize so containers don't push to Attic concurrently (shared chunks race
+      # → "Bad chunk hash or size"). 29 parallel pushes would be the worst offender.
+      max-parallel: 1
       matrix:
         container: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
     steps:

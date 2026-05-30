@@ -73,6 +73,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      # Serialize so devshells don't push to Attic concurrently (shared chunks race
+      # → "Bad chunk hash or size").
+      max-parallel: 1
       matrix:
         shell: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
     steps:
