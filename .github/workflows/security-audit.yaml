@@ -1,10 +1,12 @@
 name: "Security Audit (vulnix)"
 
-# Weekly CVE scan of the nixos-nvme system closure. Read-only: it *pulls* the
-# pre-built closure from Attic + cache.nixos.org and scans it, so it runs on a
-# free hosted runner (no push → no Cloudflare 413). Informational by design —
-# it reports findings, it does not fail the build (nixpkgs always carries some
-# open CVEs). Tighten to fail-on-critical later if you want a gate.
+# Weekly CVE scan of the nixos-nvme system closure with vulnix.
+#
+# Runs on the self-hosted runner (nixos-nvme): the closure is already in the
+# local store (built by build-system / your own `just apply`), so realizing it
+# is instant — no multi-GB pull or from-source rebuild like a hosted runner
+# would do. Informational by design: it reports findings, it does not fail the
+# build (nixpkgs always carries open CVEs). Tighten to fail-on-critical later.
 on:
   schedule:
     # Wednesdays 06:00 UTC — midweek, off-peak, away from the Sunday update run.
@@ -14,19 +16,8 @@ on:
 jobs:
   vulnix:
     name: "Scan nixos-nvme closure for CVEs"
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nixos]
     steps:
-      - name: Maximize Build Space
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 512
-          swap-size-mb: 1024
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-docker-images: 'true'
-          remove-codeql: 'true'
-
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
         with:
@@ -53,15 +44,19 @@ jobs:
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v22
+        with:
+          extra-conf: |
+            sandbox = false
+            trusted-users = root runner
 
-      - name: Setup Attic Cache (pull pre-built closure)
+      - name: Setup Attic Cache
         uses: ryanccn/attic-action@v0
         with:
           endpoint: https://cache.kleinbem.dev/
           cache: system
           token: ${{ secrets.ATTIC_PUSH_TOKEN }}
 
-      - name: Realize nixos-nvme closure (from cache)
+      - name: Realize nixos-nvme closure (local store / cache)
         run: |
           nix build .#nixosConfigurations.nixos-nvme.config.system.build.toplevel \
             --impure -L $NIX_OVERRIDES --out-link result
@@ -70,23 +65,17 @@ jobs:
         run: |
           set -uo pipefail
           TOP=$(readlink -f result)
-          # vulnix exits non-zero when it finds CVEs — this scan is informational,
-          # so don't let that fail the job.
-          nix run nixpkgs#vulnix -- --json "$TOP" > vulnix.json || true
+          # Text output → no jq needed (the self-hosted NixOS runner doesn't ship it).
+          # vulnix exits non-zero when it finds CVEs; this scan is informational.
+          nix run nixpkgs#vulnix -- "$TOP" > vulnix.txt 2>&1 || true
           {
             echo "## 🔒 vulnix CVE scan — nixos-nvme closure"
             echo ""
-            if [ -s vulnix.json ]; then
-              AFFECTED=$(jq 'length' vulnix.json 2>/dev/null || echo "?")
-              echo "Derivations with known CVEs: **$AFFECTED** — full report in the \`vulnix-report\` artifact."
-              echo ""
-              echo "| Package | CVEs | max CVSSv3 |"
-              echo "|---|---|---|"
-              jq -r '.[] | "| \(.name) | \((.affected_by // [])|length) | \(.cvssv3_basescore // {} | [.[]] | max // "-") |"' \
-                vulnix.json 2>/dev/null | sort -u | head -40 || echo "| (could not parse — see artifact) | | |"
-            else
-              echo "No report produced (vulnix found nothing, or scan failed — check logs)."
-            fi
+            echo '```'
+            head -120 vulnix.txt
+            echo '```'
+            echo ""
+            echo "_Full report in the \`vulnix-report\` artifact._"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload vulnix report
@@ -94,5 +83,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: vulnix-report
-          path: vulnix.json
+          path: vulnix.txt
           if-no-files-found: ignore
