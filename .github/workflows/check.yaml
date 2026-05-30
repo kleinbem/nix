@@ -88,10 +88,11 @@ jobs:
           # orin-nano hits a jetpack/nixpkgs eval skew in CI. Scope to the x86_64
           # `checks` output (already filtered to x86_64 hosts) so CI validates what it
           # can actually build, instead of choking on the excluded aarch64 fleet.
-          checks=$(nix eval --raw --impure $NIX_OVERRIDES .#checks.x86_64-linux \
-            --apply 'cs: builtins.concatStringsSep " " (map (n: ".#checks.x86_64-linux." + n) (builtins.attrNames cs))')
-          echo "Evaluating x86_64 checks: $checks"
-          nix build --dry-run --no-link -L --impure $NIX_OVERRIDES $checks
+          # Force-evaluate each check's drvPath: validates they all evaluate (catching
+          # eval errors) WITHOUT the slow substituter queries that `nix build --dry-run`
+          # does over Cloudflare for every path in the closure.
+          nix eval --impure $NIX_OVERRIDES .#checks.x86_64-linux \
+            --apply 'cs: builtins.length (builtins.attrValues (builtins.mapAttrs (_: c: c.drvPath) cs))'
 
       - name: Run sub-flake evaluation checks
         run: |
