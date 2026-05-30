@@ -73,7 +73,9 @@ jobs:
   build-container:
     name: "Build container ${{ matrix.container }}"
     needs: generate-matrix
-    runs-on: ubuntu-latest
+    # Self-hosted (nixos-nvme): build + push to Attic over LAN. Hosted runners hit
+    # Cloudflare's 413 body cap on large NAR pushes.
+    runs-on: [self-hosted, nixos]
     strategy:
       fail-fast: false
       # Serialize so containers don't push to Attic concurrently (shared chunks race
@@ -82,17 +84,7 @@ jobs:
       matrix:
         container: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
     steps:
-      - name: Maximize Build Space
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 512
-          swap-size-mb: 1024
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-docker-images: 'true'
-          remove-codeql: 'true'
-
+      # (Maximize Build Space removed — Ubuntu-only step, N/A on the self-hosted NixOS runner.)
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
         with:
