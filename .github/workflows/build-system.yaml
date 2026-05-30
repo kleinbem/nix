@@ -143,11 +143,19 @@ jobs:
             --impure -L $NIX_OVERRIDES
 
       - name: Push to Attic
-        # TEMPORARY band-aid: don't fail the run on a single bad Attic chunk. atticd
-        # (attic 2025-09-24) rejects nixos-nvme's etc-machine-id NAR with "Bad chunk
-        # hash or size" — a stale/corrupt stored chunk for that one 33-byte path. The
-        # rest of the closure still caches (here + via the attic-action post-push).
-        # Proper fix: clear that chunk / GC-recreate the `system` cache on atticd.
-        continue-on-error: true
         run: |
-          attic push system $(nix-store -qR result)
+          # Tolerate ONLY the known atticd bad-chunk bug (a stale/corrupt stored chunk
+          # for nixos-nvme's 33-byte etc-machine-id NAR — atticd 2025-09-24, which is
+          # already upstream HEAD, so there's no version that fixes it). Every OTHER
+          # push failure (cache down, expired token, …) still fails the job, so we keep
+          # real failure reporting instead of the blanket continue-on-error mask.
+          # Real fix would be clearing that chunk on atticd (cache.kleinbem.dev).
+          if ! attic push system $(nix-store -qR result) >push.log 2>&1; then
+            cat push.log
+            if grep -q "Bad chunk hash or size" push.log; then
+              echo "::warning::Attic push hit the known etc-machine-id bad-chunk bug; rest of the closure cached. Clear that chunk on atticd to remove this guard."
+            else
+              echo "::error::Attic push failed for a reason other than the known chunk bug."
+              exit 1
+            fi
+          fi

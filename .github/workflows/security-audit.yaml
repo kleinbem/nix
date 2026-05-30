@@ -67,7 +67,7 @@ jobs:
           TOP=$(readlink -f result)
           # Text output → no jq needed (the self-hosted NixOS runner doesn't ship it).
           # vulnix exits non-zero when it finds CVEs; this scan is informational.
-          nix run nixpkgs#vulnix -- "$TOP" > vulnix.txt 2>&1 || true
+          nix run nixpkgs#vulnix -- --whitelist .github/vulnix-whitelist.toml "$TOP" > vulnix.txt 2>&1 || true
           {
             echo "## 🔒 vulnix CVE scan — nixos-nvme closure"
             echo ""

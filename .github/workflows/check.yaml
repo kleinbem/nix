@@ -130,5 +130,11 @@ jobs:
             --override-input nix-packages git+file://$GITHUB_WORKSPACE/nix-packages \
             --override-input nix-templates git+file://$GITHUB_WORKSPACE/nix-templates" >> "$GITHUB_ENV"
 
-      - name: Run integration VM build tests
-        run: nix build .#nixosConfigurations.nixos-nvme.config.system.build.vm --impure -L $NIX_OVERRIDES
+      - name: Build & run x86_64 checks (executes the nixosTest VMs)
+        run: |
+          # The fast flake-checks job above only EVALUATES checks (drvPath) for quick
+          # PR feedback — it doesn't execute them. Here (self-hosted, push-to-main,
+          # deps cached) we actually BUILD the checks, which RUNS the nixosTest VMs
+          # (caddy-test, code-server-test, mobile-link-test, recovery-test) plus the
+          # module/host checks. Scoped to x86_64 to skip the aarch64 jetpack eval skew.
+          nix flake check . --system x86_64-linux --impure -L $NIX_OVERRIDES

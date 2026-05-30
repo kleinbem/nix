@@ -1,0 +1,37 @@
+# vulnix whitelist — used by .github/workflows/security-audit.yaml
+#
+# ONLY genuine false positives go here: cases where vulnix matched a CVE to a
+# derivation by name/version collision and the CVE does NOT apply to that code.
+# Each entry is keyed by the EXACT derivation name-version (quoted — versions
+# contain dots) so the real C-library variants (C zlib-1.3.2, C curl 8.x, …)
+# are still scanned and reported.
+#
+# NOT whitelisted on purpose: build-time-only tools (go-*-bootstrap,
+# python-2.7.x) — those are real CVEs in real software; they're just not in the
+# runtime attack surface. The correct fix for those is scoping the scan to the
+# runtime closure, not hiding real advisories.
+
+# CVE-2021-28794 is the VS Code "ShellCheck" extension RCE — not the Haskell
+# shellcheck binary, which is what's in the closure.
+["ShellCheck-0.11.0"]
+cve = ["CVE-2021-28794"]
+comment = "vscode-shellcheck extension CVE, not the shellcheck binary"
+
+["shellcheck-0.11.0"]
+cve = ["CVE-2021-28794"]
+comment = "see ShellCheck-0.11.0 — vscode extension CVE, not the binary"
+
+# Haskell 'curl' FFI binding (v0.4.x). The flagged advisories are for C libcurl
+# 7.x/8.x; they apply to the separate C curl derivation, not this binding.
+["curl-0.4.49"]
+comment = "Haskell curl FFI binding; C libcurl CVEs do not apply (real C curl scanned separately)"
+
+# Haskell 'network' library (v3.2.x). Flagged CVEs are for unrelated products
+# that share the name 'network'.
+["network-3.2.8.0"]
+comment = "Haskell network library; same-name-collision CVEs, not applicable"
+
+# Haskell 'zlib' FFI binding (v0.7.x). The flagged advisories are for C zlib /
+# minizip; the real C zlib-1.3.2 is a separate derivation and is NOT whitelisted.
+["zlib-0.7.1.1"]
+comment = "Haskell zlib FFI binding; C zlib/minizip CVEs do not apply (C zlib-1.3.2 still scanned)"
