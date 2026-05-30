@@ -1,0 +1,98 @@
+name: "Security Audit (vulnix)"
+
+# Weekly CVE scan of the nixos-nvme system closure. Read-only: it *pulls* the
+# pre-built closure from Attic + cache.nixos.org and scans it, so it runs on a
+# free hosted runner (no push → no Cloudflare 413). Informational by design —
+# it reports findings, it does not fail the build (nixpkgs always carries some
+# open CVEs). Tighten to fail-on-critical later if you want a gate.
+on:
+  schedule:
+    # Wednesdays 06:00 UTC — midweek, off-peak, away from the Sunday update run.
+    - cron: '0 6 * * 3'
+  workflow_dispatch:
+
+jobs:
+  vulnix:
+    name: "Scan nixos-nvme closure for CVEs"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Maximize Build Space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 512
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-docker-images: 'true'
+          remove-codeql: 'true'
+
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Init submodules (skip nix-secrets)
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git -c submodule."nix-secrets".update=none submodule update --init --recursive
+
+      - name: Set up dummy secrets
+        run: ./scripts/write-dummy-secrets.sh
+
+      - name: Set Nix input overrides
+        run: |
+          echo "NIX_OVERRIDES=\
+            --override-input nix-secrets /tmp/dummy-secrets \
+            --override-input nix-config git+file://$GITHUB_WORKSPACE/nix-config \
+            --override-input nix-devshells git+file://$GITHUB_WORKSPACE/nix-devshells \
+            --override-input nix-presets git+file://$GITHUB_WORKSPACE/nix-presets \
+            --override-input nix-hardware git+file://$GITHUB_WORKSPACE/nix-hardware \
+            --override-input nix-packages git+file://$GITHUB_WORKSPACE/nix-packages \
+            --override-input nix-templates git+file://$GITHUB_WORKSPACE/nix-templates" >> "$GITHUB_ENV"
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v22
+
+      - name: Setup Attic Cache (pull pre-built closure)
+        uses: ryanccn/attic-action@v0
+        with:
+          endpoint: https://cache.kleinbem.dev/
+          cache: system
+          token: ${{ secrets.ATTIC_PUSH_TOKEN }}
+
+      - name: Realize nixos-nvme closure (from cache)
+        run: |
+          nix build .#nixosConfigurations.nixos-nvme.config.system.build.toplevel \
+            --impure -L $NIX_OVERRIDES --out-link result
+
+      - name: Run vulnix
+        run: |
+          set -uo pipefail
+          TOP=$(readlink -f result)
+          # vulnix exits non-zero when it finds CVEs — this scan is informational,
+          # so don't let that fail the job.
+          nix run nixpkgs#vulnix -- --json "$TOP" > vulnix.json || true
+          {
+            echo "## 🔒 vulnix CVE scan — nixos-nvme closure"
+            echo ""
+            if [ -s vulnix.json ]; then
+              AFFECTED=$(jq 'length' vulnix.json 2>/dev/null || echo "?")
+              echo "Derivations with known CVEs: **$AFFECTED** — full report in the \`vulnix-report\` artifact."
+              echo ""
+              echo "| Package | CVEs | max CVSSv3 |"
+              echo "|---|---|---|"
+              jq -r '.[] | "| \(.name) | \((.affected_by // [])|length) | \(.cvssv3_basescore // {} | [.[]] | max // "-") |"' \
+                vulnix.json 2>/dev/null | sort -u | head -40 || echo "| (could not parse — see artifact) | | |"
+            else
+              echo "No report produced (vulnix found nothing, or scan failed — check logs)."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload vulnix report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulnix-report
+          path: vulnix.json
+          if-no-files-found: ignore

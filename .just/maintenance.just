@@ -72,19 +72,6 @@ clean *args="":
         git -C $repo gc --prune=now; \
     done
 
-[group("Cachix")]
-cache-auth token:
-    @cachix authtoken {{token}}
-
-[group("Cachix")]
-cache-use name="kleinbem":
-    @cachix use {{name}}
-
-[group("Cachix")]
-cache-push name="kleinbem":
-    @echo "⬆️ Pushing build results to {{name}}..."
-    @{{LOCK_CMD}} nix build --no-link --print-out-paths . {{OVERRIDES}} | cachix push {{name}}
-
 [group("System")]
 hooks-refresh:
     @echo "⚓ Refreshing Git hooks..."
