@@ -73,9 +73,11 @@ jobs:
           # Exclude devenv-generated helper outputs (process-compose / container /
           # shell wrappers) that the devenv flake-module injects per shell — only
           # real packages from nix-packages / nix-presets are worth caching.
-          PKGS=$(nix eval .#packages.x86_64-linux --impure --apply \
-            'pkgs: builtins.filter (n: builtins.match ".*(devenv-(up|test)|container-(shell|processes))" n == null) (builtins.attrNames pkgs)' \
-            --json $NIX_OVERRIDES | jq -r '.[]')
+          # Emit newline-separated names directly via --raw so this needs no jq
+          # (the self-hosted NixOS runner doesn't ship jq; hosted runners do).
+          PKGS=$(nix eval .#packages.x86_64-linux --impure --raw --apply \
+            'pkgs: builtins.concatStringsSep "\n" (builtins.filter (n: builtins.match ".*(devenv-(up|test)|container-(shell|processes))" n == null) (builtins.attrNames pkgs))' \
+            $NIX_OVERRIDES)
           echo "Discovered packages:"; echo "$PKGS"
           FAILED=()
           for pkg in $PKGS; do
