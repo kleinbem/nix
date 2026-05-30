@@ -36,8 +36,23 @@ jobs:
           extra-conf: |
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update flake.lock
-        run: nix flake update
+      - name: Update external flake inputs
+        run: |
+          # Update only third-party inputs. Updating named inputs leaves all others
+          # locked (and thus never fetched), which is what lets this run in CI.
+          # EXCLUDED on purpose:
+          #  - nix-config / nix-devshells / nix-presets: git+file:// local submodules
+          #    pinned at absolute /home/martin paths that don't exist on the runner;
+          #    they track the submodule pointers, not this job.
+          #  - nix-hardware / nix-packages / nix-templates: our own repos, bumped via
+          #    their submodule pointers, not here.
+          #  - nix-secrets: private, flake = false (never checked out in CI).
+          #  - devenv: intentionally pinned (see FIXME in flake.nix).
+          #  - jetpack-nixos: cache-sensitive aarch64 input — bump deliberately.
+          nix flake update \
+            nixpkgs nixpkgs-stable nixpkgs-master \
+            flake-parts ghostty nixos-generators \
+            home-manager sops-nix nix2container mk-shell-bin nix-on-droid
 
       - name: Create Pull Request
         id: cpr
