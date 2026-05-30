@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
-          token: ${{ secrets.GH_PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Init submodules (skip nix-secrets)
         run: |
@@ -34,7 +34,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v22
         with:
           extra-conf: |
-            access-tokens = github.com=${{ secrets.GH_PAT }}
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Update flake.lock
         run: nix flake update
@@ -43,8 +43,10 @@ jobs:
         id: cpr
         uses: peter-evans/create-pull-request@v6
         with:
-          # Use a PAT so opening the PR triggers downstream CI / cache-warming
-          token: ${{ secrets.GH_PAT }}
+          # Built-in GITHUB_TOKEN (no PAT to manage). It can't cascade-trigger the
+          # cache-warming workflows from the PR event, so warm-system dispatches them
+          # explicitly below.
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore(flake): update inputs"
           title: "chore(flake): update inputs"
           body: |
@@ -64,10 +66,18 @@ jobs:
     if: needs.update.outputs.created != 'none'
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch build-system against the update branch
+      - name: Dispatch cache-warming builds against the update branch
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh workflow run build-system.yaml \
-            --repo "$GITHUB_REPOSITORY" \
-            --ref "${{ needs.update.outputs.branch }}"
+          # GITHUB_TOKEN-created PRs don't cascade-trigger workflows, so warm each
+          # cache explicitly against the update branch. These run on the self-hosted
+          # runner (nixos-nvme) and push to Attic, so `just apply` pulls instead of
+          # rebuilding locally. Containers are omitted (rarely change on a root-lock
+          # bump, and 29 closures are heavy) — dispatch build-containers.yaml manually
+          # if a bump touches them.
+          BR="${{ needs.update.outputs.branch }}"
+          for wf in build-system.yaml build-packages.yaml build-devshells.yaml; do
+            echo "Dispatching $wf against $BR"
+            gh workflow run "$wf" --repo "$GITHUB_REPOSITORY" --ref "$BR"
+          done
