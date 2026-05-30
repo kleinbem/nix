@@ -24,6 +24,9 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+          # create-pull-request configures its own auth header; if checkout also
+          # persists one, git sends a duplicate Authorization header → GitHub 400.
+          persist-credentials: false
 
       - name: Init submodules (skip nix-secrets)
         run: |
