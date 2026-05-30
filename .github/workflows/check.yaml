@@ -94,23 +94,12 @@ jobs:
           nix eval --impure $NIX_OVERRIDES .#checks.x86_64-linux \
             --apply 'cs: builtins.length (builtins.attrValues (builtins.mapAttrs (_: c: c.drvPath) cs))'
 
-      - name: Run sub-flake evaluation checks
-        run: |
-          for repo in nix-*; do
-            # TEMPORARY: skip nix-config — its own `nix flake check` evaluates the
-            # aarch64 orin-nano host (jetpack/nixpkgs eval skew). nix-config's x86_64
-            # checks are already covered by the scoped root check above. Re-include
-            # once orin-nano evaluates in CI (after the OpenWrt cutover / pin fix).
-            if [ "$repo" = "nix-config" ]; then
-              echo "Skipping $repo (aarch64 orin-nano eval skew — see TEMPORARY note)"
-              continue
-            fi
-            if [ -f "$repo/flake.nix" ]; then
-              echo "Checking evaluation of $repo..."
-              nix flake check "./$repo" --impure --no-build \
-                --override-input nix-secrets /tmp/dummy-secrets
-            fi
-          done
+      # NOTE: the per-sub-flake `nix flake check ./<repo>` loop was removed. It was
+      # (a) redundant — the root x86_64 checks above already aggregate the sub-flakes'
+      # checks, and each sub-flake has its own ci.yaml — and (b) broken in CI: some
+      # sub-flake locks pin nix-devshells to an absolute local path (/home/martin/...)
+      # that doesn't exist on the runner, so the loop only-overriding nix-secrets failed
+      # with "Git repository … does not exist".
 
   integration-tests:
     name: "System Integration & VM Tests"
