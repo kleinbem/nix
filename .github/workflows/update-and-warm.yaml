@@ -33,6 +33,16 @@ jobs:
           git config --global url."https://github.com/".insteadOf "git@github.com:"
           git -c submodule."nix-secrets".update=none submodule update --init --recursive
 
+      - name: Bump nix-packages submodule to latest main
+        run: |
+          # nix-packages is the one local sub-repo with its own auto-update
+          # workflow (update-antigravity opens + auto-merges PRs there), so its
+          # main genuinely moves on a schedule. Fast-forward the pointer to
+          # origin/main so those merged bumps reach the system + warm Attic.
+          # The other nix-* sub-repos still move only when you commit to them.
+          git -C nix-packages fetch --depth=1 origin main
+          git -C nix-packages checkout --detach FETCH_HEAD
+
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v22
         with:
@@ -66,10 +76,11 @@ jobs:
           # cache-warming workflows from the PR event, so warm-system dispatches them
           # explicitly below.
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore(flake): update inputs"
-          title: "chore(flake): update inputs"
+          commit-message: "chore(flake): update inputs + bump nix-packages"
+          title: "chore(flake): update inputs + bump nix-packages"
           body: |
-            Automated update of root `flake.lock`.
+            Automated update of root `flake.lock` + `nix-packages` submodule
+            pointer (picks up its auto-merged updates, e.g. Antigravity).
 
             Cache-warming CI runs automatically on this PR
             (devshells, packages, containers) and `build-system`

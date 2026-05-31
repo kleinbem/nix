@@ -187,6 +187,13 @@ update-core *args="":
 update-local:
     @{{LOCK_CMD}} python3 ./scripts/sync_locks.py
 
+# Bump Antigravity to latest (queries Google's official endpoints, prefetches
+# hashes, rewrites nix-packages/pkgs/antigravity/versions.json). Review & commit.
+[group("Updates")]
+update-antigravity:
+    @{{ROOT}}/nix-packages/scripts/update-antigravity.sh
+    @echo "✅ versions.json updated — review 'git -C nix-packages diff' then commit."
+
 [group("Updates")]
 sync-agent:
     @echo "🤖 Syncing system context for Antigravity..."

@@ -16,22 +16,22 @@ variable "cloudflare_tunnel_secret" {
   sensitive   = true
 }
 
-# --- GitHub ----------------------------------------------------------------
+# --- GitHub (secret distribution only; repo config lives in github-config) ---
 
 variable "github_tf_token" {
   type        = string
-  description = "Admin PAT used by the github provider to manage repos/secrets (classic: repo + workflow). Not mintable via API — created by hand, stored in sops."
   sensitive   = true
-}
-
-variable "attic_push_token" {
-  type        = string
-  description = "Attic cache push token; distributed to repos as the ATTIC_PUSH_TOKEN Actions secret."
-  sensitive   = true
+  description = "Fine-grained PAT for distributing Actions secrets to the nix CI repos (Secrets R/W + Metadata R on nix, nix-config, nix-packages)."
 }
 
 variable "github_ci_pat" {
   type        = string
-  description = "CI automation PAT (lock-update PRs, workflow dispatch); distributed to repos as the GH_PAT Actions secret."
   sensitive   = true
+  description = "CI automation PAT distributed as the GH_PAT Actions secret (Contents R/W + Pull requests R/W on nix-packages for the Antigravity auto-merge workflow)."
+}
+
+variable "attic_push_token" {
+  type        = string
+  sensitive   = true
+  description = "Attic cache push token, distributed as the ATTIC_PUSH_TOKEN Actions secret."
 }

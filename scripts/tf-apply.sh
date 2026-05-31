@@ -72,7 +72,7 @@ ATTIC_PUSH=$(echo "$DECRYPTED_YAML" | yq '.attic_push_token')
 
 if [ -z "$GH_TF_TOKEN" ]; then
   echo -e "${YELLOW}⚠️  github_tf_token not set in secrets.yaml — GitHub resources will fail to authenticate."
-  echo -e "    Add an admin PAT (classic: repo + workflow) under key 'github_tf_token' to manage GitHub via IaC.${RESET}"
+  echo -e "    Add a fine-grained PAT (Administration + Issues + Secrets: R/W on the nix-* repos) under key 'github_tf_token' to manage GitHub via IaC.${RESET}"
 fi
 
 export TF_VAR_github_tf_token="$GH_TF_TOKEN"

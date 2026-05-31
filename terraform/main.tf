@@ -15,6 +15,13 @@ provider "cloudflare" {
   api_token = var.cloudflare_api_token
 }
 
+# Only used here to DISTRIBUTE Actions secrets to the nix CI repos (values come
+# from sops). Repo settings/rulesets/labels are owned by the github-config repo.
+provider "github" {
+  owner = "kleinbem"
+  token = var.github_tf_token
+}
+
 data "cloudflare_zone" "main" {
   name = "kleinbem.dev"
 }
@@ -47,3 +54,17 @@ resource "cloudflare_record" "root" {
 output "tunnel_id" {
   value = cloudflare_tunnel.nixos_nvme.id
 }
+
+# R2 bucket that holds the github-config tofu remote state. Provisioned from
+# here (local state) to avoid a chicken-and-egg: a config can't store its own
+# state in a bucket it is also creating. Requires the cloudflare_api_token to
+# have "Workers R2 Storage: Edit" permission.
+resource "cloudflare_r2_bucket" "tofu_state" {
+  account_id = var.cloudflare_account_id
+  name       = "kleinbem-tofu-state"
+}
+
+output "tofu_state_bucket" {
+  value = cloudflare_r2_bucket.tofu_state.name
+}
+
