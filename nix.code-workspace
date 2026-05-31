@@ -33,6 +33,10 @@
       "path": "./nix-secrets"
     },
     {
+      "name": "Github config",
+      "path": "/home/martin/Develop/github.com/kleinbem/github-config"
+    },
+    {
       "name": "Router Config (Ansible)",
       "path": "/home/martin/Develop/github.com/kleinbem/openwrt/openwrt-config"
     },
