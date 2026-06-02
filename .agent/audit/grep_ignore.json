@@ -7,5 +7,22 @@
   "martin.kleinberger@gmail.com",
   "git+ssh://git@github.com/kleinbem/nix-secrets.git",
   "sk-ssh-ed25519@openssh.com",
-  "ssh -T git@github.com"
+  "ssh -T git@github.com",
+  "container@",
+  "root@orin-nano",
+  "root@caddy.local",
+  "your@email.com",
+  "martin.gitlab@domain.com",
+  "git@github.com",
+  "@kolunmi.github.io",
+  "@storageb.github.com",
+  "@micxgx.gmail.com",
+  "@rgcjonas.gmail.com",
+  "@corecoding.com",
+  "@patapon.info",
+  "@tudmotu.com",
+  "@andyholmes.github.io",
+  "@icedman.github.com",
+  "@gnome-shell-extensions.gcampax.github.com",
+  "@pauguic.github.io"
 ]

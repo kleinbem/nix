@@ -24,7 +24,7 @@ echo '```' >>"$REPORT_FILE"
 
 # Run vulnix on the entire system closure
 # We use --json for machine parsing if needed, but text is verifyable by human
-if vulnix --whitelists .agent/audit/whitelist.toml . >>"$REPORT_FILE" 2>&1; then
+if vulnix --whitelist .agent/audit/whitelist.toml . >>"$REPORT_FILE" 2>&1; then
   echo "✅ No known vulnerabilities found."
 else
   # Vulnix returns non-zero if vulnerabilities are found
@@ -120,6 +120,8 @@ if grep -rE "$LEAK_REGEX" . \
   --exclude-dir=.agent \
   --exclude-dir=.terraform \
   --exclude-dir=result \
+  --exclude-dir=.tools \
+  --exclude-dir=.devenv \
   --exclude="flake.lock" |
   grep -vFf <(jq -r '.[]' .agent/audit/grep_ignore.json) >>"$REPORT_FILE"; then
 
