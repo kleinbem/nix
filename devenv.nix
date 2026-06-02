@@ -47,6 +47,8 @@
     popd > /dev/null
   '';
 
+  nixpkgs.config.allowUnfree = true;
+
   packages = [
     pkgs.claude-code
     pkgs.openssh
