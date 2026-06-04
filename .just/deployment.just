@@ -421,6 +421,39 @@ orin-update-usb device="/dev/sdb":
     echo "✅ In-place update complete — put the SSD in the Orin, plug in ethernet, and boot."
 
 
+[group("Provisioning")]
+[confirm("🔄 Re-install core-pi config to an ALREADY-PROVISIONED SSD in the USB reader (NO wipe)?")]
+[doc("Non-destructive in-place update of an installed core-pi SSD. Mounts the existing disk via disko, rebuilds the closure, and reinstalls it.")]
+core-update-usb device="/dev/sdc":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "🔓 Mounting existing SSD via disko (enter the Pi LUKS passphrase when prompted)..."
+    sudo nix run github:nix-community/disko -- \
+        --mode mount \
+        --argstr device {{device}} \
+        --root-mountpoint /mnt/core-pi \
+        ./nix-config/hosts/core-pi/disko.nix
+
+    echo "🏗️ Building core-pi closure..."
+    nix build ./nix-config#nixosConfigurations.core-pi.config.system.build.toplevel \
+        --option sandbox false \
+        --option builders "" \
+        --out-link /tmp/core-pi-system
+
+    SYSTEM="$(readlink /tmp/core-pi-system)"
+
+    echo "💿 Installing closure..."
+    sudo nixos-install --root /mnt/core-pi --system "${SYSTEM}" --no-root-passwd
+
+    rm -f /tmp/core-pi-system
+
+    echo "🔌 Unmounting..."
+    sudo umount -R /mnt/core-pi || true
+    sudo cryptsetup close core_crypt || true
+    echo "✅ In-place update complete — put the SSD in the Pi and boot."
+
+
 # --- Router LXC ---
 
 [group("Router")]
