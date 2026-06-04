@@ -443,8 +443,25 @@ core-update-usb device="/dev/sdc":
 
     SYSTEM="$(readlink /tmp/core-pi-system)"
 
-    echo "💿 Installing closure..."
-    sudo nixos-install --root /mnt/core-pi --system "${SYSTEM}" --no-root-passwd
+    echo "💿 Installing closure (skipping bootloader — done host-side below)..."
+    sudo nixos-install --root /mnt/core-pi --system "${SYSTEM}" --no-root-passwd --no-bootloader
+
+    echo "💾 Installing extlinux bootloader to ESP (host-side, no aarch64 execution)..."
+    ESP="/mnt/core-pi/boot"
+    sudo mkdir -p "${ESP}/extlinux" "${ESP}/nixos"
+    
+    KERNEL="$(realpath "${SYSTEM}/kernel")"
+    INITRD="$(realpath "${SYSTEM}/initrd")"
+    DTBS="$(realpath "${SYSTEM}/dtbs")"
+    
+    sudo cp -u "$KERNEL" "${ESP}/nixos/$(basename "$KERNEL")"
+    sudo cp -u "$INITRD" "${ESP}/nixos/$(basename "$INITRD")"
+    sudo cp -ru "$DTBS" "${ESP}/nixos/$(basename "$DTBS")"
+    
+    PARAMS="$(cat "${SYSTEM}/kernel-params")"
+    
+    printf "DEFAULT nixos-default\nTIMEOUT 50\nMENU TITLE ------------------------------------------------------------\nLABEL nixos-default\n  MENU LABEL NixOS - Default\n  LINUX ../nixos/%s\n  INITRD ../nixos/%s\n  APPEND init=%s/init %s\n  FDTDIR ../nixos/%s\n" \
+        "$(basename "$KERNEL")" "$(basename "$INITRD")" "${SYSTEM}" "${PARAMS}" "$(basename "$DTBS")" | sudo tee "${ESP}/extlinux/extlinux.conf" > /dev/null
 
     rm -f /tmp/core-pi-system
 
