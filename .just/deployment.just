@@ -466,7 +466,9 @@ core-update-usb device="/dev/sdc":
     rm -f /tmp/core-pi-system
 
     echo "🔌 Unmounting..."
-    sudo umount -R /mnt/core-pi || true
+    sudo umount -l /mnt/core-pi/boot 2>/dev/null || true
+    sudo umount -l /mnt/core-pi/nix/persist 2>/dev/null || true
+    sudo umount -l /mnt/core-pi/nix 2>/dev/null || true
     sudo cryptsetup close core_crypt || true
     echo "✅ In-place update complete — put the SSD in the Pi and boot."
 
@@ -528,7 +530,9 @@ hass-install-usb device="/dev/sdc":
     fi
 
     echo "🔌 Unmounting..."
-    sudo umount -R /mnt/hass-pi || true
+    sudo umount -l /mnt/hass-pi/boot 2>/dev/null || true
+    sudo umount -l /mnt/hass-pi/nix/persist 2>/dev/null || true
+    sudo umount -l /mnt/hass-pi/nix 2>/dev/null || true
     sudo cryptsetup close hass_crypt || true
     echo "✅ Installation complete — put the SSD in the Pi and boot."
 
@@ -577,7 +581,9 @@ hass-update-usb device="/dev/sdc":
     rm -f /tmp/hass-pi-system
 
     echo "🔌 Unmounting..."
-    sudo umount -R /mnt/hass-pi || true
+    sudo umount -l /mnt/hass-pi/boot 2>/dev/null || true
+    sudo umount -l /mnt/hass-pi/nix/persist 2>/dev/null || true
+    sudo umount -l /mnt/hass-pi/nix 2>/dev/null || true
     sudo cryptsetup close hass_crypt || true
     echo "✅ In-place update complete — put the SSD in the Pi and boot."
 
