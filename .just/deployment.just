@@ -464,8 +464,8 @@ core-update-usb device="/dev/sdc":
     INITRD="$(realpath "${SYSTEM}/initrd")"
     DTBS="$(realpath "${SYSTEM}/dtbs")"
     
-    sudo cp -uL "$KERNEL" "${ESP}/nixos/$(basename "$KERNEL")"
-    sudo cp -uL "$INITRD" "${ESP}/nixos/$(basename "$INITRD")"
+    sudo cp -fL "$KERNEL" "${ESP}/nixos/$(basename "$KERNEL")"
+    sudo cp -fL "$INITRD" "${ESP}/nixos/$(basename "$INITRD")"
     sudo rm -rf "${ESP}/nixos/$(basename "$DTBS")"
     sudo cp -rL "$DTBS" "${ESP}/nixos/$(basename "$DTBS")"
     
@@ -483,8 +483,28 @@ core-update-usb device="/dev/sdc":
     sudo cryptsetup close core_crypt || true
     echo "✅ In-place update complete — put the SSD in the Pi and boot."
 
-
 [group("Provisioning")]
+debug-boot-usb device="/dev/sdf":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "🔍 Mounting ESP partition to inspect bootloader files..."
+    sudo mkdir -p /mnt/debug-boot
+    # Find the ESP partition of the specified device
+    ESP_PART=$(lsblk -rn -o NAME,PARTLABEL "$device" | awk '/ESP/ {print "/dev/"$1}')
+    if [ -z "$ESP_PART" ]; then
+        echo "❌ Could not find ESP partition on $device"
+        exit 1
+    fi
+    sudo mount "$ESP_PART" /mnt/debug-boot
+    echo "📂 Contents of /mnt/debug-boot:"
+    sudo ls -laR /mnt/debug-boot
+    echo "📄 Contents of config.txt (if it exists):"
+    sudo cat /mnt/debug-boot/config.txt 2>/dev/null || echo "No config.txt"
+    echo "📄 Contents of boot.scr (if it exists):"
+    sudo cat /mnt/debug-boot/boot.scr 2>/dev/null || echo "No boot.scr"
+    echo "🔌 Unmounting..."
+    sudo umount /mnt/debug-boot
+
 [confirm("💿 WIPE the USB SSD and install NixOS for hass-pi? This is destructive.")]
 hass-install-usb device="/dev/sdc":
     #!/usr/bin/env bash
@@ -516,8 +536,8 @@ hass-install-usb device="/dev/sdc":
     INITRD="$(realpath "${SYSTEM}/initrd")"
     DTBS="$(realpath "${SYSTEM}/dtbs")"
     
-    sudo cp -uL "$KERNEL" "${ESP}/nixos/$(basename "$KERNEL")"
-    sudo cp -uL "$INITRD" "${ESP}/nixos/$(basename "$INITRD")"
+    sudo cp -fL "$KERNEL" "${ESP}/nixos/$(basename "$KERNEL")"
+    sudo cp -fL "$INITRD" "${ESP}/nixos/$(basename "$INITRD")"
     sudo rm -rf "${ESP}/nixos/$(basename "$DTBS")"
     sudo cp -rL "$DTBS" "${ESP}/nixos/$(basename "$DTBS")"
     
@@ -590,8 +610,8 @@ hass-update-usb device="/dev/sdc":
     INITRD="$(realpath "${SYSTEM}/initrd")"
     DTBS="$(realpath "${SYSTEM}/dtbs")"
     
-    sudo cp -uL "$KERNEL" "${ESP}/nixos/$(basename "$KERNEL")"
-    sudo cp -uL "$INITRD" "${ESP}/nixos/$(basename "$INITRD")"
+    sudo cp -fL "$KERNEL" "${ESP}/nixos/$(basename "$KERNEL")"
+    sudo cp -fL "$INITRD" "${ESP}/nixos/$(basename "$INITRD")"
     sudo rm -rf "${ESP}/nixos/$(basename "$DTBS")"
     sudo cp -rL "$DTBS" "${ESP}/nixos/$(basename "$DTBS")"
     
