@@ -464,9 +464,10 @@ core-update-usb device="/dev/sdc":
     INITRD="$(realpath "${SYSTEM}/initrd")"
     DTBS="$(realpath "${SYSTEM}/dtbs")"
     
-    sudo cp -u "$KERNEL" "${ESP}/nixos/$(basename "$KERNEL")"
-    sudo cp -u "$INITRD" "${ESP}/nixos/$(basename "$INITRD")"
-    sudo cp -ru "$DTBS" "${ESP}/nixos/$(basename "$DTBS")"
+    sudo cp -uL "$KERNEL" "${ESP}/nixos/$(basename "$KERNEL")"
+    sudo cp -uL "$INITRD" "${ESP}/nixos/$(basename "$INITRD")"
+    sudo rm -rf "${ESP}/nixos/$(basename "$DTBS")"
+    sudo cp -rL "$DTBS" "${ESP}/nixos/$(basename "$DTBS")"
     
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
     
@@ -515,9 +516,10 @@ hass-install-usb device="/dev/sdc":
     INITRD="$(realpath "${SYSTEM}/initrd")"
     DTBS="$(realpath "${SYSTEM}/dtbs")"
     
-    sudo cp -u "$KERNEL" "${ESP}/nixos/$(basename "$KERNEL")"
-    sudo cp -u "$INITRD" "${ESP}/nixos/$(basename "$INITRD")"
-    sudo cp -ru "$DTBS" "${ESP}/nixos/$(basename "$DTBS")"
+    sudo cp -uL "$KERNEL" "${ESP}/nixos/$(basename "$KERNEL")"
+    sudo cp -uL "$INITRD" "${ESP}/nixos/$(basename "$INITRD")"
+    sudo rm -rf "${ESP}/nixos/$(basename "$DTBS")"
+    sudo cp -rL "$DTBS" "${ESP}/nixos/$(basename "$DTBS")"
     
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
     
@@ -588,9 +590,10 @@ hass-update-usb device="/dev/sdc":
     INITRD="$(realpath "${SYSTEM}/initrd")"
     DTBS="$(realpath "${SYSTEM}/dtbs")"
     
-    sudo cp -u "$KERNEL" "${ESP}/nixos/$(basename "$KERNEL")"
-    sudo cp -u "$INITRD" "${ESP}/nixos/$(basename "$INITRD")"
-    sudo cp -ru "$DTBS" "${ESP}/nixos/$(basename "$DTBS")"
+    sudo cp -uL "$KERNEL" "${ESP}/nixos/$(basename "$KERNEL")"
+    sudo cp -uL "$INITRD" "${ESP}/nixos/$(basename "$INITRD")"
+    sudo rm -rf "${ESP}/nixos/$(basename "$DTBS")"
+    sudo cp -rL "$DTBS" "${ESP}/nixos/$(basename "$DTBS")"
     
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
     
