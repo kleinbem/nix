@@ -471,6 +471,116 @@ core-update-usb device="/dev/sdc":
     echo "✅ In-place update complete — put the SSD in the Pi and boot."
 
 
+[group("Provisioning")]
+[confirm("💿 WIPE the USB SSD and install NixOS for hass-pi? This is destructive.")]
+hass-install-usb device="/dev/sdc":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "💿 Wiping and formatting existing SSD via disko (will prompt for NEW LUKS passphrase)..."
+    sudo nix run github:nix-community/disko -- \
+        --mode destroy,format,mount \
+        --argstr device {{device}} \
+        --root-mountpoint /mnt/hass-pi \
+        ./nix-config/hosts/hass-pi/disko.nix
+
+    echo "🏗️ Building hass-pi closure..."
+    nix build ./nix-config#nixosConfigurations.hass-pi.config.system.build.toplevel \
+        --option sandbox false \
+        --option builders "" \
+        --out-link /tmp/hass-pi-system
+
+    SYSTEM="$(readlink /tmp/hass-pi-system)"
+
+    echo "💿 Installing closure (skipping bootloader — done host-side below)..."
+    sudo nixos-install --root /mnt/hass-pi --system "${SYSTEM}" --no-root-passwd --no-bootloader
+
+    echo "💾 Installing extlinux bootloader to ESP (host-side, no aarch64 execution)..."
+    ESP="/mnt/hass-pi/boot"
+    sudo mkdir -p "${ESP}/extlinux" "${ESP}/nixos"
+    
+    KERNEL="$(realpath "${SYSTEM}/kernel")"
+    INITRD="$(realpath "${SYSTEM}/initrd")"
+    DTBS="$(realpath "${SYSTEM}/dtbs")"
+    
+    sudo cp -u "$KERNEL" "${ESP}/nixos/$(basename "$KERNEL")"
+    sudo cp -u "$INITRD" "${ESP}/nixos/$(basename "$INITRD")"
+    sudo cp -ru "$DTBS" "${ESP}/nixos/$(basename "$DTBS")"
+    
+    PARAMS="$(cat "${SYSTEM}/kernel-params")"
+    
+    printf "DEFAULT nixos-default\nTIMEOUT 50\nMENU TITLE ------------------------------------------------------------\nLABEL nixos-default\n  MENU LABEL NixOS - Default\n  LINUX ../nixos/%s\n  INITRD ../nixos/%s\n  APPEND init=%s/init %s\n  FDTDIR ../nixos/%s\n" \
+        "$(basename "$KERNEL")" "$(basename "$INITRD")" "${SYSTEM}" "${PARAMS}" "$(basename "$DTBS")" | sudo tee "${ESP}/extlinux/extlinux.conf" > /dev/null
+
+    rm -f /tmp/hass-pi-system
+    
+    echo "🔑 Setting up host identity (SSH Keys)..."
+    persist="/mnt/hass-pi/nix/persist"
+    sudo mkdir -p "${persist}/etc/ssh" "${persist}/var/lib/sops/age"
+    sudo chmod 700 "${persist}/var/lib/sops/age"
+    
+    # Generate persistent SSH host keys
+    if [ ! -f "${persist}/etc/ssh/ssh_host_ed25519_key" ]; then
+        sudo ssh-keygen -t ed25519 -f "${persist}/etc/ssh/ssh_host_ed25519_key" -N "" -C "hass-pi" -q
+        sudo ssh-keygen -t rsa -b 4096 -f "${persist}/etc/ssh/ssh_host_rsa_key" -N "" -C "hass-pi" -q
+        sudo chmod 600 "${persist}/etc/ssh/ssh_host_ed25519_key" "${persist}/etc/ssh/ssh_host_rsa_key"
+        sudo chmod 644 "${persist}/etc/ssh/ssh_host_ed25519_key.pub" "${persist}/etc/ssh/ssh_host_rsa_key.pub"
+    fi
+
+    echo "🔌 Unmounting..."
+    sudo umount -R /mnt/hass-pi || true
+    sudo cryptsetup close hass_crypt || true
+    echo "✅ Installation complete — put the SSD in the Pi and boot."
+
+[group("Provisioning")]
+[confirm("🔄 Re-install hass-pi config to an ALREADY-PROVISIONED SSD in the USB reader (NO wipe)?")]
+[doc("Non-destructive in-place update of an installed hass-pi SSD. Mounts the existing disk via disko, rebuilds the closure, and reinstalls it.")]
+hass-update-usb device="/dev/sdc":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "🔓 Mounting existing SSD via disko (enter the Pi LUKS passphrase when prompted)..."
+    sudo nix run github:nix-community/disko -- \
+        --mode mount \
+        --argstr device {{device}} \
+        --root-mountpoint /mnt/hass-pi \
+        ./nix-config/hosts/hass-pi/disko.nix
+
+    echo "🏗️ Building hass-pi closure..."
+    nix build ./nix-config#nixosConfigurations.hass-pi.config.system.build.toplevel \
+        --option sandbox false \
+        --option builders "" \
+        --out-link /tmp/hass-pi-system
+
+    SYSTEM="$(readlink /tmp/hass-pi-system)"
+
+    echo "💿 Installing closure (skipping bootloader — done host-side below)..."
+    sudo nixos-install --root /mnt/hass-pi --system "${SYSTEM}" --no-root-passwd --no-bootloader
+
+    echo "💾 Installing extlinux bootloader to ESP (host-side, no aarch64 execution)..."
+    ESP="/mnt/hass-pi/boot"
+    sudo mkdir -p "${ESP}/extlinux" "${ESP}/nixos"
+    
+    KERNEL="$(realpath "${SYSTEM}/kernel")"
+    INITRD="$(realpath "${SYSTEM}/initrd")"
+    DTBS="$(realpath "${SYSTEM}/dtbs")"
+    
+    sudo cp -u "$KERNEL" "${ESP}/nixos/$(basename "$KERNEL")"
+    sudo cp -u "$INITRD" "${ESP}/nixos/$(basename "$INITRD")"
+    sudo cp -ru "$DTBS" "${ESP}/nixos/$(basename "$DTBS")"
+    
+    PARAMS="$(cat "${SYSTEM}/kernel-params")"
+    
+    printf "DEFAULT nixos-default\nTIMEOUT 50\nMENU TITLE ------------------------------------------------------------\nLABEL nixos-default\n  MENU LABEL NixOS - Default\n  LINUX ../nixos/%s\n  INITRD ../nixos/%s\n  APPEND init=%s/init %s\n  FDTDIR ../nixos/%s\n" \
+        "$(basename "$KERNEL")" "$(basename "$INITRD")" "${SYSTEM}" "${PARAMS}" "$(basename "$DTBS")" | sudo tee "${ESP}/extlinux/extlinux.conf" > /dev/null
+
+    rm -f /tmp/hass-pi-system
+
+    echo "🔌 Unmounting..."
+    sudo umount -R /mnt/hass-pi || true
+    sudo cryptsetup close hass_crypt || true
+    echo "✅ In-place update complete — put the SSD in the Pi and boot."
+
 # --- Router LXC ---
 
 [group("Router")]
