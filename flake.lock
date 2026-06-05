@@ -3041,13 +3041,12 @@
     "nix-secrets": {
       "flake": false,
       "locked": {
-        "lastModified": 1780437580,
-        "narHash": "sha256-smCc0qBHowiOTuovOFUWroxGaNsMHPl2/Cdtnw50tdE=",
-        "ref": "refs/heads/main",
-        "rev": "95715866ff4529d864b943401f890e4bbb48b40a",
-        "revCount": 26,
-        "type": "git",
-        "url": "file:///home/martin/Develop/github.com/kleinbem/nix/nix-secrets"
+        "lastModified": 1780605608,
+        "narHash": "sha256-dFmECW0auYBpyOWs0fmAImcHE3fVEL3xczPkUrtBveY=",
+        "owner": "kleinbem",
+        "repo": "nix-secrets",
+        "rev": "69269d52516031b98f5373d8f63b767ee67f839f",
+        "type": "github"
       },
       "original": {
         "owner": "kleinbem",
