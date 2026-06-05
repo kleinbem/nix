@@ -458,22 +458,19 @@ core-update-usb device="/dev/sdc":
 
     echo "💾 Installing Pi 5 firmware config to ESP (direct kernel boot)..."
     ESP="/mnt/core-pi/boot"
-    sudo mkdir -p "${ESP}/nixos"
     
     KERNEL="$(realpath "${SYSTEM}/kernel")"
     INITRD="$(realpath "${SYSTEM}/initrd")"
     DTBS="$(realpath "${SYSTEM}/dtbs")"
     
-    sudo cp -fL "$KERNEL" "${ESP}/nixos/$(basename "$KERNEL")"
-    sudo cp -fL "$INITRD" "${ESP}/nixos/$(basename "$INITRD")"
-    sudo rm -rf "${ESP}/nixos/$(basename "$DTBS")"
-    sudo cp -rL "$DTBS" "${ESP}/nixos/$(basename "$DTBS")"
+    sudo cp -fL "$KERNEL" "${ESP}/Image"
+    sudo cp -fL "$INITRD" "${ESP}/initrd"
+    sudo cp -fL "$DTBS/broadcom/bcm2712-rpi-5-b.dtb" "${ESP}/bcm2712-rpi-5-b.dtb"
     
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
     echo "$PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
     
-    printf "[all]\nkernel=nixos/%s\ninitramfs nixos/%s followkernel\ncmdline=cmdline.txt\narm_64bit=1\ndevice_tree=nixos/%s/broadcom/bcm2712-rpi-5-b.dtb\n" \
-        "$(basename "$KERNEL")" "$(basename "$INITRD")" "$(basename "$DTBS")" | sudo tee "${ESP}/config.txt" > /dev/null
+    printf "[all]\nkernel=Image\ninitramfs initrd followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=bcm2712-rpi-5-b.dtb\n" | sudo tee "${ESP}/config.txt" > /dev/null
 
     rm -f /tmp/core-pi-system
 
