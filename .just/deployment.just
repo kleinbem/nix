@@ -468,7 +468,7 @@ core-update-usb device="/dev/sdc":
     sudo cp -fL "$DTBS/broadcom/bcm2712-rpi-5-b.dtb" "${ESP}/bcm2712-rpi-5-b.dtb"
     
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
-    echo "$PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
+    echo "init=${SYSTEM}/init $PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
     
     printf "[all]\nkernel=Image\ninitramfs initrd followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=bcm2712-rpi-5-b.dtb\n" | sudo tee "${ESP}/config.txt" > /dev/null
 
@@ -540,7 +540,7 @@ hass-install-usb device="/dev/sdc":
     sudo cp -rL "$DTBS" "${ESP}/nixos/$(basename "$DTBS")"
     
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
-    echo "$PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
+    echo "init=${SYSTEM}/init $PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
     
     printf "[all]\nkernel=nixos/%s\ninitramfs nixos/%s followkernel\ncmdline=cmdline.txt\narm_64bit=1\ndevice_tree=nixos/%s/broadcom/bcm2712-rpi-5-b.dtb\n" \
         "$(basename "$KERNEL")" "$(basename "$INITRD")" "$(basename "$DTBS")" | sudo tee "${ESP}/config.txt" > /dev/null
@@ -564,7 +564,7 @@ hass-install-usb device="/dev/sdc":
     LUKS_DEV=$(sudo cryptsetup status hass_crypt | awk '/device:/ {print $2}')
     if [ -n "$LUKS_DEV" ]; then
         echo "Will prompt for LUKS password to authorize Tang binding..."
-        sudo clevis luks bind -d "$LUKS_DEV" tang '{"url":"http://10.0.0.12:7654"}' || echo "⚠️ Failed to bind Tang key! You may need to enter passphrase on boot."
+        sudo clevis luks bind -d "$LUKS_DEV" sss '{"t": 1, "pins": {"tang": [{"url": "http://10.0.0.12:7654"}, {"url": "http://10.0.0.5:7654"}]}}' || echo "⚠️ Failed to bind Tang key! You may need to enter passphrase on boot."
     else
         echo "⚠️ Could not find mapped device hass_crypt for Tang binding."
     fi
@@ -615,7 +615,7 @@ hass-update-usb device="/dev/sdc":
     sudo cp -rL "$DTBS" "${ESP}/nixos/$(basename "$DTBS")"
     
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
-    echo "$PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
+    echo "init=${SYSTEM}/init $PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
     
     printf "[all]\nkernel=nixos/%s\ninitramfs nixos/%s followkernel\ncmdline=cmdline.txt\narm_64bit=1\ndevice_tree=nixos/%s/broadcom/bcm2712-rpi-5-b.dtb\n" \
         "$(basename "$KERNEL")" "$(basename "$INITRD")" "$(basename "$DTBS")" | sudo tee "${ESP}/config.txt" > /dev/null
@@ -658,3 +658,34 @@ router-provision:
 [doc("Deploy Cloudflare Tunnel and wildcard CNAME records via OpenTofu")]
 cf-apply:
     @./scripts/tf-apply.sh
+
+[group("Provisioning")]
+[doc("Re-bind the LUKS volume on an installed core-pi SSD to the Tang cluster.")]
+core-rebind-tang device="/dev/sdf":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    
+    echo "🔓 Mounting existing SSD via disko (enter the Pi LUKS passphrase when prompted)..."
+    sudo nix run github:nix-community/disko -- \
+        --mode mount \
+        --argstr device {{device}} \
+        --root-mountpoint /mnt/core-pi \
+        ./nix-config/hosts/core-pi/disko.nix
+        
+    LUKS_DEV=$(sudo cryptsetup status core_crypt | awk '/device:/ {print $2}')
+    if [ -n "$LUKS_DEV" ]; then
+        echo "⚠️ Unbinding old Tang key..."
+        sudo clevis luks unbind -d "$LUKS_DEV" -s 1 || echo "No old key in slot 1 or failed to unbind."
+        echo "🔗 Binding LUKS partition to Tang CLUSTER for silent boot..."
+        echo "Will prompt for LUKS password to authorize Tang cluster binding..."
+        sudo clevis luks bind -d "$LUKS_DEV" sss '{"t": 1, "pins": {"tang": [{"url": "http://10.0.0.12:7654"}, {"url": "http://10.0.0.5:7654"}]}}'
+    else
+        echo "⚠️ Could not find mapped device core_crypt for Tang binding."
+    fi
+    
+    echo "🔌 Unmounting..."
+    sudo umount -l /mnt/core-pi/boot 2>/dev/null || true
+    sudo umount -l /mnt/core-pi/nix/persist 2>/dev/null || true
+    sudo umount -l /mnt/core-pi/nix 2>/dev/null || true
+    sudo cryptsetup close core_crypt || true
+    echo "✅ Tang Cluster Re-binding complete."
