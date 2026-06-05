@@ -357,6 +357,16 @@ orin-install-usb device="/dev/sdb":
 
     _setup_host_identity
 
+    echo "🔗 Binding LUKS partition to Tang server for silent boot..."
+    LUKS_DEV=$(sudo cryptsetup status orin_crypt | awk '/device:/ {print $2}')
+    if [ -n "$LUKS_DEV" ]; then
+        echo "Will prompt for LUKS password to authorize Tang binding..."
+        # Note: Binds to nasbook (192.168.1.30) or nixos-nvme (10.0.0.5) since orin can't bind to itself!
+        sudo clevis luks bind -d "$LUKS_DEV" tang '{"url":"http://10.0.0.5:7654"}' || echo "⚠️ Failed to bind Tang key! You may need to enter passphrase on boot."
+    else
+        echo "⚠️ Could not find mapped device orin_crypt for Tang binding."
+    fi
+
     echo "🔌 Cleaning up and unmounting..."
     sudo umount -R /mnt/orin || true
     sudo vgchange -an vg_orin || true
@@ -527,6 +537,15 @@ hass-install-usb device="/dev/sdc":
         sudo ssh-keygen -t rsa -b 4096 -f "${persist}/etc/ssh/ssh_host_rsa_key" -N "" -C "hass-pi" -q
         sudo chmod 600 "${persist}/etc/ssh/ssh_host_ed25519_key" "${persist}/etc/ssh/ssh_host_rsa_key"
         sudo chmod 644 "${persist}/etc/ssh/ssh_host_ed25519_key.pub" "${persist}/etc/ssh/ssh_host_rsa_key.pub"
+    fi
+
+    echo "🔗 Binding LUKS partition to Tang server for silent boot..."
+    LUKS_DEV=$(sudo cryptsetup status hass_crypt | awk '/device:/ {print $2}')
+    if [ -n "$LUKS_DEV" ]; then
+        echo "Will prompt for LUKS password to authorize Tang binding..."
+        sudo clevis luks bind -d "$LUKS_DEV" tang '{"url":"http://10.0.0.12:7654"}' || echo "⚠️ Failed to bind Tang key! You may need to enter passphrase on boot."
+    else
+        echo "⚠️ Could not find mapped device hass_crypt for Tang binding."
     fi
 
     echo "🔌 Unmounting..."
