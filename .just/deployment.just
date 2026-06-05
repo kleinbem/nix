@@ -456,9 +456,9 @@ core-update-usb device="/dev/sdc":
     echo "💿 Installing closure (skipping bootloader — done host-side below)..."
     sudo nixos-install --root /mnt/core-pi --system "${SYSTEM}" --no-root-passwd --no-bootloader
 
-    echo "💾 Installing extlinux bootloader to ESP (host-side, no aarch64 execution)..."
+    echo "💾 Installing Pi 5 firmware config to ESP (direct kernel boot)..."
     ESP="/mnt/core-pi/boot"
-    sudo mkdir -p "${ESP}/extlinux" "${ESP}/nixos"
+    sudo mkdir -p "${ESP}/nixos"
     
     KERNEL="$(realpath "${SYSTEM}/kernel")"
     INITRD="$(realpath "${SYSTEM}/initrd")"
@@ -470,9 +470,10 @@ core-update-usb device="/dev/sdc":
     sudo cp -rL "$DTBS" "${ESP}/nixos/$(basename "$DTBS")"
     
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
+    echo "$PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
     
-    printf "DEFAULT nixos-default\nTIMEOUT 50\nMENU TITLE ------------------------------------------------------------\nLABEL nixos-default\n  MENU LABEL NixOS - Default\n  LINUX ../nixos/%s\n  INITRD ../nixos/%s\n  APPEND init=%s/init %s\n  FDTDIR ../nixos/%s\n" \
-        "$(basename "$KERNEL")" "$(basename "$INITRD")" "${SYSTEM}" "${PARAMS}" "$(basename "$DTBS")" | sudo tee "${ESP}/extlinux/extlinux.conf" > /dev/null
+    printf "[all]\nkernel=nixos/%s\ninitramfs nixos/%s followkernel\ncmdline=cmdline.txt\narm_64bit=1\ndevice_tree=nixos/%s/broadcom/bcm2712-rpi-5-b.dtb\n" \
+        "$(basename "$KERNEL")" "$(basename "$INITRD")" "$(basename "$DTBS")" | sudo tee "${ESP}/config.txt" > /dev/null
 
     rm -f /tmp/core-pi-system
 
@@ -490,9 +491,9 @@ debug-boot-usb device="/dev/sdf":
     echo "🔍 Mounting ESP partition to inspect bootloader files..."
     sudo mkdir -p /mnt/debug-boot
     # Find the ESP partition of the specified device
-    ESP_PART=$(lsblk -rn -o NAME,PARTLABEL "$device" | awk '/ESP/ {print "/dev/"$1}')
+    ESP_PART=$(lsblk -rn -o NAME,PARTLABEL "{{device}}" | awk '/ESP/ {print "/dev/"$1}')
     if [ -z "$ESP_PART" ]; then
-        echo "❌ Could not find ESP partition on $device"
+        echo "❌ Could not find ESP partition on {{device}}"
         exit 1
     fi
     sudo mount "$ESP_PART" /mnt/debug-boot
@@ -528,9 +529,9 @@ hass-install-usb device="/dev/sdc":
     echo "💿 Installing closure (skipping bootloader — done host-side below)..."
     sudo nixos-install --root /mnt/hass-pi --system "${SYSTEM}" --no-root-passwd --no-bootloader
 
-    echo "💾 Installing extlinux bootloader to ESP (host-side, no aarch64 execution)..."
+    echo "💾 Installing Pi 5 firmware config to ESP (direct kernel boot)..."
     ESP="/mnt/hass-pi/boot"
-    sudo mkdir -p "${ESP}/extlinux" "${ESP}/nixos"
+    sudo mkdir -p "${ESP}/nixos"
     
     KERNEL="$(realpath "${SYSTEM}/kernel")"
     INITRD="$(realpath "${SYSTEM}/initrd")"
@@ -542,9 +543,10 @@ hass-install-usb device="/dev/sdc":
     sudo cp -rL "$DTBS" "${ESP}/nixos/$(basename "$DTBS")"
     
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
+    echo "$PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
     
-    printf "DEFAULT nixos-default\nTIMEOUT 50\nMENU TITLE ------------------------------------------------------------\nLABEL nixos-default\n  MENU LABEL NixOS - Default\n  LINUX ../nixos/%s\n  INITRD ../nixos/%s\n  APPEND init=%s/init %s\n  FDTDIR ../nixos/%s\n" \
-        "$(basename "$KERNEL")" "$(basename "$INITRD")" "${SYSTEM}" "${PARAMS}" "$(basename "$DTBS")" | sudo tee "${ESP}/extlinux/extlinux.conf" > /dev/null
+    printf "[all]\nkernel=nixos/%s\ninitramfs nixos/%s followkernel\ncmdline=cmdline.txt\narm_64bit=1\ndevice_tree=nixos/%s/broadcom/bcm2712-rpi-5-b.dtb\n" \
+        "$(basename "$KERNEL")" "$(basename "$INITRD")" "$(basename "$DTBS")" | sudo tee "${ESP}/config.txt" > /dev/null
 
     rm -f /tmp/hass-pi-system
     
@@ -602,9 +604,9 @@ hass-update-usb device="/dev/sdc":
     echo "💿 Installing closure (skipping bootloader — done host-side below)..."
     sudo nixos-install --root /mnt/hass-pi --system "${SYSTEM}" --no-root-passwd --no-bootloader
 
-    echo "💾 Installing extlinux bootloader to ESP (host-side, no aarch64 execution)..."
+    echo "💾 Installing Pi 5 firmware config to ESP (direct kernel boot)..."
     ESP="/mnt/hass-pi/boot"
-    sudo mkdir -p "${ESP}/extlinux" "${ESP}/nixos"
+    sudo mkdir -p "${ESP}/nixos"
     
     KERNEL="$(realpath "${SYSTEM}/kernel")"
     INITRD="$(realpath "${SYSTEM}/initrd")"
@@ -616,9 +618,10 @@ hass-update-usb device="/dev/sdc":
     sudo cp -rL "$DTBS" "${ESP}/nixos/$(basename "$DTBS")"
     
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
+    echo "$PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
     
-    printf "DEFAULT nixos-default\nTIMEOUT 50\nMENU TITLE ------------------------------------------------------------\nLABEL nixos-default\n  MENU LABEL NixOS - Default\n  LINUX ../nixos/%s\n  INITRD ../nixos/%s\n  APPEND init=%s/init %s\n  FDTDIR ../nixos/%s\n" \
-        "$(basename "$KERNEL")" "$(basename "$INITRD")" "${SYSTEM}" "${PARAMS}" "$(basename "$DTBS")" | sudo tee "${ESP}/extlinux/extlinux.conf" > /dev/null
+    printf "[all]\nkernel=nixos/%s\ninitramfs nixos/%s followkernel\ncmdline=cmdline.txt\narm_64bit=1\ndevice_tree=nixos/%s/broadcom/bcm2712-rpi-5-b.dtb\n" \
+        "$(basename "$KERNEL")" "$(basename "$INITRD")" "$(basename "$DTBS")" | sudo tee "${ESP}/config.txt" > /dev/null
 
     rm -f /tmp/hass-pi-system
 
