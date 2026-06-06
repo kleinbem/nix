@@ -475,7 +475,7 @@ core-update-usb device="/dev/sdc":
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
     echo "init=${SYSTEM}/init $PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
     
-    printf "[all]\nkernel=%s\ninitramfs %s followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=%s\ndtparam=pciex1_gen=3\nos_check=0\n" \
+    printf "[all]\nkernel=%s\ninitramfs %s followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=%s\ndtparam=pciex1_gen=3\nos_check=0\nboot_watchdog_timeout=15\nkernel_watchdog_timeout=300\n" \
         "$K_DEST" "$I_DEST" "$D_DEST" | sudo tee "${ESP}/config.txt" > /dev/null
     
     rm -f /tmp/core-pi-system
@@ -552,7 +552,7 @@ hass-install-usb device="/dev/sdc":
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
     echo "init=${SYSTEM}/init $PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
     
-    printf "[all]\nkernel=%s\ninitramfs %s followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=%s\ndtparam=pciex1_gen=3\nos_check=0\n" \
+    printf "[all]\nkernel=%s\ninitramfs %s followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=%s\ndtparam=pciex1_gen=3\nos_check=0\nboot_watchdog_timeout=15\nkernel_watchdog_timeout=300\n" \
         "$K_DEST" "$I_DEST" "$D_DEST" | sudo tee "${ESP}/config.txt" > /dev/null
 
     rm -f /tmp/hass-pi-system
@@ -631,7 +631,7 @@ hass-update-usb device="/dev/sdc":
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
     echo "init=${SYSTEM}/init $PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
     
-    printf "[all]\nkernel=%s\ninitramfs %s followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=%s\ndtparam=pciex1_gen=3\nos_check=0\n" \
+    printf "[all]\nkernel=%s\ninitramfs %s followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=%s\ndtparam=pciex1_gen=3\nos_check=0\nboot_watchdog_timeout=15\nkernel_watchdog_timeout=300\n" \
         "$K_DEST" "$I_DEST" "$D_DEST" | sudo tee "${ESP}/config.txt" > /dev/null
 
     rm -f /tmp/hass-pi-system
