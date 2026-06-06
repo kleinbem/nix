@@ -361,8 +361,8 @@ orin-install-usb device="/dev/sdb":
     LUKS_DEV=$(sudo cryptsetup status orin_crypt | awk '/device:/ {print $2}')
     if [ -n "$LUKS_DEV" ]; then
         echo "Will prompt for LUKS password to authorize Tang binding..."
-        # Note: Binds to nasbook (192.168.1.30) or nixos-nvme (10.0.0.5) since orin can't bind to itself!
-        sudo clevis luks bind -d "$LUKS_DEV" tang '{"url":"http://10.0.0.5:7654"}' || echo "⚠️ Failed to bind Tang key! You may need to enter passphrase on boot."
+        # Note: Binds to nixos-nvme (10.0.0.5), hass-pi (10.0.0.21), and orin-nano (10.0.0.12) using the local advertisement files.
+        sudo clevis luks bind -d "$LUKS_DEV" sss '{"t": 1, "pins": {"tang": [{"url": "http://10.0.0.5:7654", "adv": "nix-config/hosts/nixos-nvme/tang-adv.jws"}, {"url": "http://10.0.0.21:7654", "adv": "nix-config/hosts/hass-pi/tang-adv.jws"}, {"url": "http://10.0.0.12:7654", "adv": "nix-config/hosts/orin-nano/tang-adv.jws"}]}}' || echo "⚠️ Failed to bind Tang key! You may need to enter passphrase on boot."
     else
         echo "⚠️ Could not find mapped device orin_crypt for Tang binding."
     fi
@@ -463,14 +463,20 @@ core-update-usb device="/dev/sdc":
     INITRD="$(realpath "${SYSTEM}/initrd")"
     DTBS="$(realpath "${SYSTEM}/dtbs")"
     
-    sudo cp -fL "$KERNEL" "${ESP}/Image"
-    sudo cp -fL "$INITRD" "${ESP}/initrd"
-    sudo cp -fL "$DTBS/broadcom/bcm2712-rpi-5-b.dtb" "${ESP}/bcm2712-rpi-5-b.dtb"
+    sudo mkdir -p "${ESP}/nixos"
+    K_DEST="nixos/$(basename "$KERNEL")"
+    I_DEST="nixos/$(basename "$INITRD")"
+    D_DEST="nixos/$(basename "$DTBS")-bcm2712-rpi-5-b.dtb"
+    
+    sudo cp -fL "$KERNEL" "${ESP}/$K_DEST"
+    sudo cp -fL "$INITRD" "${ESP}/$I_DEST"
+    sudo cp -fL "$DTBS/broadcom/bcm2712-rpi-5-b.dtb" "${ESP}/$D_DEST"
     
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
     echo "init=${SYSTEM}/init $PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
     
-    printf "[all]\nkernel=Image\ninitramfs initrd followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=bcm2712-rpi-5-b.dtb\ndtparam=pciex1_gen=3\n" | sudo tee "${ESP}/config.txt" > /dev/null
+    printf "[all]\nkernel=%s\ninitramfs %s followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=%s\ndtparam=pciex1_gen=3\n" \
+        "$K_DEST" "$I_DEST" "$D_DEST" | sudo tee "${ESP}/config.txt" > /dev/null
     
     rm -f /tmp/core-pi-system
 
@@ -534,16 +540,20 @@ hass-install-usb device="/dev/sdc":
     INITRD="$(realpath "${SYSTEM}/initrd")"
     DTBS="$(realpath "${SYSTEM}/dtbs")"
     
-    sudo cp -fL "$KERNEL" "${ESP}/nixos/$(basename "$KERNEL")"
-    sudo cp -fL "$INITRD" "${ESP}/nixos/$(basename "$INITRD")"
-    sudo rm -rf "${ESP}/nixos/$(basename "$DTBS")"
-    sudo cp -rL "$DTBS" "${ESP}/nixos/$(basename "$DTBS")"
+    sudo mkdir -p "${ESP}/nixos"
+    K_DEST="nixos/$(basename "$KERNEL")"
+    I_DEST="nixos/$(basename "$INITRD")"
+    D_DEST="nixos/$(basename "$DTBS")-bcm2712-rpi-5-b.dtb"
+    
+    sudo cp -fL "$KERNEL" "${ESP}/$K_DEST"
+    sudo cp -fL "$INITRD" "${ESP}/$I_DEST"
+    sudo cp -fL "$DTBS/broadcom/bcm2712-rpi-5-b.dtb" "${ESP}/$D_DEST"
     
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
     echo "init=${SYSTEM}/init $PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
     
-    printf "[all]\nkernel=nixos/%s\ninitramfs nixos/%s followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=nixos/%s/broadcom/bcm2712-rpi-5-b.dtb\ndtparam=pciex1_gen=3\n" \
-        "$(basename "$KERNEL")" "$(basename "$INITRD")" "$(basename "$DTBS")" | sudo tee "${ESP}/config.txt" > /dev/null
+    printf "[all]\nkernel=%s\ninitramfs %s followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=%s\ndtparam=pciex1_gen=3\n" \
+        "$K_DEST" "$I_DEST" "$D_DEST" | sudo tee "${ESP}/config.txt" > /dev/null
 
     rm -f /tmp/hass-pi-system
     
@@ -564,7 +574,7 @@ hass-install-usb device="/dev/sdc":
     LUKS_DEV=$(sudo cryptsetup status hass_crypt | awk '/device:/ {print $2}')
     if [ -n "$LUKS_DEV" ]; then
         echo "Will prompt for LUKS password to authorize Tang binding..."
-        sudo clevis luks bind -d "$LUKS_DEV" sss '{"t": 1, "pins": {"tang": [{"url": "http://10.0.0.12:7654"}, {"url": "http://10.0.0.5:7654"}]}}' || echo "⚠️ Failed to bind Tang key! You may need to enter passphrase on boot."
+        sudo clevis luks bind -d "$LUKS_DEV" sss '{"t": 1, "pins": {"tang": [{"url": "http://10.0.0.5:7654", "adv": "nix-config/hosts/nixos-nvme/tang-adv.jws"}, {"url": "http://10.0.0.21:7654", "adv": "nix-config/hosts/hass-pi/tang-adv.jws"}, {"url": "http://10.0.0.12:7654", "adv": "nix-config/hosts/orin-nano/tang-adv.jws"}]}}' || echo "⚠️ Failed to bind Tang key! You may need to enter passphrase on boot."
     else
         echo "⚠️ Could not find mapped device hass_crypt for Tang binding."
     fi
@@ -609,16 +619,20 @@ hass-update-usb device="/dev/sdc":
     INITRD="$(realpath "${SYSTEM}/initrd")"
     DTBS="$(realpath "${SYSTEM}/dtbs")"
     
-    sudo cp -fL "$KERNEL" "${ESP}/nixos/$(basename "$KERNEL")"
-    sudo cp -fL "$INITRD" "${ESP}/nixos/$(basename "$INITRD")"
-    sudo rm -rf "${ESP}/nixos/$(basename "$DTBS")"
-    sudo cp -rL "$DTBS" "${ESP}/nixos/$(basename "$DTBS")"
+    sudo mkdir -p "${ESP}/nixos"
+    K_DEST="nixos/$(basename "$KERNEL")"
+    I_DEST="nixos/$(basename "$INITRD")"
+    D_DEST="nixos/$(basename "$DTBS")-bcm2712-rpi-5-b.dtb"
+    
+    sudo cp -fL "$KERNEL" "${ESP}/$K_DEST"
+    sudo cp -fL "$INITRD" "${ESP}/$I_DEST"
+    sudo cp -fL "$DTBS/broadcom/bcm2712-rpi-5-b.dtb" "${ESP}/$D_DEST"
     
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
     echo "init=${SYSTEM}/init $PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
     
-    printf "[all]\nkernel=nixos/%s\ninitramfs nixos/%s followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=nixos/%s/broadcom/bcm2712-rpi-5-b.dtb\ndtparam=pciex1_gen=3\n" \
-        "$(basename "$KERNEL")" "$(basename "$INITRD")" "$(basename "$DTBS")" | sudo tee "${ESP}/config.txt" > /dev/null
+    printf "[all]\nkernel=%s\ninitramfs %s followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=%s\ndtparam=pciex1_gen=3\n" \
+        "$K_DEST" "$I_DEST" "$D_DEST" | sudo tee "${ESP}/config.txt" > /dev/null
 
     rm -f /tmp/hass-pi-system
 
@@ -678,7 +692,7 @@ core-rebind-tang device="/dev/sdf":
         sudo clevis luks unbind -d "$LUKS_DEV" -s 1 || echo "No old key in slot 1 or failed to unbind."
         echo "🔗 Binding LUKS partition to Tang CLUSTER for silent boot..."
         echo "Will prompt for LUKS password to authorize Tang cluster binding..."
-        sudo clevis luks bind -d "$LUKS_DEV" sss '{"t": 1, "pins": {"tang": [{"url": "http://10.0.0.12:7654"}, {"url": "http://10.0.0.5:7654"}]}}'
+        sudo clevis luks bind -d "$LUKS_DEV" sss '{"t": 1, "pins": {"tang": [{"url": "http://10.0.0.5:7654", "adv": "nix-config/hosts/nixos-nvme/tang-adv.jws"}, {"url": "http://10.0.0.21:7654", "adv": "nix-config/hosts/hass-pi/tang-adv.jws"}, {"url": "http://10.0.0.12:7654", "adv": "nix-config/hosts/orin-nano/tang-adv.jws"}]}}'
     else
         echo "⚠️ Could not find mapped device core_crypt for Tang binding."
     fi
