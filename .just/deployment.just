@@ -470,8 +470,8 @@ core-update-usb device="/dev/sdc":
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
     echo "init=${SYSTEM}/init $PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
     
-    printf "[all]\nkernel=Image\ninitramfs initrd followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=bcm2712-rpi-5-b.dtb\n" | sudo tee "${ESP}/config.txt" > /dev/null
-
+    printf "[all]\nkernel=Image\ninitramfs initrd followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=bcm2712-rpi-5-b.dtb\ndtparam=pciex1_gen=3\n" | sudo tee "${ESP}/config.txt" > /dev/null
+    
     rm -f /tmp/core-pi-system
 
     echo "🔌 Unmounting..."
@@ -542,7 +542,7 @@ hass-install-usb device="/dev/sdc":
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
     echo "init=${SYSTEM}/init $PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
     
-    printf "[all]\nkernel=nixos/%s\ninitramfs nixos/%s followkernel\ncmdline=cmdline.txt\narm_64bit=1\ndevice_tree=nixos/%s/broadcom/bcm2712-rpi-5-b.dtb\n" \
+    printf "[all]\nkernel=nixos/%s\ninitramfs nixos/%s followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=nixos/%s/broadcom/bcm2712-rpi-5-b.dtb\ndtparam=pciex1_gen=3\n" \
         "$(basename "$KERNEL")" "$(basename "$INITRD")" "$(basename "$DTBS")" | sudo tee "${ESP}/config.txt" > /dev/null
 
     rm -f /tmp/hass-pi-system
@@ -617,7 +617,7 @@ hass-update-usb device="/dev/sdc":
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
     echo "init=${SYSTEM}/init $PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
     
-    printf "[all]\nkernel=nixos/%s\ninitramfs nixos/%s followkernel\ncmdline=cmdline.txt\narm_64bit=1\ndevice_tree=nixos/%s/broadcom/bcm2712-rpi-5-b.dtb\n" \
+    printf "[all]\nkernel=nixos/%s\ninitramfs nixos/%s followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=nixos/%s/broadcom/bcm2712-rpi-5-b.dtb\ndtparam=pciex1_gen=3\n" \
         "$(basename "$KERNEL")" "$(basename "$INITRD")" "$(basename "$DTBS")" | sudo tee "${ESP}/config.txt" > /dev/null
 
     rm -f /tmp/hass-pi-system
