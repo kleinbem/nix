@@ -27,6 +27,18 @@ Operating manual for AI editors working in this meta-workspace. Optimized for "d
 - Default `enable = false`. Hosts must opt in.
 - Remove dead code, empty `let in`, unused vars (statix enforces).
 
+## Design principles (write code AI can navigate)
+
+This repo is built so AI tools — Claude, Gemini, Codex, Aider — can make changes without missing things. Keep it that way. When in doubt, prefer:
+
+- **Boring grep-friendly naming** over clever short names. `my.services.attic.enable` beats `cfg.a`.
+- **One way to do each thing.** If a second pattern emerges for the same problem, consolidate or document the split. Inconsistency is the #1 cause of AI mistakes.
+- **Explicit imports over auto-loading.** A host's `imports = [ … ]` should list everything it pulls in. Don't introduce dynamic loaders, glob-imports, or "magic" inclusion based on directory presence.
+- **Co-located options and implementation** (the Switchboard pattern). The file declaring `my.X` should also implement it. Don't split a module's contract from its behavior across multiple files just for aesthetics.
+- **Visible side effects.** If a file changes system state, that should be greppable. Avoid runtime-resolved configuration, generated symbols, or magic strings.
+
+When considering "best practices" that conflict with the above (premature DRY, abstract interfaces with one impl, convention-over-configuration), favor what AI can *read*.
+
 ## Recipes
 
 ### Add a system module
