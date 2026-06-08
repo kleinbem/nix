@@ -6,6 +6,7 @@ Operating manual for AI editors working in this meta-workspace. Optimized for "d
 
 1. Read **`nix-config/docs/SYSTEM_REFERENCE.md`** — current nixpkgs revisions, host list, active services. Auto-generated.
 2. Read **`nix-config/docs/OPTIONS.md`** — every `my.*` option, where it's declared, which hosts consume it. Use this for blast-radius lookups *before* editing a module. Auto-generated.
+3. Read **`nix-config/docs/IMPORTS.md`** — per-host module/preset import map plus reverse index. Use when an edit touches a module without `my.*` options (helpers, bundles, scripts). Auto-generated.
 3. Look for an **`AGENTS.md`** in the directory you're editing. They exist at: repo root, `nix-config/`, `nix-config/modules/nixos/`, `nix-config/hosts/`, `nix-presets/`. (Tools that read `CLAUDE.md` or `GEMINI.md` will resolve those names via symlinks to the same content.)
 4. If either doc looks stale: `just maintenance::sync-agent`.
 
@@ -70,6 +71,7 @@ See `nix-config/hosts/AGENTS.md`. Key gotchas: must be added to `inventory.nix`,
 |---|---|
 | Current nixpkgs rev, host list | `nix-config/docs/SYSTEM_REFERENCE.md` (auto-gen) |
 | All `my.*` options + consumers | `nix-config/docs/OPTIONS.md` (auto-gen) |
+| Per-host module imports + reverse index | `nix-config/docs/IMPORTS.md` (auto-gen) |
 | NixOS + OpenWrt inventory | `nix-config/inventory.nix` |
 | Per-area conventions | `<dir>/AGENTS.md` files (also exposed as `CLAUDE.md` / `GEMINI.md` symlinks) |
 | Architecture decisions | `.agent/decisions/` ADRs |

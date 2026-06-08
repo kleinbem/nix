@@ -259,6 +259,163 @@ def any_options_decls_in_file(path: Path) -> list[tuple[str, int]]:
     return out
 
 
+@dataclass
+class ImportEntry:
+    kind: str   # "module" | "preset" | "hardware" | "user" | "local" | "other"
+    label: str  # e.g. "modules/nixos/common.nix", "nix-presets:attic", "user:martin"
+    raw: str    # original text from the source file
+
+
+# Find an `imports = [ … ];` block. Anchor at start-of-line to avoid matching
+# nested `imports = …` inside an attrset value.
+IMPORTS_BLOCK_RE = re.compile(r"^[ \t]*imports\s*=\s*\[", re.MULTILINE)
+
+
+def _classify_import(token: str) -> ImportEntry | None:
+    """Categorize a single entry from an imports list."""
+    t = token.strip().rstrip(";").rstrip(",").strip()
+    if not t:
+        return None
+    # Pure path string: "${self}/...something..."
+    if t.startswith('"') and t.endswith('"'):
+        inner = t[1:-1]
+        # Strip `${self}/` prefix
+        if inner.startswith("${self}/"):
+            inner = inner[len("${self}/"):]
+        if inner.startswith("users/"):
+            parts = inner.split("/")
+            if len(parts) >= 2:
+                return ImportEntry("user", f"user:{parts[1]}", t)
+            return ImportEntry("user", f"user:{inner}", t)
+        if inner.startswith("modules/"):
+            return ImportEntry("module", inner, t)
+        return ImportEntry("other", inner, t)
+    # Relative path: ./something.nix
+    if t.startswith("./") or t.startswith("../"):
+        return ImportEntry("local", t, t)
+    # Attribute path: inputs.<flake>.nixosModules.<name> etc
+    m = re.match(r"^inputs\.([a-zA-Z0-9_-]+)\.(?:nixosModules|homeManagerModules|nixOnDroidModules)\.([a-zA-Z0-9_-]+)$", t)
+    if m:
+        flake, name = m.group(1), m.group(2)
+        kind = {
+            "nix-presets": "preset",
+            "nix-hardware": "hardware",
+        }.get(flake, "other")
+        return ImportEntry(kind, f"{flake}:{name}", t)
+    # Other attribute paths (disko, sops-nix, etc.)
+    if t.startswith("inputs."):
+        return ImportEntry("other", t, t)
+    return ImportEntry("other", t, t)
+
+
+def extract_imports_in_file(path: Path) -> list[ImportEntry]:
+    """Return entries from the first top-level `imports = [ … ]` block."""
+    try:
+        raw = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    src = strip_comments_and_strings(raw)
+    m = IMPORTS_BLOCK_RE.search(src)
+    if not m:
+        return []
+    # Bracket-match the `[`
+    open_pos = src.find("[", m.start())
+    if open_pos < 0:
+        return []
+    depth = 1
+    i = open_pos + 1
+    while i < len(src) and depth > 0:
+        c = src[i]
+        if c == "[":
+            depth += 1
+        elif c == "]":
+            depth -= 1
+            if depth == 0:
+                break
+        i += 1
+    if depth != 0:
+        return []
+    # Now extract the ORIGINAL (unstripped) text for the same span so we keep
+    # the string literals intact. Re-read the file.
+    inner_raw = raw[open_pos + 1 : i]
+    # Tokenize: split on whitespace at depth 0 (no brackets/braces/parens open),
+    # respecting string literals.
+    tokens: list[str] = []
+    buf: list[str] = []
+    j, n = 0, len(inner_raw)
+    bracket_depth = brace_depth = paren_depth = 0
+    in_string = False
+    in_indented = False
+    while j < n:
+        c = inner_raw[j]
+        if in_string:
+            buf.append(c)
+            if c == "\\" and j + 1 < n:
+                buf.append(inner_raw[j + 1])
+                j += 2
+                continue
+            if c == '"':
+                in_string = False
+            j += 1
+            continue
+        if in_indented:
+            buf.append(c)
+            if c == "'" and j + 1 < n and inner_raw[j + 1] == "'":
+                buf.append(inner_raw[j + 1])
+                in_indented = False
+                j += 2
+                continue
+            j += 1
+            continue
+        if c == '"':
+            in_string = True
+            buf.append(c)
+            j += 1
+            continue
+        if c == "'" and j + 1 < n and inner_raw[j + 1] == "'":
+            in_indented = True
+            buf.append(c)
+            buf.append(inner_raw[j + 1])
+            j += 2
+            continue
+        if c == "#":
+            # Skip to newline; comment is a separator
+            while j < n and inner_raw[j] != "\n":
+                j += 1
+            if buf and bracket_depth == brace_depth == paren_depth == 0:
+                tokens.append("".join(buf).strip())
+                buf = []
+            continue
+        if c in "[":
+            bracket_depth += 1
+        elif c == "]":
+            bracket_depth -= 1
+        elif c == "{":
+            brace_depth += 1
+        elif c == "}":
+            brace_depth -= 1
+        elif c == "(":
+            paren_depth += 1
+        elif c == ")":
+            paren_depth -= 1
+        if c.isspace() and bracket_depth == brace_depth == paren_depth == 0:
+            if buf:
+                tokens.append("".join(buf).strip())
+                buf = []
+        else:
+            buf.append(c)
+        j += 1
+    if buf:
+        tokens.append("".join(buf).strip())
+
+    entries: list[ImportEntry] = []
+    for tok in tokens:
+        e = _classify_import(tok)
+        if e is not None:
+            entries.append(e)
+    return entries
+
+
 def iter_nix_files(root: Path):
     if not root.exists():
         return

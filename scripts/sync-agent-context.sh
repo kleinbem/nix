@@ -70,6 +70,7 @@ echo "✅ System Reference updated at $OUTPUT_FILE"
 # Regenerate the machine-readable my.* options index (used by AI for blast-radius lookups)
 if command -v python3 &>/dev/null; then
   python3 "$REPO_ROOT/scripts/generate-options-index.py" || echo "⚠️  Options index generation failed (non-fatal)"
+  python3 "$REPO_ROOT/scripts/generate-imports-index.py" || echo "⚠️  Imports index generation failed (non-fatal)"
 else
-  echo "⚠️  python3 not found — skipping options index regeneration"
+  echo "⚠️  python3 not found — skipping AI index regeneration"
 fi
