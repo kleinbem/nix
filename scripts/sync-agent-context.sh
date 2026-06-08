@@ -66,3 +66,10 @@ echo -e "\n## 🤖 AI Capabilities (MCP Tools)" >>"$OUTPUT_FILE"
 grep "@mcp.tool()" -A 1 "$REPO_ROOT/scripts/workspace-mcp.py" | grep "def " | sed 's/def //; s/(.*):/- **/; s/$/\**/' >>"$OUTPUT_FILE"
 
 echo "✅ System Reference updated at $OUTPUT_FILE"
+
+# Regenerate the machine-readable my.* options index (used by AI for blast-radius lookups)
+if command -v python3 &>/dev/null; then
+  python3 "$REPO_ROOT/scripts/generate-options-index.py" || echo "⚠️  Options index generation failed (non-fatal)"
+else
+  echo "⚠️  python3 not found — skipping options index regeneration"
+fi

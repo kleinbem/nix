@@ -199,6 +199,19 @@ sync-agent:
     @echo "🤖 Syncing system context for Antigravity..."
     @./scripts/sync-agent-context.sh
 
+# Print downstream consumers of changed files. Use `--git` to scan modified files,
+# or pass one or more paths. Catches the common AI mistake of editing a module
+# without realizing other hosts consume it.
+[group("Linter")]
+impact *args="--git":
+    @python3 ./scripts/impact.py {{args}}
+
+# Check Switchboard-pattern conventions (no `options.*` in hosts/users; warn on
+# unfamiliar namespaces in modules). Pass `--strict` to fail on warnings.
+[group("Linter")]
+lint-conventions *args="":
+    @python3 ./scripts/lint-conventions.py {{args}}
+
 [group("Updates")]
 lock-refresh:
     @echo "🔄 Refreshing all sub-flake lock files with local overrides..."

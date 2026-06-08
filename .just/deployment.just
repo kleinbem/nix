@@ -432,115 +432,78 @@ orin-update-usb device="/dev/sdb":
 
 
 [group("Provisioning")]
-[confirm("🔄 Re-install core-pi config to an ALREADY-PROVISIONED SSD in the USB reader (NO wipe)?")]
-[doc("Non-destructive in-place update of an installed core-pi SSD. Mounts the existing disk via disko, rebuilds the closure, and reinstalls it.")]
-core-update-usb device="/dev/sdc":
+[confirm("💿 WIPE the USB SSD and install NixOS for a Pi? This is destructive.")]
+pi-install-usb host device="/dev/sdc":
     #!/usr/bin/env bash
     set -euo pipefail
 
-    echo "🔓 Mounting existing SSD via disko (enter the Pi LUKS passphrase when prompted)..."
-    sudo nix run github:nix-community/disko -- \
-        --mode mount \
-        --argstr device {{device}} \
-        --root-mountpoint /mnt/core-pi \
-        ./nix-config/hosts/core-pi/disko.nix
-
-    echo "🏗️ Building core-pi closure..."
-    nix build ./nix-config#nixosConfigurations.core-pi.config.system.build.toplevel \
-        --option sandbox false \
-        --option builders "" \
-        --out-link /tmp/core-pi-system
-
-    SYSTEM="$(readlink /tmp/core-pi-system)"
-
-    echo "💿 Installing closure (skipping bootloader — done host-side below)..."
-    sudo nixos-install --root /mnt/core-pi --system "${SYSTEM}" --no-root-passwd --no-bootloader
-
-    echo "💾 Installing Pi 5 firmware config to ESP (direct kernel boot)..."
-    ESP="/mnt/core-pi/boot"
-    
-    KERNEL="$(realpath "${SYSTEM}/kernel")"
-    INITRD="$(realpath "${SYSTEM}/initrd")"
-    DTBS="$(realpath "${SYSTEM}/dtbs")"
-    
-    sudo mkdir -p "${ESP}/nixos"
-    K_DEST="nixos/$(basename "$KERNEL")"
-    I_DEST="nixos/$(basename "$INITRD")"
-    D_DEST="nixos/$(basename "$DTBS")-bcm2712-rpi-5-b.dtb"
-    
-    sudo cp -fL "$KERNEL" "${ESP}/$K_DEST"
-    sudo cp -fL "$INITRD" "${ESP}/$I_DEST"
-    sudo cp -fL "$DTBS/broadcom/bcm2712-rpi-5-b.dtb" "${ESP}/$D_DEST"
-    
-    PARAMS="$(cat "${SYSTEM}/kernel-params")"
-    echo "init=${SYSTEM}/init $PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
-    
-    printf "[all]\nkernel=%s\ninitramfs %s followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=%s\ndtparam=pciex1_gen=3\nos_check=0\nboot_watchdog_timeout=15\nkernel_watchdog_timeout=300\n" \
-        "$K_DEST" "$I_DEST" "$D_DEST" | sudo tee "${ESP}/config.txt" > /dev/null
-    
-    rm -f /tmp/core-pi-system
-
-    echo "🔌 Unmounting..."
-    sudo umount -l /mnt/core-pi/boot 2>/dev/null || true
-    sudo umount -l /mnt/core-pi/nix/persist 2>/dev/null || true
-    sudo umount -l /mnt/core-pi/nix 2>/dev/null || true
-    sudo cryptsetup close core_crypt || true
-    echo "✅ In-place update complete — put the SSD in the Pi and boot."
-
-[group("Provisioning")]
-debug-boot-usb device="/dev/sdf":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    echo "🔍 Mounting ESP partition to inspect bootloader files..."
-    sudo mkdir -p /mnt/debug-boot
-    # Find the ESP partition of the specified device
-    ESP_PART=$(lsblk -rn -o NAME,PARTLABEL "{{device}}" | awk '/ESP/ {print "/dev/"$1}')
-    if [ -z "$ESP_PART" ]; then
-        echo "❌ Could not find ESP partition on {{device}}"
+    if [[ "{{host}}" != "core-pi" && "{{host}}" != "hass-pi" ]]; then
+        echo "❌ Invalid host: {{host}}. Must be core-pi or hass-pi."
         exit 1
     fi
-    sudo mount "$ESP_PART" /mnt/debug-boot
-    echo "📂 Contents of /mnt/debug-boot:"
-    sudo ls -laR /mnt/debug-boot
-    echo "📄 Contents of config.txt (if it exists):"
-    sudo cat /mnt/debug-boot/config.txt 2>/dev/null || echo "No config.txt"
-    echo "📄 Contents of boot.scr (if it exists):"
-    sudo cat /mnt/debug-boot/boot.scr 2>/dev/null || echo "No boot.scr"
-    echo "🔌 Unmounting..."
-    sudo umount /mnt/debug-boot
 
-[confirm("💿 WIPE the USB SSD and install NixOS for hass-pi? This is destructive.")]
-hass-install-usb device="/dev/sdc":
-    #!/usr/bin/env bash
-    set -euo pipefail
+    if [ ! -b "{{device}}" ]; then
+        echo "❌ Error: Target {{device}} is not a valid block device! Please check lsblk."
+        exit 1
+    fi
+    echo "📊 Target Device Info ({{device}}):"
+    lsblk "{{device}}" || true
+    echo "----------------------------------------"
+
+    CRYPT_NAME="{{host}}"
+    CRYPT_NAME="${CRYPT_NAME%-pi}_crypt"
+    MNT="/mnt/{{host}}"
+
+    echo "🧹 Cleaning up existing mounts and LUKS mappings on {{device}}..."
+    sudo umount -R "$MNT" 2>/dev/null || sudo umount -l "$MNT" 2>/dev/null || true
+    disk_name=$(basename {{device}})
+    for part in /sys/class/block/${disk_name}*/holders/*; do
+        [ -e "$part" ] && sudo cryptsetup close "$(basename "$(readlink "$part")")" 2>/dev/null || true
+    done
+    sudo cryptsetup close "$CRYPT_NAME" 2>/dev/null || true
+    sudo dmsetup remove -f "$CRYPT_NAME" 2>/dev/null || true
+
+    # Forcefully unmount any auto-mounted partitions from the host OS
+    for mp in $(lsblk -rn -o MOUNTPOINT {{device}} | awk 'NF'); do
+        sudo umount "$mp" 2>/dev/null || sudo umount -l "$mp" 2>/dev/null || true
+    done
+
+    # Aggressive wipe of GPT and all partition signatures
+    sudo dd if=/dev/zero of={{device}} bs=1M count=100 status=none || true
+    sudo sgdisk --zap-all {{device}} 2>/dev/null || true
+    for part in $(ls {{device}}* 2>/dev/null | grep -v "^{{device}}$"); do
+        sudo wipefs -a "$part" 2>/dev/null || true
+    done
+    sudo wipefs -a {{device}} 2>/dev/null || true
+    sudo partprobe {{device}} 2>/dev/null || true
+    sudo udevadm settle 2>/dev/null || true
 
     echo "💿 Wiping and formatting existing SSD via disko (will prompt for NEW LUKS passphrase)..."
     sudo nix run github:nix-community/disko -- \
         --mode destroy,format,mount \
         --argstr device {{device}} \
-        --root-mountpoint /mnt/hass-pi \
-        ./nix-config/hosts/hass-pi/disko.nix
+        --root-mountpoint "$MNT" \
+        ./nix-config/hosts/{{host}}/disko.nix
 
-    echo "🏗️ Building hass-pi closure..."
-    nix build ./nix-config#nixosConfigurations.hass-pi.config.system.build.toplevel \
+    echo "🏗️ Building {{host}} closure..."
+    nix build ./nix-config#nixosConfigurations.{{host}}.config.system.build.toplevel \
         --option sandbox false \
         --option builders "" \
-        --out-link /tmp/hass-pi-system
+        --out-link /tmp/{{host}}-system
 
-    SYSTEM="$(readlink /tmp/hass-pi-system)"
+    SYSTEM="$(readlink /tmp/{{host}}-system)"
 
     echo "💿 Installing closure (skipping bootloader — done host-side below)..."
-    sudo nixos-install --root /mnt/hass-pi --system "${SYSTEM}" --no-root-passwd --no-bootloader
+    sudo nixos-install --root "$MNT" --system "${SYSTEM}" --no-root-passwd --no-bootloader
 
     echo "💾 Installing Pi 5 firmware config to ESP (direct kernel boot)..."
-    ESP="/mnt/hass-pi/boot"
+    ESP="$MNT/boot"
     sudo mkdir -p "${ESP}/nixos"
     
     KERNEL="$(realpath "${SYSTEM}/kernel")"
     INITRD="$(realpath "${SYSTEM}/initrd")"
     DTBS="$(realpath "${SYSTEM}/dtbs")"
     
-    sudo mkdir -p "${ESP}/nixos"
     K_DEST="nixos/$(basename "$KERNEL")"
     I_DEST="nixos/$(basename "$INITRD")"
     D_DEST="nixos/$(basename "$DTBS")-bcm2712-rpi-5-b.dtb"
@@ -552,74 +515,104 @@ hass-install-usb device="/dev/sdc":
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
     echo "init=${SYSTEM}/init $PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
     
-    printf "[all]\nkernel=%s\ninitramfs %s followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=%s\ndtparam=pciex1_gen=3\nos_check=0\nboot_watchdog_timeout=15\nkernel_watchdog_timeout=300\n" \
+    printf "[all]\nkernel=%s\ninitramfs %s followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=%s\ndtparam=pciex1_gen=3\ndisable_splash=1\nhdmi_force_hotplug=1\nos_check=0\n" \
         "$K_DEST" "$I_DEST" "$D_DEST" | sudo tee "${ESP}/config.txt" > /dev/null
 
-    rm -f /tmp/hass-pi-system
+    rm -f /tmp/{{host}}-system
     
     echo "🔑 Setting up host identity (SSH Keys)..."
-    persist="/mnt/hass-pi/nix/persist"
+    persist="$MNT/nix/persist"
     sudo mkdir -p "${persist}/etc/ssh" "${persist}/var/lib/sops/age"
     sudo chmod 700 "${persist}/var/lib/sops/age"
     
     # Generate persistent SSH host keys
     if [ ! -f "${persist}/etc/ssh/ssh_host_ed25519_key" ]; then
-        sudo ssh-keygen -t ed25519 -f "${persist}/etc/ssh/ssh_host_ed25519_key" -N "" -C "hass-pi" -q
-        sudo ssh-keygen -t rsa -b 4096 -f "${persist}/etc/ssh/ssh_host_rsa_key" -N "" -C "hass-pi" -q
+        sudo ssh-keygen -t ed25519 -f "${persist}/etc/ssh/ssh_host_ed25519_key" -N "" -C "{{host}}" -q
+        sudo ssh-keygen -t rsa -b 4096 -f "${persist}/etc/ssh/ssh_host_rsa_key" -N "" -C "{{host}}" -q
         sudo chmod 600 "${persist}/etc/ssh/ssh_host_ed25519_key" "${persist}/etc/ssh/ssh_host_rsa_key"
         sudo chmod 644 "${persist}/etc/ssh/ssh_host_ed25519_key.pub" "${persist}/etc/ssh/ssh_host_rsa_key.pub"
     fi
 
     echo "🔗 Binding LUKS partition to Tang server for silent boot..."
-    LUKS_DEV=$(sudo cryptsetup status hass_crypt | awk '/device:/ {print $2}')
+    LUKS_DEV=$(sudo cryptsetup status "$CRYPT_NAME" | awk '/device:/ {print $2}')
     if [ -n "$LUKS_DEV" ]; then
         echo "Will prompt for LUKS password to authorize Tang binding..."
         sudo clevis luks bind -d "$LUKS_DEV" sss '{"t": 1, "pins": {"tang": [{"url": "http://10.0.0.5:7654", "adv": "nix-config/hosts/nixos-nvme/tang-adv.jws"}, {"url": "http://10.0.0.21:7654", "adv": "nix-config/hosts/hass-pi/tang-adv.jws"}, {"url": "http://10.0.0.12:7654", "adv": "nix-config/hosts/orin-nano/tang-adv.jws"}]}}' || echo "⚠️ Failed to bind Tang key! You may need to enter passphrase on boot."
     else
-        echo "⚠️ Could not find mapped device hass_crypt for Tang binding."
+        echo "⚠️ Could not find mapped device $CRYPT_NAME for Tang binding."
     fi
 
     echo "🔌 Unmounting..."
-    sudo umount -l /mnt/hass-pi/boot 2>/dev/null || true
-    sudo umount -l /mnt/hass-pi/nix/persist 2>/dev/null || true
-    sudo umount -l /mnt/hass-pi/nix 2>/dev/null || true
-    sudo cryptsetup close hass_crypt || true
+    sudo umount -l "$MNT/boot" 2>/dev/null || true
+    sudo umount -l "$MNT/nix/persist" 2>/dev/null || true
+    sudo umount -l "$MNT/nix" 2>/dev/null || true
+    sudo cryptsetup close "$CRYPT_NAME" || true
     echo "✅ Installation complete — put the SSD in the Pi and boot."
 
 [group("Provisioning")]
-[confirm("🔄 Re-install hass-pi config to an ALREADY-PROVISIONED SSD in the USB reader (NO wipe)?")]
-[doc("Non-destructive in-place update of an installed hass-pi SSD. Mounts the existing disk via disko, rebuilds the closure, and reinstalls it.")]
-hass-update-usb device="/dev/sdc":
+[confirm("🔄 Re-install Pi config to an ALREADY-PROVISIONED SSD in the USB reader (NO wipe)?")]
+[doc("Non-destructive in-place update of an installed Pi SSD. Mounts the existing disk via disko, rebuilds the closure, and reinstalls it.")]
+pi-update-usb host device="/dev/sdc":
     #!/usr/bin/env bash
     set -euo pipefail
+
+    if [[ "{{host}}" != "core-pi" && "{{host}}" != "hass-pi" ]]; then
+        echo "❌ Invalid host: {{host}}. Must be core-pi or hass-pi."
+        exit 1
+    fi
+
+    if [ ! -b "{{device}}" ]; then
+        echo "❌ Error: Target {{device}} is not a valid block device! Please check lsblk."
+        exit 1
+    fi
+    echo "📊 Target Device Info ({{device}}):"
+    lsblk "{{device}}" || true
+    echo "----------------------------------------"
+
+    CRYPT_NAME="{{host}}"
+    CRYPT_NAME="${CRYPT_NAME%-pi}_crypt"
+    MNT="/mnt/{{host}}"
+
+    echo "🧹 Cleaning up existing mounts and LUKS mappings before mounting..."
+    sudo umount -R "$MNT" 2>/dev/null || sudo umount -l "$MNT" 2>/dev/null || true
+    disk_name=$(basename {{device}})
+    for part in /sys/class/block/${disk_name}*/holders/*; do
+        [ -e "$part" ] && sudo cryptsetup close "$(basename "$(readlink "$part")")" 2>/dev/null || true
+    done
+    sudo cryptsetup close "$CRYPT_NAME" 2>/dev/null || true
+
+    # Forcefully unmount any auto-mounted partitions from the host OS
+    for mp in $(lsblk -rn -o MOUNTPOINT {{device}} | awk 'NF'); do
+        sudo umount "$mp" 2>/dev/null || sudo umount -l "$mp" 2>/dev/null || true
+    done
+    sudo udevadm settle 2>/dev/null || true
 
     echo "🔓 Mounting existing SSD via disko (enter the Pi LUKS passphrase when prompted)..."
     sudo nix run github:nix-community/disko -- \
         --mode mount \
         --argstr device {{device}} \
-        --root-mountpoint /mnt/hass-pi \
-        ./nix-config/hosts/hass-pi/disko.nix
+        --root-mountpoint "$MNT" \
+        ./nix-config/hosts/{{host}}/disko.nix
 
-    echo "🏗️ Building hass-pi closure..."
-    nix build ./nix-config#nixosConfigurations.hass-pi.config.system.build.toplevel \
+    echo "🏗️ Building {{host}} closure..."
+    nix build ./nix-config#nixosConfigurations.{{host}}.config.system.build.toplevel \
         --option sandbox false \
         --option builders "" \
-        --out-link /tmp/hass-pi-system
+        --out-link /tmp/{{host}}-system
 
-    SYSTEM="$(readlink /tmp/hass-pi-system)"
+    SYSTEM="$(readlink /tmp/{{host}}-system)"
 
     echo "💿 Installing closure (skipping bootloader — done host-side below)..."
-    sudo nixos-install --root /mnt/hass-pi --system "${SYSTEM}" --no-root-passwd --no-bootloader
+    sudo nixos-install --root "$MNT" --system "${SYSTEM}" --no-root-passwd --no-bootloader
 
     echo "💾 Installing Pi 5 firmware config to ESP (direct kernel boot)..."
-    ESP="/mnt/hass-pi/boot"
+    ESP="$MNT/boot"
     sudo mkdir -p "${ESP}/nixos"
     
     KERNEL="$(realpath "${SYSTEM}/kernel")"
     INITRD="$(realpath "${SYSTEM}/initrd")"
     DTBS="$(realpath "${SYSTEM}/dtbs")"
     
-    sudo mkdir -p "${ESP}/nixos"
     K_DEST="nixos/$(basename "$KERNEL")"
     I_DEST="nixos/$(basename "$INITRD")"
     D_DEST="nixos/$(basename "$DTBS")-bcm2712-rpi-5-b.dtb"
@@ -631,17 +624,18 @@ hass-update-usb device="/dev/sdc":
     PARAMS="$(cat "${SYSTEM}/kernel-params")"
     echo "init=${SYSTEM}/init $PARAMS" | sudo tee "${ESP}/cmdline.txt" > /dev/null
     
-    printf "[all]\nkernel=%s\ninitramfs %s followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=%s\ndtparam=pciex1_gen=3\nos_check=0\nboot_watchdog_timeout=15\nkernel_watchdog_timeout=300\n" \
+    printf "[all]\nkernel=%s\ninitramfs %s followkernel\ncmdline=cmdline.txt\narm_64bit=1\nupstream_kernel=1\ndevice_tree=%s\ndtparam=pciex1_gen=3\ndisable_splash=1\nhdmi_force_hotplug=1\nos_check=0\n" \
         "$K_DEST" "$I_DEST" "$D_DEST" | sudo tee "${ESP}/config.txt" > /dev/null
 
-    rm -f /tmp/hass-pi-system
+    rm -f /tmp/{{host}}-system
 
     echo "🔌 Unmounting..."
-    sudo umount -l /mnt/hass-pi/boot 2>/dev/null || true
-    sudo umount -l /mnt/hass-pi/nix/persist 2>/dev/null || true
-    sudo umount -l /mnt/hass-pi/nix 2>/dev/null || true
-    sudo cryptsetup close hass_crypt || true
+    sudo umount -l "$MNT/boot" 2>/dev/null || true
+    sudo umount -l "$MNT/nix/persist" 2>/dev/null || true
+    sudo umount -l "$MNT/nix" 2>/dev/null || true
+    sudo cryptsetup close "$CRYPT_NAME" || true
     echo "✅ In-place update complete — put the SSD in the Pi and boot."
+
 
 # --- Router LXC ---
 
