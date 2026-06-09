@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 # Obsidian Vault Health Check
 # Purpose: Identify sync conflicts, large files, and potential issues in the vault.

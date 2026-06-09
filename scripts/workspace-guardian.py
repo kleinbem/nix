@@ -12,6 +12,7 @@ INTERVAL = 300  # 5 minutes
 WORKSPACE_ROOT = "/home/martin/Develop/github.com/kleinbem/nix"
 LOG_FILE = os.path.join(WORKSPACE_ROOT, "scratch/guardian.log")
 
+
 def log(message):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     entry = f"[{timestamp}] {message}"
@@ -19,10 +20,11 @@ def log(message):
     with open(LOG_FILE, "a") as f:
         f.write(entry + "\n")
 
+
 def run_health_check():
     """Run the workspace-atlas check_ai_stack_health tool via MCP if possible, or fallback to subprocess."""
     log("Running scheduled health check...")
-    # We can't easily call FastMCP from another script without JSON-RPC, 
+    # We can't easily call FastMCP from another script without JSON-RPC,
     # so we'll directly call the logic or use the existing scripts.
     try:
         # Check containers
@@ -43,12 +45,14 @@ def run_health_check():
     except Exception as e:
         log(f"Guardian error: {str(e)}")
 
+
 def main():
     os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
     log("Guardian started. Monitoring infrastructure...")
     while True:
         run_health_check()
         time.sleep(INTERVAL)
+
 
 if __name__ == "__main__":
     main()

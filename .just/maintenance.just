@@ -2,7 +2,11 @@ import 'common.just'
 
 set working-directory := ".."
 
-# --- Validation & Maintenance ---
+# --- Meta-workspace maintenance ---
+# nix-config–specific recipes (check, check-hosts, apply*, sync-agent, impact,
+# lint-conventions, clean-launchers) moved to `nix-config/.just/maintenance.just`.
+# Invoke them from the meta root via root justfile [Main] shortcuts (apply,
+# apply-fast, apply-boot, check) or `cd nix-config && just maintenance::X`.
 
 [group("Formatting")]
 fmt:
@@ -35,11 +39,6 @@ check-all *args="--impure":
     @echo "✅ All workspace checks completed!"
 
 [group("Linter")]
-check-hosts *args="--impure":
-    @echo "🏗️  Verifying all Host Configurations (Evaluation & Build)..."
-    @{{LOCK_CMD}} {{TIMER}} nix flake check ./nix-config {{OVERRIDES}} {{args}}
-
-[group("Linter")]
 check-containers *args="--impure":
     @echo "📦 Verifying all Container Presets (Evaluation Test)..."
     @{{LOCK_CMD}} {{TIMER}} nix flake check ./nix-presets {{OVERRIDES}} {{args}}
@@ -49,13 +48,25 @@ ci:
     @just maintenance::check-all
 
 [group("Linter")]
-check:
-    @echo "✅ Verifying NixOS configuration..."
-    @{{LOCK_CMD}} {{TIMER}} nix eval .#nixosConfigurations.nixos-nvme.config.system.build.toplevel {{OVERRIDES}} --impure
-
-[group("Linter")]
 check-shells:
     @bash ./scripts/verify-devshells.sh
+
+# Lint Python in the meta-workspace scripts/ dir (workspace-mcp, ai-logs, etc).
+# nix-config has its own `just maintenance::lint-python` for its scripts.
+[group("Linter")]
+lint-python *args="":
+    @nix shell nixpkgs#ruff --command ruff check ./scripts/ {{args}}
+
+# Format Python in the meta-workspace scripts/ dir.
+[group("Formatting")]
+fmt-python *args="":
+    @nix shell nixpkgs#ruff --command ruff format ./scripts/ {{args}}
+
+# Verify the small set of scripts mirrored across nix-presets and nix-devshells
+# haven't drifted. nix-presets is the source of truth.
+[group("Linter")]
+check-script-mirrors:
+    @bash ./scripts/check-script-mirrors.sh
 
 [group("Security")]
 audit *args="":
@@ -83,43 +94,6 @@ hooks-refresh:
 docs:
     @echo "📚 Generating configuration documentation..."
     @{{LOCK_CMD}} nix build .#docs
-
-[private]
-_apply switch_target auth="":
-    #!/usr/bin/env bash
-    if [ "{{auth}}" = "sudo" ] || [ "{{auth}}" = "preauth" ] || [ "{{auth}}" = "auth" ]; then
-        sudo -v
-        while true; do sudo -nv; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
-        SUDO_PID=$!
-        trap 'kill $SUDO_PID 2>/dev/null || true' EXIT
-    fi
-    just git::stage-all
-    just maintenance::update-local
-    just maintenance::check
-    just nixos::{{switch_target}} "{{auth}}"
-    just maintenance::sync-agent
-
-[group("Workflow")]
-apply auth="":
-    @just maintenance::_apply "switch" "{{auth}}"
-
-[group("Workflow")]
-apply-fast auth="" *args="":
-    #!/usr/bin/env bash
-    if [ "{{auth}}" = "sudo" ] || [ "{{auth}}" = "preauth" ] || [ "{{auth}}" = "auth" ]; then
-        sudo -v
-        while true; do sudo -nv; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
-        SUDO_PID=$!
-        trap 'kill $SUDO_PID 2>/dev/null || true' EXIT
-    fi
-    just git::stage-all
-    just maintenance::update-local
-    just nixos::switch "{{auth}}" "" {{args}}
-    just maintenance::sync-agent
-
-[group("Workflow")]
-apply-boot auth="":
-    @just maintenance::_apply "switch-boot" "{{auth}}"
 
 [group("System")]
 health-check:
@@ -165,11 +139,6 @@ clean-browsers:
     @find ~/.mozilla/firefox -maxdepth 1 -type d -name "*.default*" -not -path "*standard*" -delete
 
 [group("Cleanup")]
-clean-launchers *args:
-    @echo "🚀 Cleaning broken launchers..."
-    @bash ./nix-config/scripts/clean-launchers.sh {{args}}
-
-[group("Cleanup")]
 [confirm("🧪 Reset the Firefox Laboratory profile? All data in that profile will be lost.")]
 reset-firefox-laboratory:
     @echo "🧪 Resetting Laboratory profile..."
@@ -187,30 +156,12 @@ update-core *args="":
 update-local:
     @{{LOCK_CMD}} python3 ./scripts/sync_locks.py
 
-# Bump Antigravity to latest (queries Google's official endpoints, prefetches
-# hashes, rewrites nix-packages/pkgs/antigravity/versions.json). Review & commit.
+# Bump Antigravity to latest (delegates to nix-packages' own justfile, which
+# owns the upstream URL and the script). Run `cd nix-packages && just --list`
+# to see the full updater set (update-antigravity, update-langfuse, …).
 [group("Updates")]
 update-antigravity:
-    @{{ROOT}}/nix-packages/scripts/update-antigravity.sh
-    @echo "✅ versions.json updated — review 'git -C nix-packages diff' then commit."
-
-[group("Updates")]
-sync-agent:
-    @echo "🤖 Syncing system context for Antigravity..."
-    @./scripts/sync-agent-context.sh
-
-# Print downstream consumers of changed files. Use `--git` to scan modified files,
-# or pass one or more paths. Catches the common AI mistake of editing a module
-# without realizing other hosts consume it.
-[group("Linter")]
-impact *args="--git":
-    @python3 ./scripts/impact.py {{args}}
-
-# Check Switchboard-pattern conventions (no `options.*` in hosts/users; warn on
-# unfamiliar namespaces in modules). Pass `--strict` to fail on warnings.
-[group("Linter")]
-lint-conventions *args="":
-    @python3 ./scripts/lint-conventions.py {{args}}
+    @cd {{ROOT}}/nix-packages && just update-antigravity
 
 [group("Updates")]
 lock-refresh:
@@ -231,11 +182,19 @@ lock-refresh:
 
 [group("Audit")]
 audit-locks:
-    @python3 ./scripts/audit_locks.py
+    @bash ./scripts/audit-locks.sh
+
+# Lint flake.lock for staleness, EOL inputs, security issues (DeterminateSystems'
+# flake-checker). Complements `audit-locks` (which compares your local sub-flake
+# HEADs against the lock); this one checks upstream health of every input.
+[group("Audit")]
+flake-check:
+    @echo "🩺 Running flake-checker (input freshness, security, EOL…)"
+    @nix run github:DeterminateSystems/flake-checker -- ./flake.lock
 
 [group("System")]
 who:
-    @python3 ./scripts/check_lock.py
+    @bash ./scripts/check-lock.sh
 
 update-all *args="":
     @echo "🚀 Starting Comprehensive System Update (Bluefin Style)..."

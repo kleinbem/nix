@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 # Obsidian PARA Organization Script
 # Purpose: Moves files from the root to a PARA structure.

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 # generate-secrets.sh
 # Generates random values for the internal secrets in your SOPS config.

@@ -2,7 +2,9 @@ import 'common.just'
 
 set working-directory := ".."
 
-# --- AI & Agentic Hub ---
+# --- AI tooling (meta-workspace concerns: knowledge management, Aider launchers) ---
+# Host-side AI operations (service health, model provisioning, agent logs)
+# live in `nix-config/.just/ai.just`.
 
 [group("Status")]
 ai-sync:
@@ -18,12 +20,6 @@ ai-sync:
 ai-distill title="unnamed-session":
     @echo "🧠 Distilling knowledge into permanence: {{title}}"
     @git diff HEAD | nix run nixpkgs#llm -- "Summarize these changes into a technical knowledge item for the meta-repo." > .agent/knowledge/distilled-{{title}}.md
-
-[group("Status")]
-ai-check:
-    @echo "🩺 AI Stack Health Check"
-    @curl -s http://localhost:11434/api/tags >/dev/null && echo "✅ Ollama: Online" || echo "❌ Ollama: Offline"
-    @curl -s http://localhost:8000/health >/dev/null && echo "✅ vLLM: Online" || echo "❌ vLLM: Offline"
 
 [group("Coding")]
 architect:
@@ -44,40 +40,6 @@ plan:
 local:
     @echo "🏠 Launching Aider (Local via Ollama)..."
     @aider --model openai/ollama/llama3 --openai-api-base http://localhost:11434/v1
-
-[group("Development")]
-ai-shell:
-    @echo "🐚 Entering AI DevShell..."
-    @nix develop .#ai
-
-[group("Debugging")]
-ai-logs *args:
-    @journalctl -p 3 -n 50 --no-pager {{args}} | nix run nixpkgs#llm -- "Explain these errors in simple terms and suggest fixes."
-
-[group("Debugging")]
-ai-team-logs:
-    @echo "👥 Viewing Agent Team activity..."
-    @tail -f /var/log/agent-team.log
-
-[group("Workflow")]
-ai-init-safe:
-    @echo "🌡️ Starting AI stack in Safe Mode..."
-    @systemctl start ollama.service
-    @sleep 5
-    @systemctl start vllm.service
-    @echo "✅ AI Stack Ready."
-
-[group("Development")]
-ai-provision-models:
-    @echo "📥 Pulling recommended local models..."
-    @ollama pull nomic-embed-text
-    @ollama pull llama3:8b
-
-[group("Status")]
-ai-health-fleet:
-    @just ai::ai-check
-    @echo "📡 Probing Orin Nano..."
-    @just deployment::orin-ping && echo "✅ Orin: Reachable" || echo "❌ Orin: Unreachable"
 
 [group("Knowledge")]
 distill:

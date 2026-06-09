@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 # Documentation Linker for Obsidian
 # Purpose: Symlink repository knowledge bases into the Obsidian vault for easy browsing.

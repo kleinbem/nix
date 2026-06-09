@@ -3,14 +3,19 @@ import '.just/common.just'
 
 # --- Modules ---
 mod git '.just/git.just'
-mod nixos '.just/nixos.just'
-mod android '.just/android.just'
 mod ai '.just/ai.just'
 mod deployment '.just/deployment.just'
 mod maintenance '.just/maintenance.just'
 mod devshell '.just/devshell.just'
-mod orin '.just/orin.just'
 mod extensions '.just/extensions.just'
+
+# Recipes moved to `nix-config/justfile` (call directly with `cd nix-config && just X::Y`,
+# or via shortcuts in the [Main] group below):
+#   mod nixos    — nixos::switch, build, test, dry-run, sys-plan, attic-*, …
+#   mod orin     — orin::ping, shell, stats, logs, …
+#   mod android  — android::phone, tablet, phone-push, phone-backup-fetch
+#   mod ai       (host-side only — ai::ai-check, ai-shell, ai-logs)
+# The meta `mod ai` above retains: ai-sync, ai-distill, architect, code, plan, local, distill
 
 [group("Main")]
 default:
@@ -18,15 +23,19 @@ default:
 
 [group("Main")]
 apply auth="":
-    @just maintenance::apply "{{auth}}"
+    @cd nix-config && just maintenance::apply "{{auth}}"
 
 [group("Main")]
 apply-fast *args="":
-    @just maintenance::apply-fast {{args}}
+    @cd nix-config && just maintenance::apply-fast {{args}}
 
 [group("Main")]
 apply-boot auth="":
-    @just maintenance::apply-boot "{{auth}}"
+    @cd nix-config && just maintenance::apply-boot "{{auth}}"
+
+[group("Main")]
+check:
+    @cd nix-config && just maintenance::check
 
 [group("Main")]
 check-shells:
@@ -34,7 +43,7 @@ check-shells:
 
 [group("Main")]
 switch *args="":
-    @just nixos::switch {{args}}
+    @cd nix-config && just nixos::switch {{args}}
 
 [group("Main")]
 status:
@@ -46,19 +55,19 @@ audit-locks:
 
 [group("Main")]
 phone *args:
-    @just android::phone {{args}}
+    @cd nix-config && just android::phone {{args}}
 
 [group("Main")]
 phone-push:
-    @just android::phone-push
+    @cd nix-config && just android::phone-push
 
 [group("Main")]
 phone-backup-fetch:
-    @just android::phone-backup-fetch
+    @cd nix-config && just android::phone-backup-fetch
 
 [group("Main")]
 tablet *args:
-    @just android::tablet {{args}}
+    @cd nix-config && just android::tablet {{args}}
 
 
 # --- Workspace Hub (Premium Interactive Menu) ---
