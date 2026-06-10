@@ -11,14 +11,15 @@ set -euo pipefail
 LOCK="/tmp/workspace-just.lock"
 
 if [ ! -e "$LOCK" ]; then
-    echo "✅ No active workspace lock found."
-    exit 0
+  echo "✅ No active workspace lock found."
+  exit 0
 fi
 
 # Try to take a non-blocking exclusive lock. If we can, nobody else holds it.
 if flock -n "$LOCK" -c true 2>/dev/null; then
-    echo "✅ Lock file exists but is NOT held by any active process."
+  echo "✅ Lock file exists but is NOT held by any active process."
 else
-    echo "🕵️  Workspace is LOCKED. Active tasks:"
-    ps -eo pid,user,start,command | grep -E 'just|nixos-rebuild|nh os|nix build|nix eval' | grep -v grep || true
+  echo "🕵️  Workspace is LOCKED. Active tasks:"
+  # Use pgrep -af (shellcheck SC2009 — preferred over grepping ps output).
+  pgrep -af 'just|nixos-rebuild|nh os|nix build|nix eval' || true
 fi

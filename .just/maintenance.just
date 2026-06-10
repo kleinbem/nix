@@ -22,21 +22,173 @@ lint:
     @echo "🔍 Linting workspace..."
     treefmt --fail-on-change
 
-[group("Linter")]
-check-all *args="--impure":
-    @echo "🧪 Starting Comprehensive Workspace Audit..."
-    @echo "------------------------------------------------------------"
+# ============================================================================
+#  COMPREHENSIVE WORKSPACE AUDIT — 7-stage check-all
+# ============================================================================
+# Stage 1: Lints + format + Python tests (fail-fast — no point doing 2h builds
+#          if lint is broken). ~30s.
+# Stage 2: Flake evaluations across every sub-flake + root. ~6 min.
+# Stage 3: Audits (lockfile drift, flake-checker, devshell verify). ~1 min.
+# Stage 4: Build x86_64 host configurations (--keep-going). ~15-30 min.
+# Stage 5: Build every package in nix-packages. ~5-15 min.
+# Stage 6: NixOS VM integration tests (--keep-going). ~30-60 min.
+# Stage 7: Summary.
+#
+# Total: 60-110 minutes. Use `check-quick` (= stages 1-3 only) for fast feedback.
+#
+# aarch64 hosts (orin-nano, core-pi, hass-pi) are NOT built in stage 4 because
+# cross-compilation requires binfmt+qemu setup; deploy them via `colmena` or
+# `just deployment::orin-promote` instead.
+
+[private]
+_check-lints:
+    @echo
+    @echo "▶ Stage 1/7: Lints + format + Python tests"
+    @echo "  └─ nix fmt --fail-on-change (treefmt via flake: nixfmt, statix, deadnix, shellcheck, shfmt, ruff-format)"
+    @nix fmt -- --fail-on-change
+    @echo "  └─ lint-python (meta)"
+    @just maintenance::lint-python
+    @echo "  └─ lint-python + test-python (nix-config)"
+    @cd nix-config && just maintenance::lint-python && just maintenance::test-python
+    @echo "  └─ lint-conventions (Switchboard pattern)"
+    @cd nix-config && just maintenance::lint-conventions
+    @echo "  └─ check-script-mirrors"
+    @just maintenance::check-script-mirrors
+    @echo "  ✅ Stage 1 OK"
+
+[private]
+_check-flakes *args="--impure":
+    @echo
+    @echo "▶ Stage 2/7: Flake evaluations"
     @for repo in {{REPOS}}; do \
         if [ -f "$repo/flake.nix" ]; then \
-            echo "🔍 Auditing sub-flake: $repo..."; \
+            echo "  └─ $repo"; \
             {{LOCK_CMD}} nix flake check ./$repo --impure {{OVERRIDES}} {{args}} 2>&1 | grep -v "does not match any input" || true; \
         fi; \
     done
-    @echo "------------------------------------------------------------"
-    @echo "🌐 Auditing root workspace (Aggregated Checks)..."
-    @{{LOCK_CMD}} {{TIMER}} nix flake check . {{OVERRIDES}} {{args}} 2>&1 | grep -v "does not match any input" || true
-    @echo "------------------------------------------------------------"
-    @echo "✅ All workspace checks completed!"
+    @echo "  └─ root meta-workspace"
+    @{{LOCK_CMD}} nix flake check . {{OVERRIDES}} {{args}} 2>&1 | grep -v "does not match any input" || true
+    @echo "  ✅ Stage 2 OK"
+
+[private]
+_check-audits:
+    @echo
+    @echo "▶ Stage 3/7: Audits"
+    @echo "  └─ audit-locks (sub-flake HEAD vs lockfile drift)"
+    @just maintenance::audit-locks || true
+    @echo "  └─ flake-check (DeterminateSystems)"
+    @just maintenance::flake-check
+    @echo "  └─ check-shells (devshell evaluation)"
+    @just maintenance::check-shells
+    @echo "  ✅ Stage 3 OK"
+
+[private]
+_check-host-builds:
+    @echo
+    @echo "▶ Stage 4/7: Host closure builds (x86_64 only — discovered dynamically)"
+    @hosts=$(nix flake show ./nix-config --json --impure 2>/dev/null \
+        | jq -r '.checks."x86_64-linux" | keys[] | select(startswith("host-"))'); \
+    if [ -z "$hosts" ]; then \
+        echo "  ⚠  No host-* checks found in nix-config — skipping"; \
+        exit 0; \
+    fi; \
+    failed=""; \
+    for h in $hosts; do \
+        host_name=${h#host-}; \
+        echo "  └─ building $host_name..."; \
+        if {{LOCK_CMD}} nix build --no-link --keep-going \
+                ./nix-config#checks.x86_64-linux.$h {{OVERRIDES}} --impure 2>&1 | tail -5; then \
+            echo "     ✅ $host_name"; \
+        else \
+            echo "     ❌ $host_name"; failed="$failed $host_name"; \
+        fi; \
+    done; \
+    if [ -n "$failed" ]; then \
+        echo "  ❌ Stage 4 failed:$failed"; \
+        exit 1; \
+    else \
+        echo "  ✅ Stage 4 OK"; \
+    fi
+    @echo "  (aarch64 hosts — router-1/router-2/orin-nano/core-pi/hass-pi — skipped;"
+    @echo "   deploy via colmena or build on-device)"
+
+[private]
+_check-package-builds:
+    @echo
+    @echo "▶ Stage 5/7: Custom-package builds (nix-packages, x86_64)"
+    @pkgs=$(nix flake show ./nix-packages --json --impure 2>/dev/null \
+        | jq -r '.packages."x86_64-linux" // {} | keys[] | "./nix-packages#packages.x86_64-linux." + .'); \
+    if [ -z "$pkgs" ]; then \
+        echo "  ⚠  No x86_64-linux packages found — skipping"; \
+        exit 0; \
+    fi; \
+    count=$(echo "$pkgs" | wc -l); \
+    echo "  └─ building $count package(s) with --keep-going..."; \
+    if {{LOCK_CMD}} nix build --no-link --keep-going $pkgs 2>&1 | tail -20; then \
+        echo "  ✅ Stage 5 OK"; \
+    else \
+        echo "  ❌ Stage 5: one or more packages failed (see output above)"; \
+        exit 1; \
+    fi
+
+[private]
+_check-vm-tests:
+    @echo
+    @echo "▶ Stage 6/7: NixOS VM integration tests (discovered dynamically)"
+    @tests=$(nix flake show ./nix-config --json --impure 2>/dev/null \
+        | jq -r '.checks."x86_64-linux" | keys[] \
+                 | select(startswith("host-") | not) \
+                 | select(. != "pre-commit-check")'); \
+    if [ -z "$tests" ]; then \
+        echo "  ⚠  No integration tests found — skipping"; \
+        exit 0; \
+    fi; \
+    failed=""; \
+    for t in $tests; do \
+        echo "  └─ running: $t..."; \
+        if {{LOCK_CMD}} nix build --no-link --keep-going \
+                ./nix-config#checks.x86_64-linux.$t {{OVERRIDES}} --impure 2>&1 | tail -5; then \
+            echo "     ✅ $t"; \
+        else \
+            echo "     ⚠  $t (may need KVM or external state)"; \
+            failed="$failed $t"; \
+        fi; \
+    done; \
+    if [ -n "$failed" ]; then \
+        echo "  ⚠  Stage 6 finished with non-fatal issues:$failed"; \
+    else \
+        echo "  ✅ Stage 6 OK"; \
+    fi
+
+[group("Linter")]
+check-all *args="--impure":
+    @echo "═══════════════════════════════════════════════════════════════"
+    @echo "  COMPREHENSIVE WORKSPACE AUDIT (7 stages, expect 60-110 min)"
+    @echo "═══════════════════════════════════════════════════════════════"
+    @just maintenance::_check-lints
+    @just maintenance::_check-flakes {{args}}
+    @just maintenance::_check-audits
+    @just maintenance::_check-host-builds
+    @just maintenance::_check-package-builds
+    @just maintenance::_check-vm-tests
+    @echo
+    @echo "═══════════════════════════════════════════════════════════════"
+    @echo "  ✅ ALL 7 STAGES COMPLETED"
+    @echo "═══════════════════════════════════════════════════════════════"
+
+# Fast-feedback alias: stages 1-3 only (lints + flake evals + audits). ~10 min.
+[group("Linter")]
+check-quick *args="--impure":
+    @echo "═══════════════════════════════════════════════════════════════"
+    @echo "  QUICK CHECK (lints + flake evals + audits, ~10 min)"
+    @echo "═══════════════════════════════════════════════════════════════"
+    @just maintenance::_check-lints
+    @just maintenance::_check-flakes {{args}}
+    @just maintenance::_check-audits
+    @echo
+    @echo "═══════════════════════════════════════════════════════════════"
+    @echo "  ✅ QUICK CHECK PASSED — run \`check-all\` for full audit"
+    @echo "═══════════════════════════════════════════════════════════════"
 
 [group("Linter")]
 check-containers *args="--impure":

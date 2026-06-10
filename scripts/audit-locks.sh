@@ -18,28 +18,28 @@ RESET='\033[0m'
 
 drift_count=0
 for dir in "$REPO_ROOT"/nix-*; do
-    [ -d "$dir/.git" ] || continue
-    name=$(basename "$dir")
+  [ -d "$dir/.git" ] || continue
+  name=$(basename "$dir")
 
-    locked=$(echo "$LOCKS" | jq -r --arg n "$name" '.[$n].locked.rev // empty')
-    if [ -z "$locked" ]; then
-        printf "  %-20s %b(no lock entry — not a flake input?)%b\n" "$name" "$YELLOW" "$RESET"
-        continue
-    fi
+  locked=$(echo "$LOCKS" | jq -r --arg n "$name" '.[$n].locked.rev // empty')
+  if [ -z "$locked" ]; then
+    printf "  %-20s %b(no lock entry — not a flake input?)%b\n" "$name" "$YELLOW" "$RESET"
+    continue
+  fi
 
-    current=$(git -C "$dir" rev-parse HEAD)
-    if [ "$locked" = "$current" ]; then
-        printf "  %-20s %b✓ in sync%b  (%s)\n" "$name" "$GREEN" "$RESET" "${locked:0:12}"
-    else
-        printf "  %-20s %b⚠ DRIFT%b\n" "$name" "$RED" "$RESET"
-        printf "    lock:  %s\n" "${locked:0:12}"
-        printf "    head:  %s\n" "${current:0:12}"
-        drift_count=$((drift_count + 1))
-    fi
+  current=$(git -C "$dir" rev-parse HEAD)
+  if [ "$locked" = "$current" ]; then
+    printf "  %-20s %b✓ in sync%b  (%s)\n" "$name" "$GREEN" "$RESET" "${locked:0:12}"
+  else
+    printf "  %-20s %b⚠ DRIFT%b\n" "$name" "$RED" "$RESET"
+    printf "    lock:  %s\n" "${locked:0:12}"
+    printf "    head:  %s\n" "${current:0:12}"
+    drift_count=$((drift_count + 1))
+  fi
 done
 
 if [ "$drift_count" -gt 0 ]; then
-    echo
-    echo "ℹ  $drift_count drift(s) detected. Run \`just maintenance::update-local\` to sync."
-    exit 1
+  echo
+  echo "ℹ  $drift_count drift(s) detected. Run \`just maintenance::update-local\` to sync."
+  exit 1
 fi
