@@ -2716,11 +2716,11 @@
         "treefmt-nix": "treefmt-nix_4"
       },
       "locked": {
-        "lastModified": 1781192474,
-        "narHash": "sha256-FwKZLGw7e8S5rxDnXm4JdjSIt8JcqiL1UWFt8p9J/pk=",
+        "lastModified": 1781192504,
+        "narHash": "sha256-fTGXWB8hFAHge4yvVSGOt4vbMne15wq7SkVeyZBIwWc=",
         "ref": "refs/heads/main",
-        "rev": "8aa1fe905695a8f650bfae5a777d3fd233cc572c",
-        "revCount": 395,
+        "rev": "a0e52961b8407a39e4adf4e418104be222bce506",
+        "revCount": 396,
         "type": "git",
         "url": "file:///home/martin/Develop/github.com/kleinbem/nix/nix-config"
       },
