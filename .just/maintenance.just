@@ -316,6 +316,13 @@ update-antigravity:
     @cd {{ROOT}}/nix-packages && just update-antigravity
 
 [group("Updates")]
+update-container container_name:
+    @echo "🚀 Triggering out-of-band update for container '{{container_name}}'..."
+    @sudo systemctl start update-container@{{container_name}}.service
+    @echo "⏳ Update started in the background. Check logs with:"
+    @echo "   journalctl -fu update-container@{{container_name}}.service"
+
+[group("Updates")]
 lock-refresh:
     @echo "🔄 Refreshing all sub-flake lock files with local overrides..."
     @for repo in {{REPOS}}; do \
