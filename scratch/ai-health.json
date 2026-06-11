@@ -1,9 +1,9 @@
 {
-  "last_check": "2026-06-07T21:19:24.357969",
+  "last_check": "2026-06-10T08:49:29.743315",
   "error_count": 30,
   "status": "Degraded",
   "recent_units": [
-    "crowdsec-firewall-bouncer.service",
-    "unknown"
+    "unknown",
+    "crowdsec-firewall-bouncer.service"
   ]
 }
