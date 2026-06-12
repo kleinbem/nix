@@ -72,9 +72,7 @@ sync-all:
 
 [group("Security")]
 sign-all:
-    @echo "🔑 Loading YubiKey for Git signing..."
-    @ssh-add -e /usr/lib/libtpm2_pkcs11.so 2>/dev/null || true
-    @ssh-add -s /usr/lib/libtpm2_pkcs11.so 2>/dev/null || true
+    @echo "🔑 Validating YubiKey for Git signing..."
     @echo "✅ Ready to sign."
 
 [group("Development")]

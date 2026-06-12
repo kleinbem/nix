@@ -53,19 +53,14 @@ jobs:
               inv = import ./nix-config/inventory.nix;
               getRunner = sys: if sys == "aarch64-linux" then "ubuntu-24.04-arm" else [ "self-hosted" "nixos" ];
               # Filter out helper hosts that we do not want to build as full standalone OS closures
-              hosts = builtins.filter (h: h != "container-factory" && h != "orin-nano-bootstrap") (builtins.attrNames configs);
+              hosts = builtins.filter (h: h != "container-factory" && h != "orin-nano-bootstrap" && h != "orin-nano") (builtins.attrNames configs);
             in
               builtins.filter (x: x != null) (builtins.map (name:
                 let meta = inv.hosts.${name} or {}; in
-                # TEMPORARY (revisit after the wired OpenWrt router lands): only build
-                # x86_64 hosts in CI. The aarch64 fleet (orin-nano, core-pi, hass-pi) is
-                # excluded because it cannot cache via hosted ARM runners — pushes hit
-                # Cloudflares 413 body cap, and orin-nano fails a jetpack/nixpkgs eval
-                # skew. They are built & deployed on-target via colmena in the meantime.
-                if (meta.system or "") == "x86_64-linux" then {
+                {
                   host = name;
-                  runner = getRunner meta.system;
-                } else null
+                  runner = getRunner (meta.system or "");
+                }
               ) hosts)
           ' --json $NIX_OVERRIDES)
           
@@ -129,6 +124,14 @@ jobs:
           extra-conf: |
             sandbox = false
             trusted-users = root runner
+
+      - name: Setup NetBird VPN
+        run: |
+          curl -fsSL https://pkgs.netbird.io/install.sh | sh
+          sudo netbird up --setup-key ${{ secrets.NETBIRD_SETUP_KEY }}
+
+      - name: Route Attic over NetBird
+        run: echo "100.117.212.232 cache.kleinbem.dev" | sudo tee -a /etc/hosts
 
       - name: Setup Attic Cache
         uses: ryanccn/attic-action@v0
