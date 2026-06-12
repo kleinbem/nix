@@ -82,8 +82,8 @@ for repo_dir in "${REPOS[@]}"; do
     echo -e "  🧹 Only unsigned lockfile updates detected. ${GREEN}Squashing into 1 signed commit...${RESET}"
     # Soft reset to remote state
     git -C "$path" reset --soft "origin/$branch"
-    # Commit manually (will sign using user's config)
-    git -C "$path" commit -m "chore: auto-update lockfile"
+    # Commit manually (will sign using user's config, bypassing buggy ssh-agent)
+    env SSH_AUTH_SOCK= git -C "$path" commit -m "chore: auto-update lockfile"
     echo -e "  ✅ Squashed and signed!"
   else
     echo -e "  ⚠️ Unsigned manual commits detected."
