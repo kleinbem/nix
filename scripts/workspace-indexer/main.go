@@ -102,7 +102,7 @@ func worker(id int, ollamaUrl string, jobs <-chan Job, results chan<- *IndexEntr
 			continue
 		}
 		content := string(contentBytes)
-		
+
 		prompt := content
 		if len(prompt) > 1000 {
 			prompt = prompt[:1000]
@@ -122,7 +122,7 @@ func worker(id int, ollamaUrl string, jobs <-chan Job, results chan<- *IndexEntr
 		if err != nil {
 			continue
 		}
-		
+
 		if resp.StatusCode != 200 {
 			resp.Body.Close()
 			continue
@@ -192,7 +192,7 @@ func main() {
 	}
 
 	os.MkdirAll(filepath.Dir(INDEX_PATH), 0755)
-	
+
 	f, err := os.Create(INDEX_PATH)
 	if err != nil {
 		fmt.Printf("Error creating index file: %v\n", err)

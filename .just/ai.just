@@ -7,7 +7,7 @@ set working-directory := ".."
 # live in `nix-config/.just/ai.just`.
 
 [group("Status")]
-ai-sync:
+sync-all:
     @echo "🔄 Syncing Agentic Hub documentation..."
     @for repo in {{REPOS}}; do \
         if [ -d "$repo/.agent/knowledge" ]; then \
@@ -17,7 +17,7 @@ ai-sync:
     done
 
 [group("Knowledge")]
-ai-distill title="unnamed-session":
+distill-session title="unnamed-session":
     @echo "🧠 Distilling knowledge into permanence: {{title}}"
     @git diff HEAD | nix run nixpkgs#llm -- "Summarize these changes into a technical knowledge item for the meta-repo." > .agent/knowledge/distilled-{{title}}.md
 

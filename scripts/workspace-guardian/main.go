@@ -49,7 +49,7 @@ func runHealthCheck() {
 		if err := json.Unmarshal(out.Bytes(), &errors); err == nil {
 			if len(errors) > 0 {
 				logMsg(fmt.Sprintf("Detected %d system errors.", len(errors)))
-				
+
 				units := make(map[string]bool)
 				for _, e := range errors {
 					if e.Unit != "" {

@@ -15,7 +15,7 @@ mod extensions '.just/extensions.just'
 #   mod orin     — orin::ping, shell, stats, logs, …
 #   mod android  — android::phone, tablet, phone-push, phone-backup-fetch
 #   mod ai       (host-side only — ai::ai-check, ai-shell, ai-logs)
-# The meta `mod ai` above retains: ai-sync, ai-distill, architect, code, plan, local, distill
+# The meta `mod ai` above retains: sync-all, distill-session, architect, code, plan, local, distill
 
 [group("Main")]
 default:
@@ -46,12 +46,12 @@ switch *args="":
     @cd nix-config && just nixos::switch {{args}}
 
 [group("Main")]
-status:
-    @just git::status
+status-all:
+    @just git::status-all
 
 [group("Main")]
-audit-locks:
-    @just maintenance::audit-locks
+audit-locks-all:
+    @just maintenance::audit-locks-all
 
 [group("Main")]
 phone *args:

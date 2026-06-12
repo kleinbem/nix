@@ -9,13 +9,13 @@ set working-directory := ".."
 # apply-fast, apply-boot, check) or `cd nix-config && just maintenance::X`.
 
 [group("Formatting")]
-fmt:
+format:
     @echo "🎨 Formatting and fixing all Nix and Shell code..."
     treefmt
 
 [group("Formatting")]
 fix:
-    @just maintenance::fmt
+    @just maintenance::format
 
 [group("Linter")]
 lint:
@@ -75,9 +75,9 @@ _check-audits:
     @echo
     @echo "▶ Stage 3/7: Audits"
     @echo "  └─ audit-locks (sub-flake HEAD vs lockfile drift)"
-    @just maintenance::audit-locks || true
+    @just maintenance::audit-locks-all || true
     @echo "  └─ flake-check (DeterminateSystems)"
-    @just maintenance::flake-check
+    @just maintenance::check-flakes
     @echo "  └─ check-shells (devshell evaluation)"
     @just maintenance::check-shells
     @echo "  ✅ Stage 3 OK"
@@ -211,23 +211,23 @@ lint-python *args="":
 
 # Format Python in the meta-workspace scripts/ dir.
 [group("Formatting")]
-fmt-python *args="":
+format-python *args="":
     @nix shell nixpkgs#ruff --command ruff format ./scripts/ {{args}}
 
 # Verify the small set of scripts mirrored across nix-presets and nix-devshells
 # haven't drifted. nix-presets is the source of truth.
 [group("Linter")]
-check-script-mirrors:
+check-mirrors:
     @bash ./scripts/check-script-mirrors.sh
 
 [group("Security")]
-audit *args="":
+audit-security *args="":
     @echo "🕵️ Running security audit..."
     @{{LOCK_CMD}} {{TIMER}} nix run nixpkgs#vulnix -- --system {{args}}
 
 [group("Cleanup")]
 [confirm("🧹 This will delete OLD system generations. Proceed?")]
-clean *args="":
+clean-all *args="":
     @echo "🧹 Cleaning up workspace and system..."
     @{{LOCK_CMD}} {{TIMER}} nix-env --delete-generations +{{KEEP}} {{args}}
     @{{LOCK_CMD}} {{TIMER}} nix-collect-garbage -d {{args}}
@@ -236,24 +236,30 @@ clean *args="":
     done
 
 [group("System")]
-hooks-refresh:
+hooks-refresh-all:
     @echo "⚓ Refreshing Git hooks..."
     @rm -rf .git/hooks/*
-    @for repo in {{REPOS}}; do rm -rf $repo/.git/hooks/*; done
+    @if [ -d .git/modules ]; then \
+        for mod in .git/modules/*; do \
+            rm -rf "$mod/hooks/*"; \
+        done; \
+    fi
+    @for repo in {{REPOS}}; do rm -rf "$repo/.git/hooks/*" 2>/dev/null || true; done
     @direnv allow
+    @nix develop --command bash -c 'prek install && for repo in {{REPOS}}; do if [ -f "$repo/.pre-commit-config.yaml" ]; then echo "Installing hooks in $repo..."; (cd "$repo" && prek install) || true; fi; done'
 
 [group("System")]
-docs:
+build-docs:
     @echo "📚 Generating configuration documentation..."
     @{{LOCK_CMD}} nix build .#docs
 
 [group("System")]
-health-check:
+check-health:
     @echo "🏥 Running system health check..."
     @python3 ./scripts/ai-logs.py --sink
 
 [group("System")]
-history:
+build-history:
     @echo "📜 Rebuilding history index..."
     @python3 ./scripts/rebuild_history.py --sync
 
@@ -280,7 +286,7 @@ organize-notes:
     @bash ./scripts/organize-notes.sh
 
 [group("Notes")]
-vault-check:
+check-vault:
     @echo "🏠 Checking vault integrity..."
     @bash ./scripts/vault-health.sh
 
@@ -323,7 +329,7 @@ update-container container_name:
     @echo "   journalctl -fu update-container@{{container_name}}.service"
 
 [group("Updates")]
-lock-refresh:
+lock-refresh-all:
     @echo "🔄 Refreshing all sub-flake lock files with local overrides..."
     @for repo in {{REPOS}}; do \
         if [ -f "$repo/flake.nix" ]; then \
@@ -340,14 +346,14 @@ lock-refresh:
     done
 
 [group("Audit")]
-audit-locks:
+audit-locks-all:
     @bash ./scripts/audit-locks.sh
 
 # Lint flake.lock for staleness, EOL inputs, security issues (DeterminateSystems'
 # flake-checker). Complements `audit-locks` (which compares your local sub-flake
 # HEADs against the lock); this one checks upstream health of every input.
 [group("Audit")]
-flake-check:
+check-flakes:
     @echo "🩺 Running flake-checker (input freshness, security, EOL…)"
     @nix run github:DeterminateSystems/flake-checker -- ./flake.lock
 

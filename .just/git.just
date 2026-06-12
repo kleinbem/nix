@@ -5,7 +5,7 @@ set working-directory := ".."
 # --- Git Operations ---
 
 [group("Status")]
-status:
+status-all:
     @echo "📊 Workspace Status Dashboard"
     @printf "%-30s %-20s %-10s\n" "REPOSITORY" "BRANCH" "STATUS"
     @printf "%-30s %-20s %-10s\n" "------------------------------" "--------------------" "----------"
@@ -27,7 +27,7 @@ stage-all:
 
 
 [group("Sync")]
-pull:
+pull-all:
     @echo "📥 Pulling latest changes for all repositories..."
     @for repo in {{REPOS}}; do \
         echo "Updating $repo..."; \
@@ -35,7 +35,7 @@ pull:
     done
 
 [group("Sync")]
-save message:
+save-all message:
     @echo "💾 Saving workspace state: {{message}}"
     @for repo in {{REPOS}}; do \
         if [ -n "$(git -C $repo status --short)" ]; then \
@@ -49,7 +49,7 @@ save message:
     @echo "✅ Workspace state saved."
 
 [group("Sync")]
-push:
+push-all:
     @./scripts/git-sign-all.sh
     @echo "📤 Pushing all changes..."
     @for repo in {{REPOS}}; do \
@@ -59,7 +59,7 @@ push:
 
 [group("Sync")]
 [confirm("⚠️ This will HARD RESET all repositories to origin/main. Continue?")]
-sync:
+sync-all:
     @echo "🔄 Synchronizing all workspace modules..."
     @git submodule sync --recursive
     @git submodule update --init --recursive
@@ -71,7 +71,7 @@ sync:
     @echo "✅ Workspace synchronized."
 
 [group("Security")]
-git-sign:
+sign-all:
     @echo "🔑 Loading YubiKey for Git signing..."
     @ssh-add -e /usr/lib/libtpm2_pkcs11.so 2>/dev/null || true
     @ssh-add -s /usr/lib/libtpm2_pkcs11.so 2>/dev/null || true
@@ -79,7 +79,7 @@ git-sign:
 
 [group("Development")]
 [confirm("🌿 This will create a new branch in ALL repositories. Continue?")]
-branch name:
+branch-all name:
     @echo "🌿 Creating branch '{{name}}' across workspace..."
     @git checkout -b {{name}}
     @for repo in {{REPOS}}; do \

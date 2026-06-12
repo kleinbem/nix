@@ -15,11 +15,11 @@ fleet mode="minimal":
     @nix run nixpkgs#glances
 
 [group("Development")]
-dev-dashboard:
+launch-dashboard:
     @echo "📊 Launching Local Dashboard..."
     @HOMEPAGE_CONFIG_DIR=$(pwd)/.dev-dashboard XDG_CACHE_HOME=$(pwd)/.dev-dashboard/cache PORT=8083 nix run nixpkgs#homepage-dashboard
 
 [group("Cloudflare")]
 [doc("Deploy Cloudflare Tunnel and wildcard CNAME records via OpenTofu")]
-cf-apply:
+deploy-cloudflare:
     @./scripts/tf-apply.sh
