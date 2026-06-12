@@ -356,7 +356,7 @@ who:
     @bash ./scripts/check-lock.sh
 
 update-all *args="":
-    @echo "🚀 Starting Comprehensive System Update (Bluefin Style)..."
+    @echo "🚀 Starting System Update ..."
     @{{LOCK_CMD}} nix flake update {{OVERRIDES}} {{args}}
     @echo "📦 Updating Flatpaks..."
     @flatpak update -y
