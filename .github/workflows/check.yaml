@@ -145,6 +145,31 @@ jobs:
             --override-input nix-packages git+file://$GITHUB_WORKSPACE/nix-packages \
             --override-input nix-templates git+file://$GITHUB_WORKSPACE/nix-templates" >> "$GITHUB_ENV"
 
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v22
+
+      - name: Setup NetBird VPN
+        run: |
+          curl -fsSL https://pkgs.netbird.io/install.sh | sh
+          sudo netbird up --setup-key ${{ secrets.NETBIRD_SETUP_KEY }}
+
+      - name: Route Attic over NetBird
+        run: echo "100.117.212.232 cache.kleinbem.dev" | sudo tee -a /etc/hosts
+
+      - name: Trust internal Caddy CA
+        run: |
+          sudo cp nix-config/pki/caddy-root.crt /usr/local/share/ca-certificates/caddy-root.crt
+          sudo update-ca-certificates
+          echo "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt" >> $GITHUB_ENV
+          echo "NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt" >> $GITHUB_ENV
+
+      - name: Setup Attic Cache
+        uses: ryanccn/attic-action@v0
+        with:
+          endpoint: https://cache.kleinbem.dev/
+          cache: system
+          token: ${{ secrets.ATTIC_PUSH_TOKEN }}
+
       - name: Build & run x86_64 checks (executes the nixosTest VMs)
         run: |
           # The fast flake-checks job above only EVALUATES checks (drvPath) for quick
