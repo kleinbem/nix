@@ -183,4 +183,4 @@ jobs:
           # deps cached) we actually BUILD the checks, which RUNS the nixosTest VMs
           # (caddy-test, code-server-test, mobile-link-test, recovery-test) plus the
           # module/host checks. Scoped to x86_64 to skip the aarch64 jetpack eval skew.
-          nix flake check . --system x86_64-linux --impure -L $NIX_OVERRIDES
+          nix flake check . --system x86_64-linux --impure -L --max-jobs 1 --cores 2 $NIX_OVERRIDES
