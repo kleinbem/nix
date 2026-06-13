@@ -1,0 +1,26 @@
+--- a/nix-config/hosts/nixos-nvme/network.nix
++++ b/nix-config/hosts/nixos-nvme/network.nix
+@@ -67,6 +67,22 @@
+       ];
+     };
+     nftables.enable = true;
++    nat = {
++      enable = true;
++      externalInterface = "wt0";
++      internalInterfaces = [ myInventory.network.bridge ];
++      forwardPorts = [
++        {
++          sourcePort = 443;
++          proto = "tcp";
++          destination = "${myInventory.network.nodes.caddy.ip}:443";
++        }
++        {
++          sourcePort = 80;
++          proto = "tcp";
++          destination = "${myInventory.network.nodes.caddy.ip}:80";
++        }
++      ];
++    };
+   };
+ 
+   services = {
