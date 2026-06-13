@@ -131,8 +131,8 @@ jobs:
           extra-conf: |
             sandbox = false
             trusted-users = root runner
-            min-free = 2147483648
-            max-free = 6442450944
+            min-free = 1073741824
+            max-free = 2147483648
 
       - name: Setup NetBird VPN
         run: |
