@@ -131,8 +131,12 @@ jobs:
           extra-conf: |
             sandbox = false
             trusted-users = root runner
-            min-free = 1073741824
-            max-free = 2147483648
+
+      - name: Configure Nix Auto-GC
+        run: |
+          echo "min-free = 1073741824" | sudo tee -a /etc/nix/nix.conf
+          echo "max-free = 2147483648" | sudo tee -a /etc/nix/nix.conf
+          sudo systemctl restart nix-daemon
 
       - name: Setup NetBird VPN
         run: |
