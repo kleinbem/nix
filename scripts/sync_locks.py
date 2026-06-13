@@ -128,7 +128,9 @@ def main():
             print(f"  📝 {YELLOW}flake.lock updated. Committing change...{RESET}")
             # Stage and commit flake.lock in the submodule
             run_cmd(["git", "add", "flake.lock"], cwd=sub_path)
-            # Use pre-commit skip if present to avoid hook loops
+            # Skip pre-commit hooks to avoid lint loops on auto-generated
+            # lockfile changes. Signing follows the user's git config
+            # (commit.gpgsign=true) — required by branch protection.
             success, _ = run_cmd(
                 [
                     "git",
@@ -136,7 +138,6 @@ def main():
                     "-m",
                     "chore: auto-update lockfile",
                     "--no-verify",
-                    "--no-gpg-sign",
                 ],
                 cwd=sub_path,
                 capture=True,
