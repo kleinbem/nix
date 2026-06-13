@@ -24,10 +24,16 @@ variable "github_tf_token" {
   description = "Fine-grained PAT for distributing Actions secrets to the nix CI repos (Secrets R/W + Metadata R on nix, nix-config, nix-packages)."
 }
 
-variable "github_ci_pat" {
+variable "github_app_id" {
   type        = string
   sensitive   = true
-  description = "CI automation PAT distributed as the GH_PAT Actions secret (Contents R/W + Pull requests R/W on nix-packages for the Antigravity auto-merge workflow)."
+  description = "GitHub App ID, distributed as the APP_ID Actions secret. Workflows mint a short-lived installation token via actions/create-github-app-token instead of using a long-lived PAT. Required App permissions: Contents R/W + Pull requests R/W on kleinbem/nix-config and kleinbem/nix-packages."
+}
+
+variable "github_app_private_key" {
+  type        = string
+  sensitive   = true
+  description = "GitHub App private key (PEM), distributed as the APP_PRIVATE_KEY Actions secret. Used by actions/create-github-app-token to mint installation tokens at workflow runtime."
 }
 
 variable "attic_push_token" {

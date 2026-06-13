@@ -5,19 +5,25 @@
 # the github-config repo. Secrets are write-only (no drift detection needed).
 #
 # All repo *settings/rulesets/labels* are owned by the github-config repo.
+#
+# Auth strategy: workflows that need to write back to GitHub (PRs, Contents
+# API pushes, auto-merge) mint a short-lived installation token via
+# actions/create-github-app-token using APP_ID + APP_PRIVATE_KEY. The long-lived
+# GH_PAT has been retired — see git history if you need to resurrect it.
 # ---------------------------------------------------------------------------
 
 locals {
   # repo -> secrets it receives.
   ci_secrets = {
-    "nix"          = ["ATTIC_PUSH_TOKEN", "GH_PAT"]
-    "nix-config"   = ["ATTIC_PUSH_TOKEN", "GH_PAT"]
-    "nix-packages" = ["ATTIC_PUSH_TOKEN", "GH_PAT"]
+    "nix"          = ["ATTIC_PUSH_TOKEN"]
+    "nix-config"   = ["ATTIC_PUSH_TOKEN", "APP_ID", "APP_PRIVATE_KEY"]
+    "nix-packages" = ["ATTIC_PUSH_TOKEN", "APP_ID", "APP_PRIVATE_KEY"]
   }
 
   secret_values = {
     "ATTIC_PUSH_TOKEN" = var.attic_push_token
-    "GH_PAT"           = var.github_ci_pat
+    "APP_ID"           = var.github_app_id
+    "APP_PRIVATE_KEY"  = var.github_app_private_key
   }
 
   ci_secret_pairs = merge([

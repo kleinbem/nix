@@ -1,6 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Usage: tf-apply.sh [--plan-only]
+#   --plan-only  Run `tofu plan` and exit without applying.
+MODE="apply"
+for arg in "$@"; do
+  case "$arg" in
+    --plan-only|--plan) MODE="plan" ;;
+    -h|--help)
+      echo "Usage: $0 [--plan-only]"
+      echo "  Default: decrypt sops, run \`tofu apply -auto-approve\`, write back tunnel_id."
+      echo "  --plan-only: decrypt sops, run \`tofu plan\`, exit."
+      exit 0
+      ;;
+  esac
+done
+
 # Ensure we have the required tools
 if ! command -v tofu &>/dev/null || ! command -v sops &>/dev/null || ! command -v jq &>/dev/null || ! command -v yq &>/dev/null; then
   echo "📦 Launching in nix shell with opentofu, sops, jq, and yq..."
@@ -57,17 +72,21 @@ export TF_VAR_cloudflare_account_id="$ACCOUNT_ID"
 export TF_VAR_cloudflare_tunnel_secret="$TUNNEL_SECRET"
 
 # --- GitHub provider inputs (sourced from sops) ---
-# Reuses the existing spare `github_pat` sops key as the CI automation PAT
-# distributed to repos as GH_PAT. `github_tf_token` is the admin PAT the
-# provider authenticates with; `attic_push_token` becomes the ATTIC_PUSH_TOKEN
-# secret. Add these keys to nix-secrets/secrets.yaml to manage GitHub via IaC.
+# `github_tf_token` is the admin PAT the provider authenticates with.
+# `github_app_id` + `github_app_private_key` are the GitHub App credentials
+# distributed to CI repos as APP_ID / APP_PRIVATE_KEY (replaces the retired
+# long-lived GH_PAT — workflows mint short-lived tokens via
+# actions/create-github-app-token at runtime).
+# `attic_push_token` becomes the ATTIC_PUSH_TOKEN secret.
 GH_TF_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.github_tf_token')
-GH_CI_PAT=$(echo "$DECRYPTED_YAML" | yq '.github_pat')
+GH_APP_ID=$(echo "$DECRYPTED_YAML" | yq '.github_app_id')
+GH_APP_PRIVATE_KEY=$(echo "$DECRYPTED_YAML" | yq '.github_app_private_key')
 ATTIC_PUSH=$(echo "$DECRYPTED_YAML" | yq '.attic_push_token')
 
 # Normalise missing keys ("null") to empty strings
 [ "$GH_TF_TOKEN" = "null" ] && GH_TF_TOKEN=""
-[ "$GH_CI_PAT" = "null" ] && GH_CI_PAT=""
+[ "$GH_APP_ID" = "null" ] && GH_APP_ID=""
+[ "$GH_APP_PRIVATE_KEY" = "null" ] && GH_APP_PRIVATE_KEY=""
 [ "$ATTIC_PUSH" = "null" ] && ATTIC_PUSH=""
 
 if [ -z "$GH_TF_TOKEN" ]; then
@@ -75,14 +94,28 @@ if [ -z "$GH_TF_TOKEN" ]; then
   echo -e "    Add a fine-grained PAT (Administration + Issues + Secrets: R/W on the nix-* repos) under key 'github_tf_token' to manage GitHub via IaC.${RESET}"
 fi
 
+if [ -z "$GH_APP_ID" ] || [ -z "$GH_APP_PRIVATE_KEY" ]; then
+  echo -e "${YELLOW}⚠️  github_app_id or github_app_private_key not set in secrets.yaml — CI workflows that mint App tokens will fail.${RESET}"
+fi
+
 export TF_VAR_github_tf_token="$GH_TF_TOKEN"
-export TF_VAR_github_ci_pat="$GH_CI_PAT"
+export TF_VAR_github_app_id="$GH_APP_ID"
+export TF_VAR_github_app_private_key="$GH_APP_PRIVATE_KEY"
 export TF_VAR_attic_push_token="$ATTIC_PUSH"
 
-# 2. OpenTofu Init & Apply
-echo -e "\n${BOLD}[2/4] Initializing and applying OpenTofu plan...${RESET}"
+# 2. OpenTofu Init & Plan/Apply
+echo -e "\n${BOLD}[2/4] Initializing OpenTofu...${RESET}"
 cd terraform
 tofu init
+
+if [ "$MODE" = "plan" ]; then
+  echo -e "\n${BOLD}🔎 Running plan only (no changes will be applied)...${RESET}"
+  tofu plan
+  echo -e "\n${BOLD}${GREEN}✅ Plan complete. Re-run without --plan-only to apply.${RESET}"
+  exit 0
+fi
+
+echo -e "\n${BOLD}Applying OpenTofu plan...${RESET}"
 tofu apply -auto-approve
 
 # 3. Capture Output
