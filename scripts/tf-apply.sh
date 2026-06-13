@@ -6,13 +6,13 @@ set -euo pipefail
 MODE="apply"
 for arg in "$@"; do
   case "$arg" in
-    --plan-only|--plan) MODE="plan" ;;
-    -h|--help)
-      echo "Usage: $0 [--plan-only]"
-      echo "  Default: decrypt sops, run \`tofu apply -auto-approve\`, write back tunnel_id."
-      echo "  --plan-only: decrypt sops, run \`tofu plan\`, exit."
-      exit 0
-      ;;
+  --plan-only | --plan) MODE="plan" ;;
+  -h | --help)
+    echo "Usage: $0 [--plan-only]"
+    echo '  Default: decrypt sops, run `tofu apply -auto-approve`, write back tunnel_id.'
+    echo '  --plan-only: decrypt sops, run `tofu plan`, exit.'
+    exit 0
+    ;;
   esac
 done
 
