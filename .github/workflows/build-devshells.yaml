@@ -72,7 +72,7 @@ jobs:
     needs: generate-matrix
     # Self-hosted (nixos-nvme): build + push to Attic over LAN. Hosted runners hit
     # Cloudflare's 413 body cap on large NAR pushes (ai-dev/ultimate are multi-GB).
-    runs-on: [self-hosted, nixos]
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       # Serialize so devshells don't push to Attic concurrently (shared chunks race
@@ -112,6 +112,14 @@ jobs:
           extra-conf: |
             sandbox = false
             trusted-users = root runner
+
+      - name: Setup NetBird VPN
+        run: |
+          curl -fsSL https://pkgs.netbird.io/install.sh | sh
+          sudo netbird up --setup-key ${{ secrets.NETBIRD_SETUP_KEY }}
+
+      - name: Route Attic over NetBird
+        run: echo "100.117.212.232 cache.kleinbem.dev" | sudo tee -a /etc/hosts
 
       - name: Setup Attic Cache
         uses: ryanccn/attic-action@v0

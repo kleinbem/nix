@@ -51,7 +51,7 @@ jobs:
           MATRIX_JSON=$(nix eval .#nixosConfigurations --impure --apply 'configs:
             let
               inv = import ./nix-config/inventory.nix;
-              getRunner = sys: if sys == "aarch64-linux" then "ubuntu-24.04-arm" else [ "self-hosted" "nixos" ];
+              getRunner = sys: if sys == "aarch64-linux" then "ubuntu-24.04-arm" else "ubuntu-latest";
               # Filter out helper hosts that we do not want to build as full standalone OS closures
               hosts = builtins.filter (h: h != "container-factory" && h != "orin-nano-bootstrap" && h != "orin-nano") (builtins.attrNames configs);
             in

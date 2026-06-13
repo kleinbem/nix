@@ -26,7 +26,7 @@ jobs:
   build-packages:
     name: "Build & Cache Packages"
     # Self-hosted (nixos-nvme): build + push to Attic over LAN (hosted → Cloudflare 413).
-    runs-on: [self-hosted, nixos]
+    runs-on: ubuntu-latest
     steps:
       # (Maximize Build Space removed — Ubuntu-only step, N/A on the self-hosted NixOS runner.)
       - name: Checkout repository
@@ -59,6 +59,14 @@ jobs:
           extra-conf: |
             sandbox = false
             trusted-users = root runner
+
+      - name: Setup NetBird VPN
+        run: |
+          curl -fsSL https://pkgs.netbird.io/install.sh | sh
+          sudo netbird up --setup-key ${{ secrets.NETBIRD_SETUP_KEY }}
+
+      - name: Route Attic over NetBird
+        run: echo "100.117.212.232 cache.kleinbem.dev" | sudo tee -a /etc/hosts
 
       - name: Setup Attic Cache
         uses: ryanccn/attic-action@v0
