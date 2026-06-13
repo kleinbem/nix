@@ -90,6 +90,12 @@ jobs:
           branch: "automation/flake-update"
           delete-branch: true
 
+      - name: Enable Pull Request Automerge
+        if: steps.cpr.outputs.pull-request-operation == 'created'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge --auto --squash "${{ steps.cpr.outputs.pull-request-number }}"
+
   warm-system:
     name: "Warm system closures"
     needs: update
@@ -107,7 +113,7 @@ jobs:
           # bump, and 29 closures are heavy) — dispatch build-containers.yaml manually
           # if a bump touches them.
           BR="${{ needs.update.outputs.branch }}"
-          for wf in build-system.yaml build-packages.yaml build-devshells.yaml; do
+          for wf in build-system.yaml build-packages.yaml build-devshells.yaml check.yaml; do
             echo "Dispatching $wf against $BR"
             gh workflow run "$wf" --repo "$GITHUB_REPOSITORY" --ref "$BR"
           done
