@@ -133,6 +133,13 @@ jobs:
       - name: Route Attic over NetBird
         run: echo "100.117.212.232 cache.kleinbem.dev" | sudo tee -a /etc/hosts
 
+      - name: Trust internal Caddy CA
+        run: |
+          sudo cp nix-config/pki/caddy-root.crt /usr/local/share/ca-certificates/caddy-root.crt
+          sudo update-ca-certificates
+          echo "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt" >> $GITHUB_ENV
+          echo "NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt" >> $GITHUB_ENV
+
       - name: Setup Attic Cache
         uses: ryanccn/attic-action@v0
         with:
