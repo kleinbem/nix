@@ -2879,11 +2879,10 @@
       "locked": {
         "lastModified": 1781432836,
         "narHash": "sha256-qVVYg6H3kX3ayLiib+yJkp15s5gr++9Vi+0UUXw02Cg=",
-        "ref": "refs/heads/main",
+        "owner": "kleinbem",
+        "repo": "nix-hardware",
         "rev": "df165bcc0d3f44e00c648a142004b6efb3da9f2a",
-        "revCount": 127,
-        "type": "git",
-        "url": "file:///home/martin/Develop/github.com/kleinbem/nix/nix-hardware"
+        "type": "github"
       },
       "original": {
         "owner": "kleinbem",
@@ -3002,11 +3001,10 @@
       "locked": {
         "lastModified": 1781432848,
         "narHash": "sha256-z442+CpS5QtQA4HxS2VUMJd7WbNCsLMODLNBPYsXxu4=",
-        "ref": "refs/heads/main",
+        "owner": "kleinbem",
+        "repo": "nix-packages",
         "rev": "7e06784b48b8cd2125d5b5690d45edaf4e23ab8d",
-        "revCount": 127,
-        "type": "git",
-        "url": "file:///home/martin/Develop/github.com/kleinbem/nix/nix-packages"
+        "type": "github"
       },
       "original": {
         "owner": "kleinbem",
@@ -3032,11 +3030,11 @@
         "treefmt-nix": "treefmt-nix_9"
       },
       "locked": {
-        "lastModified": 1781432863,
-        "narHash": "sha256-zJIt0xNo2OHyYGkseG01gcpt/0XgFHrGbwDvnEb8SRI=",
+        "lastModified": 1781469849,
+        "narHash": "sha256-8Eq0RESERf35fMYmaa2maG1jUC6gILsNYyK2J+0CKrs=",
         "ref": "refs/heads/main",
-        "rev": "298629a15669dcacf4e8adaa490a170292da5183",
-        "revCount": 206,
+        "rev": "48cc8815538ba6d046fa50584522484e760a58c5",
+        "revCount": 207,
         "type": "git",
         "url": "file:///home/martin/Develop/github.com/kleinbem/nix/nix-presets"
       },
@@ -3048,11 +3046,11 @@
     "nix-secrets": {
       "flake": false,
       "locked": {
-        "lastModified": 1781349144,
-        "narHash": "sha256-ooayQ8nkAnKpvBsk2Tp60f93kuVJNcHHThkvW0rowQ4=",
+        "lastModified": 1781466791,
+        "narHash": "sha256-7pkt9S6r755YIldhbgZfItZR109SAXE4EmjJQ6xGCNc=",
         "owner": "kleinbem",
         "repo": "nix-secrets",
-        "rev": "851f6d3c6ef82c65ac1caafdc900f891e6f20a0d",
+        "rev": "a1d3c2d034ed4f3c2646c10650de5beffb76265e",
         "type": "github"
       },
       "original": {
@@ -3076,11 +3074,10 @@
       "locked": {
         "lastModified": 1781432855,
         "narHash": "sha256-t5f99zJ28gvgHoeUVq/fi46A270/y5Pwi/YcNFVFGxA=",
-        "ref": "refs/heads/main",
+        "owner": "kleinbem",
+        "repo": "nix-templates",
         "rev": "b820650775cede13d9e6ab2952bcf0d2dae54ff5",
-        "revCount": 115,
-        "type": "git",
-        "url": "file:///home/martin/Develop/github.com/kleinbem/nix/nix-templates"
+        "type": "github"
       },
       "original": {
         "owner": "kleinbem",
