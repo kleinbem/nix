@@ -1,16 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage: tf-apply.sh [--plan-only]
-#   --plan-only  Run `tofu plan` and exit without applying.
+# Usage: tf-apply.sh [--plan-only | --migrate-tunnel]
+#   --plan-only       Run `tofu plan` and exit without applying.
+#   --migrate-tunnel  One-shot: rebind tunnel state from the deprecated
+#                     `cloudflare_tunnel.nixos_nvme` address to
+#                     `cloudflare_zero_trust_tunnel_cloudflared.nixos_nvme`
+#                     via `tofu state rm` + `tofu import`. Idempotent: skips
+#                     cleanly if state is already at the new address.
 MODE="apply"
 for arg in "$@"; do
   case "$arg" in
   --plan-only | --plan) MODE="plan" ;;
+  --migrate-tunnel) MODE="migrate-tunnel" ;;
   -h | --help)
-    echo "Usage: $0 [--plan-only]"
+    echo "Usage: $0 [--plan-only | --migrate-tunnel]"
     echo '  Default: decrypt sops, run `tofu apply -auto-approve`, write back tunnel_id.'
     echo '  --plan-only: decrypt sops, run `tofu plan`, exit.'
+    echo '  --migrate-tunnel: rebind tunnel state to the new resource address.'
     exit 0
     ;;
   esac
@@ -112,6 +119,39 @@ if [ "$MODE" = "plan" ]; then
   echo -e "\n${BOLD}🔎 Running plan only (no changes will be applied)...${RESET}"
   tofu plan
   echo -e "\n${BOLD}${GREEN}✅ Plan complete. Re-run without --plan-only to apply.${RESET}"
+  exit 0
+fi
+
+if [ "$MODE" = "migrate-tunnel" ]; then
+  OLD_ADDR="cloudflare_tunnel.nixos_nvme"
+  NEW_ADDR="cloudflare_zero_trust_tunnel_cloudflared.nixos_nvme"
+
+  # Idempotency: if new address is already in state, nothing to do.
+  if tofu state list 2>/dev/null | grep -qx "$NEW_ADDR"; then
+    echo -e "${GREEN}🟢 ${NEW_ADDR} is already in state — nothing to do.${RESET}"
+    exit 0
+  fi
+
+  if ! tofu state list 2>/dev/null | grep -qx "$OLD_ADDR"; then
+    echo -e "${RED}❌ Neither ${OLD_ADDR} nor ${NEW_ADDR} is in state. Aborting — investigate manually.${RESET}"
+    exit 1
+  fi
+
+  # Extract the live tunnel ID from the old state entry before we remove it.
+  TUNNEL_ID=$(tofu state show "$OLD_ADDR" | awk '/^[[:space:]]*id[[:space:]]*=/{ gsub(/"/, "", $3); print $3; exit }')
+  if [ -z "$TUNNEL_ID" ]; then
+    echo -e "${RED}❌ Could not extract tunnel id from old state entry. Aborting.${RESET}"
+    exit 1
+  fi
+  echo -e "${YELLOW}👉 Extracted tunnel id: ${BOLD}${TUNNEL_ID}${RESET}"
+
+  echo -e "${YELLOW}Removing ${OLD_ADDR} from state (no Cloudflare-side change)...${RESET}"
+  tofu state rm "$OLD_ADDR"
+
+  echo -e "${YELLOW}Importing live tunnel as ${NEW_ADDR}...${RESET}"
+  tofu import "$NEW_ADDR" "${TF_VAR_cloudflare_account_id}/${TUNNEL_ID}"
+
+  echo -e "\n${BOLD}${GREEN}✅ Tunnel state migrated. Run \`$0 --plan-only\` to verify zero diff.${RESET}"
   exit 0
 fi
 
