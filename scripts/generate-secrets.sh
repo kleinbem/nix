@@ -35,7 +35,7 @@ generate_secret() {
 generate_secret "langfuse_nextauth_secret" "base64"
 generate_secret "langfuse_salt" "hex"
 generate_secret "n8n_encryption_key" "hex"
-generate_secret "webui_secret_key" "base64"
+generate_secret "openwebui_secret_key" "base64"
 
 echo ""
 echo "Instructions:"
