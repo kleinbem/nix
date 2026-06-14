@@ -307,11 +307,19 @@ reset-firefox-laboratory:
 
 [group("Updates")]
 [private]
-update-core *args="":
+_warmup-ssh:
+    @if ! ssh -O check git@github.com 2>/dev/null; then \
+        echo "🔑 Waking up YubiKey for GitHub (enter PIN & touch)..."; \
+        ssh -f -N git@github.com; \
+    fi
+
+[group("Updates")]
+[private]
+update-core *args="": _warmup-ssh
     @{{LOCK_CMD}} nix flake update {{OVERRIDES}} {{args}}
 
 [group("Updates")]
-update-local:
+update-local: _warmup-ssh
     @{{LOCK_CMD}} python3 ./scripts/sync_locks.py
 
 # Bump Antigravity to latest (delegates to nix-packages' own justfile, which
@@ -329,7 +337,7 @@ update-container container_name:
     @echo "   journalctl -fu update-container@{{container_name}}.service"
 
 [group("Updates")]
-lock-refresh-all:
+lock-refresh-all: _warmup-ssh
     @echo "🔄 Refreshing all sub-flake lock files with local overrides..."
     @for repo in {{REPOS}}; do \
         if [ -f "$repo/flake.nix" ]; then \
@@ -361,7 +369,7 @@ check-flakes:
 who:
     @bash ./scripts/check-lock.sh
 
-update-all *args="":
+update-all *args="": _warmup-ssh
     @echo "🚀 Starting System Update ..."
     @{{LOCK_CMD}} nix flake update {{OVERRIDES}} {{args}}
     @echo "📦 Updating Flatpaks..."

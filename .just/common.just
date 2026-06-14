@@ -11,5 +11,5 @@ OVERRIDES := shell("echo '" + REPOS + "' | sed -E 's|([^ ]+)|--override-input \\
 KEEP := "3"
 TIMER := "time "
 LOCK_FILE := "/tmp/workspace-just.lock"
-# Non-blocking lock command
-LOCK_CMD := "flock -n " + LOCK_FILE + " "
+# Non-blocking lock command wrapper for better error messages
+LOCK_CMD := "bash -c 'if ! flock -n 9; then echo \"❌ ERROR: Workspace locked by another process at " + LOCK_FILE + ". Run \\`just maintenance::who\\` to check.\"; exit 1; fi; \"$@\"' 9>>" + LOCK_FILE + " -- "
