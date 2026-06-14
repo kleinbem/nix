@@ -52,8 +52,8 @@ _check-lints:
     @cd nix-config && just maintenance::lint-python && just maintenance::test-python
     @echo "  └─ lint-conventions (Switchboard pattern)"
     @cd nix-config && just maintenance::lint-conventions
-    @echo "  └─ check-script-mirrors"
-    @just maintenance::check-script-mirrors
+    @echo "  └─ check-mirrors"
+    @just maintenance::check-mirrors
     @echo "  ✅ Stage 1 OK"
 
 [private]

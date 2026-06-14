@@ -36,7 +36,8 @@ locals {
 resource "github_actions_secret" "ci" {
   for_each = local.ci_secret_pairs
 
-  repository      = each.value.repo
-  secret_name     = each.value.secret
-  plaintext_value = local.secret_values[each.value.secret]
+  repository  = each.value.repo
+  secret_name = each.value.secret
+  # `value` replaces the deprecated `plaintext_value` argument (provider v6.x).
+  value = local.secret_values[each.value.secret]
 }
