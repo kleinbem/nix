@@ -2,7 +2,7 @@
 import '.just/common.just'
 
 # --- Modules ---
-mod git '.just/git.just'
+mod jj '.just/jj.just'
 mod ai '.just/ai.just'
 mod deployment '.just/deployment.just'
 mod maintenance '.just/maintenance.just'
@@ -47,7 +47,7 @@ switch *args="":
 
 [group("Main")]
 status-all:
-    @just git::status-all
+    @just jj::status-all
 
 [group("Main")]
 audit-locks-all:
@@ -80,7 +80,7 @@ hub:
     LIST=$(just --summary | tr ' ' '\n' | sort | awk '{
         icon="🛠️";
         if ($1 ~ /^android::/) icon="📱";
-        else if ($1 ~ /^git::/) icon="🔄";
+        else if ($1 ~ /^jj::/) icon="🔄";
         else if ($1 ~ /^nixos::/) icon="🏗️";
         else if ($1 ~ /^ai::/) icon="🤖";
         else if ($1 ~ /^devshell::/) icon="💻";
