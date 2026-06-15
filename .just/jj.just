@@ -2,20 +2,19 @@ import 'common.just'
 
 set working-directory := ".."
 
-# --- Workspace VCS operations (jj-only) ---
+# --- Workspace VCS operations (jj-first) ---
 #
 # Every commit/log/push/branch op flows through jj. Signing is automatic
 # via the file-based NoTouch key (`sign-all = true` in jj config) — no
 # agent, no PIN, no touch, no -S flag.
 #
-# jj operates per-repo. These recipes loop over all submodules and the
-# meta-workspace, calling jj inside each. Submodule pointer bumps in the
-# meta are captured by jj describe like any other file change.
+# Each sub-flake listed in `repos.nix` is its own independent git+jj
+# repo (NOT a git submodule — see `just jj::bootstrap`). The meta repo
+# is also a colocated jj repo. These recipes loop over each sub-flake
+# AND meta, calling jj inside each.
 #
-# Genuine submodule-orchestration operations (init / sync / hard-reset)
-# are intentionally not included — when needed, git is the right tool
-# and clear enough to type directly. The previous `sync-all` and
-# `resign-legacy` recipes have been removed.
+# Use `git` only for legacy rescue ops or destructive resets — none of
+# those are wrapped here; type them directly when needed.
 
 # --- Status / read-only ---
 
@@ -46,29 +45,23 @@ pull-all:
 
 # Describe (commit) dirty changes across the workspace.
 #
-# Per-submodule: each has its own colocated jj — uses `jj describe`,
+# Per sub-flake: each has its own colocated jj — uses `jj describe`,
 # advances main bookmark, starts fresh empty change.
 #
-# Meta: uses `git commit -S` because jj in the meta is intentionally
-# blind to submodule pointer changes (jj treats submodules as opaque).
-# git is the only tool that sees them. Regular meta file changes that
-# don't touch submodules also go through this same git commit — the
-# duality isn't worth a second commit to satisfy jj-purity.
-#
-# Submodules first so meta's pointer bump reflects their new HEADs.
+# Meta: regular file changes (justfile, scripts/, devenv.nix, etc.)
+# go through `jj describe` too — meta is also a colocated jj repo.
+# Sub-flake directories are gitignored, so they never appear as changes
+# here. Submodule pointer bumps are no longer a thing (see repos.nix).
 [group("Sync")]
 save-all message:
     @echo "💾 Saving workspace state: {{message}}"
-    @for repo in {{REPOS}}; do \
+    @for repo in {{REPOS}} .; do \
+        name=$([ "$repo" = "." ] && echo "(meta)" || echo "$repo"); \
         if [ -n "$(cd $repo && jj diff --summary 2>/dev/null)" ]; then \
-            echo "  📝 $repo — describing via jj..."; \
+            echo "  📝 $name — describing..."; \
             (cd $repo && jj describe -m "{{message}}" && jj bookmark move main --to @ && jj new); \
         fi \
     done
-    @if [ -n "$(git status --porcelain)" ]; then \
-        echo "  📝 (meta) — committing via git (jj can't see submodule pointers)..."; \
-        git add -A && git commit -S -m "{{message}}"; \
-    fi
     @echo "✅ Workspace state saved."
 
 # Push every repo. `--allow-new` covers first push of a new bookmark.
@@ -82,6 +75,14 @@ push-all:
     done
 
 # --- Bootstrap ---
+
+# Sync = bootstrap (clone any missing) + pull-all (fetch + rebase existing).
+# Run after pulling a fresh meta repo to catch any new sub-flakes added
+# to repos.nix and update all existing checkouts.
+[group("Development")]
+sync:
+    @just jj::bootstrap
+    @just jj::pull-all
 
 # Clone every sub-flake listed in repos.nix and initialize jj on it.
 # Replaces the old `git submodule update --init` flow — meta no longer

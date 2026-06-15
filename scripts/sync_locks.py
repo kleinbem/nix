@@ -64,7 +64,7 @@ def main():
 
     print(f"{BOLD}{CYAN}🔄 Topological Workspace Lockfile Sync...{RESET}\n")
 
-    # 1. Pre-check: Ensure no submodules have other uncommitted changes
+    # 1. Pre-check: Ensure no sub-flake has other uncommitted changes
     dirty_repos = []
     for sub in TOPOLOGICAL_ORDER:
         sub_path = os.path.join(root_dir, sub)
@@ -73,18 +73,18 @@ def main():
 
     if dirty_repos:
         print(
-            f"{RED}❌ Cannot perform sync. The following submodules have other uncommitted changes:{RESET}"
+            f"{RED}❌ Cannot perform sync. The following sub-flakes have other uncommitted changes:{RESET}"
         )
         for r in dirty_repos:
             print(f"  • {BOLD}{r}{RESET}")
         print(
-            f'\nPlease stash or commit these changes first using {BOLD}just git::save "your message"{RESET}.'
+            f'\nPlease commit these changes first using {BOLD}just jj::save-all "your message"{RESET}.'
         )
         sys.exit(1)
 
-    print("🟢 All submodules are clean of non-lockfile changes. Proceeding...\n")
+    print("🟢 All sub-flakes are clean of non-lockfile changes. Proceeding...\n")
 
-    # 2. Update submodules in topological order
+    # 2. Update sub-flakes in topological order
     for sub in TOPOLOGICAL_ORDER:
         sub_path = os.path.join(root_dir, sub)
         if not os.path.exists(sub_path) or not os.path.exists(
@@ -173,18 +173,16 @@ def main():
     if success and status.strip():
         print(f"  📝 {YELLOW}Root flake.lock updated. Staging change...{RESET}")
         run_cmd(["git", "add", "flake.lock"], cwd=root_dir)
-
-        # Stage the updated submodule commits in the root repo
-        for sub in TOPOLOGICAL_ORDER:
-            run_cmd(["git", "add", sub], cwd=root_dir)
-
-        print(f"  {GREEN}Workspace root lockfile and submodule pointers staged!{RESET}")
+        # Note: sub-flakes are no longer git submodules of meta (see
+        # repos.nix + .gitignore). Their per-repo flake.lock commits land
+        # in their own repos; nothing further to stage here.
+        print(f"  {GREEN}Workspace root lockfile staged!{RESET}")
     else:
         print(f"  🟢 {GREEN}Root lockfile already in sync!{RESET}")
 
     print(f"\n✨ {BOLD}{GREEN}Topological lockfile sync complete!{RESET}")
     print("To save the updated state in the root repository, run:")
-    print(f'  {BOLD}git commit -m "chore: update flake lockfiles"{RESET}')
+    print(f'  {BOLD}jj describe -m "chore: update flake lockfiles"{RESET}')
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ Guidance for AI assistants (Claude Code, Gemini CLI, Codex, Aider, Antigravity, 
 
 ## Overview
 
-This is a **meta-workspace** — a root flake that aggregates multiple independent sub-flakes via git submodules into one cohesive NixOS environment. It does not contain most configuration logic itself; it orchestrates sub-repos that do.
+This is a **meta-workspace** — a root flake that aggregates multiple independent sub-flakes cloned via a manifest (`repos.nix`) into one cohesive NixOS environment. It does not contain most configuration logic itself; it orchestrates sub-repos that do. The sub-flakes are **independent git+jj repos** (not git submodules); meta references their live filesystem paths via `--override-input`. Bootstrap a fresh checkout with `just jj::bootstrap`.
 
 ## Key Commands
 
@@ -67,7 +67,7 @@ nix (this repo — meta-workspace)
     └── nix-secrets   ← sops-encrypted secrets (flake = false)
 ```
 
-All sub-flakes are git submodules under the repo root and are referenced as local `git+file://` inputs in `flake.nix`. The `OVERRIDES` variable in `common.just` generates `--override-input` flags so local edits are picked up without pushing.
+All sub-flakes are **standalone git+jj repos** cloned under the meta root (NOT git submodules — see `repos.nix` for the manifest, `just jj::bootstrap` to set up a fresh machine). They are referenced from `nix-config/flake.nix` as local `git+file://` inputs. The `OVERRIDES` variable in `common.just` generates `--override-input` flags so local edits are picked up without pushing.
 
 ## nix-config Structure
 
