@@ -1,4 +1,14 @@
-# Submodules are now tracked via .gitmodules
+# Sub-flake directories — each is its own independent git repo, cloned
+# via `just jj::bootstrap` from repos.nix. NOT tracked as git submodules
+# (meta doesn't pin specific commits; deployment uses live local via
+# --override-input — see OVERRIDES in .just/common.just).
+nix-config/
+nix-devshells/
+nix-hardware/
+nix-packages/
+nix-presets/
+nix-secrets/
+nix-templates/
 
 # Environment State
 .direnv/

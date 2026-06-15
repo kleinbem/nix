@@ -81,6 +81,27 @@ push-all:
         (cd $repo && jj git push 2>&1 | grep -v 'Nothing changed' || true); \
     done
 
+# --- Bootstrap ---
+
+# Clone every sub-flake listed in repos.nix and initialize jj on it.
+# Replaces the old `git submodule update --init` flow — meta no longer
+# pins specific commits; each sub-flake clones at its own current main.
+# Idempotent: skips any directory that already exists.
+[group("Development")]
+bootstrap:
+    @echo "🌱 Bootstrapping workspace from repos.nix..."
+    @for repo in $(nix eval --raw --file repos.nix --apply 'rs: builtins.concatStringsSep " " (builtins.attrNames rs)'); do \
+        if [ -d "$repo" ]; then \
+            echo "  ✓ $repo (already cloned)"; \
+        else \
+            url=$(nix eval --raw --file repos.nix --apply "rs: rs.\"$repo\""); \
+            echo "  📦 cloning $repo from $url..."; \
+            git clone "$url" "$repo"; \
+            (cd "$repo" && jj git init --colocate && jj bookmark track main --remote=origin); \
+        fi \
+    done
+    @echo "✅ Workspace bootstrapped."
+
 # --- Branch management ---
 
 # One-time setup per repo: tell jj that the local `main` bookmark
