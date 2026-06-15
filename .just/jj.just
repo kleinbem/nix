@@ -78,7 +78,7 @@ push-all:
     @for repo in {{REPOS}} .; do \
         name=$([ "$repo" = "." ] && echo "(meta)" || echo "$repo"); \
         echo "  $name..."; \
-        (cd $repo && jj git push --allow-new 2>&1 | grep -v 'Nothing changed' || true); \
+        (cd $repo && jj git push 2>&1 | grep -v 'Nothing changed' || true); \
     done
 
 # --- Branch management ---
