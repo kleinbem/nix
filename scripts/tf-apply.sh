@@ -15,9 +15,9 @@ for arg in "$@"; do
   --migrate-tunnel) MODE="migrate-tunnel" ;;
   -h | --help)
     echo "Usage: $0 [--plan-only | --migrate-tunnel]"
-    echo '  Default: decrypt sops, run `tofu apply -auto-approve`, write back tunnel_id.'
-    echo '  --plan-only: decrypt sops, run `tofu plan`, exit.'
-    echo '  --migrate-tunnel: rebind tunnel state to the new resource address.'
+    echo "  Default:          decrypt sops, run 'tofu apply -auto-approve', write back tunnel_id."
+    echo "  --plan-only:      decrypt sops, run 'tofu plan', exit."
+    echo "  --migrate-tunnel: rebind tunnel state to the new resource address."
     exit 0
     ;;
   esac
