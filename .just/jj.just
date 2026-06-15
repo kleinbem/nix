@@ -44,16 +44,22 @@ pull-all:
         (cd $repo && jj git fetch && jj rebase -d main@origin 2>&1 | grep -v 'Nothing changed' || true); \
     done
 
-# Describe (commit) any dirty change in every repo. Submodules first so
-# the meta pointer bump reflects their new HEADs.
+# Describe (commit) any dirty change in every repo, advance the main
+# bookmark so the new commit is the published tip, then start a fresh
+# empty change. Submodules first so the meta pointer bump reflects
+# their new HEADs.
+#
+# The bookmark-move is the bit jj doesn't do automatically — without
+# it, the new commit sits "between" main and the empty @, and
+# `git push` complains about detached HEAD.
 [group("Sync")]
 save-all message:
     @echo "💾 Saving workspace state: {{message}}"
     @for repo in {{REPOS}} .; do \
         name=$([ "$repo" = "." ] && echo "(meta)" || echo "$repo"); \
-        if ! (cd $repo && jj diff --quiet 2>/dev/null); then \
+        if [ -n "$(cd $repo && jj diff --summary 2>/dev/null)" ]; then \
             echo "  📝 $name — describing..."; \
-            (cd $repo && jj describe -m "{{message}}" && jj new); \
+            (cd $repo && jj describe -m "{{message}}" && jj bookmark move main --to @ && jj new); \
         fi \
     done
     @echo "✅ Workspace state saved."
@@ -69,6 +75,19 @@ push-all:
     done
 
 # --- Branch management ---
+
+# One-time setup per repo: tell jj that the local `main` bookmark
+# tracks `main@origin`. Without this, `jj git push` warns about
+# non-tracking bookmarks and refuses to push. Idempotent — safe to
+# re-run across the whole workspace.
+[group("Development")]
+init-bookmarks:
+    @echo "🔗 Linking local main <-> origin/main across workspace..."
+    @for repo in {{REPOS}} .; do \
+        name=$([ "$repo" = "." ] && echo "(meta)" || echo "$repo"); \
+        echo "  $name..."; \
+        (cd $repo && jj bookmark track main --remote=origin 2>&1 | grep -v 'already tracked' || true); \
+    done
 
 [group("Development")]
 [confirm("🌿 This will create a new bookmark in ALL repositories. Continue?")]
