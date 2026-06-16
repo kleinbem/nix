@@ -87,6 +87,12 @@ check-signatures:
 #      doesn't see (e.g. CI-bot commits that are ahead of jj's
 #      tracked main but not pushed yet).
 #
+# After rebase, this recipe reattaches `main` to the new HEAD and
+# runs `jj git import` so jj's bookmark follows. Without that, jj's
+# `main` stays at the pre-signing hash and `jj git push` reports
+# "no bookmarks to push" — the caller would have to fall back to
+# `git push` manually (the recurring bookmark-drift pain).
+#
 # First operation per session may need a YubiKey PIN entry; cached
 # thereafter. MUST be run from a terminal (FIDO needs interactive UI).
 [group("Sync")]
@@ -99,14 +105,19 @@ sign-unsigned:
             | awk '$1 != "G" && $1 != ""' | wc -l); \
         if [ "$unsigned" -gt 0 ]; then \
             echo "  🖊️  $name — re-signing $unsigned commit(s)..."; \
-            (cd $repo && git rebase --exec \
+            if (cd $repo && git rebase --exec \
                 'if [ "$(git log -1 --format=%G?)" != "G" ]; then git commit --amend --no-edit -S; fi' \
-                origin/main) || echo "    ⚠️  rebase failed in $name — fix manually"; \
+                origin/main); then \
+                (cd $repo && git branch -f main HEAD && git checkout main >/dev/null 2>&1 && jj git import >/dev/null 2>&1) \
+                    && echo "    ↳ reattached main + jj bookmark"; \
+            else \
+                echo "    ⚠️  rebase failed in $name — fix manually"; \
+            fi; \
             any_done=1; \
         fi; \
     done; \
     if [ "$any_done" -eq 0 ]; then echo "✓ Nothing to sign — all ahead-of-origin commits already signed"; \
-    else echo "✅ Done. Verify: just jj::check-signatures"; fi
+    else echo "✅ Done. Verify: just jj::check-signatures (then push: just jj::push-all)"; fi
 
 # --- Sync ---
 
