@@ -317,6 +317,7 @@ check-flakes:
 who:
     @bash ./scripts/check-lock.sh
 
+[group("Updates")]
 update-all *args="":
     @echo "🚀 Starting System Update ..."
     @{{LOCK_CMD}} nix flake update {{OVERRIDES}} {{args}}
