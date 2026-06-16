@@ -13,10 +13,6 @@ format:
     @echo "🎨 Formatting and fixing all Nix and Shell code..."
     treefmt
 
-[group("Formatting")]
-fix:
-    @just maintenance::format
-
 [group("Linter")]
 lint:
     @echo "🔍 Linting workspace..."

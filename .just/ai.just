@@ -6,8 +6,8 @@ set working-directory := ".."
 # Host-side AI operations (service health, model provisioning, agent logs)
 # live in `nix-config/.just/ai.just`.
 
-[group("Status")]
-sync-all:
+[group("Knowledge")]
+knowledge-sync:
     @echo "🔄 Syncing Agentic Hub documentation..."
     @for repo in {{REPOS}}; do \
         if [ -d "$repo/.agent/knowledge" ]; then \
