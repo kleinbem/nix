@@ -22,10 +22,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Init submodules (skip nix-secrets)
-        run: |
-          git config --global url."https://github.com/".insteadOf "git@github.com:"
-          git -c submodule."nix-secrets".update=none submodule update --init --recursive
+      - name: Clone sub-flakes (from repos.nix)
+        run: ./scripts/clone-subflakes.sh
 
       - name: Set up dummy secrets
         run: ./scripts/write-dummy-secrets.sh
@@ -106,10 +104,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Init submodules (skip nix-secrets)
-        run: |
-          git config --global url."https://github.com/".insteadOf "git@github.com:"
-          git -c submodule."nix-secrets".update=none submodule update --init --recursive
+      - name: Clone sub-flakes (from repos.nix)
+        run: ./scripts/clone-subflakes.sh
 
       - name: Set up dummy secrets
         run: ./scripts/write-dummy-secrets.sh
