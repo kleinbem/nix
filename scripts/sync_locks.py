@@ -125,30 +125,14 @@ def main():
             ["git", "status", "--porcelain", "flake.lock"], cwd=sub_path, capture=True
         )
         if success and status.strip():
-            print(f"  📝 {YELLOW}flake.lock updated. Committing change...{RESET}")
-            # Stage and commit flake.lock in the submodule
+            print(f"  📝 {YELLOW}flake.lock updated. Staging (not committing).{RESET}")
+            # Stage only — the human commits via `just jj::save-all` or
+            # `jj describe` when convenient. Auto-committing here triggered
+            # one YubiKey touch per sub-flake during `just apply` (signing
+            # under non-interactive subprocess context), which is more
+            # friction than it's worth for purely-machine-generated commits.
             run_cmd(["git", "add", "flake.lock"], cwd=sub_path)
-            # Skip pre-commit hooks to avoid lint loops on auto-generated
-            # lockfile changes. Signing follows the user's git config
-            # (commit.gpgsign=true) — required by branch protection.
-            success, _ = run_cmd(
-                [
-                    "git",
-                    "commit",
-                    "-m",
-                    "chore: auto-update lockfile",
-                    "--no-verify",
-                ],
-                cwd=sub_path,
-                capture=True,
-            )
-            if success:
-                print(
-                    f"  ✅ Committed new state at {BOLD}{get_git_head(sub_path)}{RESET}"
-                )
-            else:
-                print(f"  {RED}❌ Failed to commit lockfile update in {sub}{RESET}")
-                sys.exit(1)
+            print(f"  ✅ Staged in {BOLD}{sub}{RESET} (commit when ready)")
         else:
             print(
                 f"  🟢 {GREEN}Already in sync at {BOLD}{get_git_head(sub_path)}{RESET}"
