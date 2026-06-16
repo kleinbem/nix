@@ -30,6 +30,61 @@ status-all:
         printf "%-30s %s — %s\n" "$name" "$change" "$diff"; \
     done
 
+# Audit commits ahead of origin for missing/bad signatures.
+# Surfaces the silent-unsigned-commit failure mode where jj describe
+# from a non-interactive context (e.g. Claude subprocess) produced a
+# commit without signing.
+# Exit code is 0 if all clean, non-zero if any unsigned commits exist.
+[group("Status")]
+check-signatures:
+    @echo "🔐 Signature audit (commits ahead of origin/main)"
+    @echo "------------------------------------------------"
+    @any_bad=0; \
+    for repo in {{REPOS}} .; do \
+        name=$([ "$repo" = "." ] && echo "(meta)" || echo "$repo"); \
+        unsigned=$(git -C $repo log --format='%H %G? %s' "origin/main..HEAD" 2>/dev/null \
+            | awk '$2 != "G" && $2 != ""' || true); \
+        if [ -n "$unsigned" ]; then \
+            echo "❌ $name"; \
+            echo "$unsigned" | awk '{printf "   %s [%s] %s\n", substr($1,1,12), $2, substr($0, index($0,$3))}'; \
+            any_bad=1; \
+        else \
+            ahead=$(git -C $repo rev-list --count "origin/main..HEAD" 2>/dev/null || echo 0); \
+            if [ "$ahead" -eq 0 ]; then \
+                echo "✓  $name (no commits ahead)"; \
+            else \
+                echo "✓  $name ($ahead commit(s), all signed)"; \
+            fi; \
+        fi; \
+    done; \
+    echo "------------------------------------------------"; \
+    if [ "$any_bad" -eq 1 ]; then \
+        echo "🔧 Fix with: just jj::sign-unsigned"; \
+        exit 1; \
+    else \
+        echo "✅ All ahead-of-origin commits are signed"; \
+    fi
+
+# Sign every unsigned commit ahead of origin across the workspace.
+# Each repo's first signing triggers one YubiKey PIN/touch (cached
+# thereafter). Companion to check-signatures.
+[group("Sync")]
+sign-unsigned:
+    @echo "🔐 Signing unsigned commits ahead of origin..."
+    @for repo in {{REPOS}} .; do \
+        name=$([ "$repo" = "." ] && echo "(meta)" || echo "$repo"); \
+        ahead=$(git -C $repo rev-list --count "origin/main..HEAD" 2>/dev/null || echo 0); \
+        if [ "$ahead" -gt 0 ]; then \
+            unsigned=$(git -C $repo log --format='%H %G?' "origin/main..HEAD" 2>/dev/null \
+                | awk '$2 != "G" && $2 != ""' | wc -l); \
+            if [ "$unsigned" -gt 0 ]; then \
+                echo "  🖊️  $name — signing $unsigned commit(s)..."; \
+                (cd $repo && jj sign -r 'main@origin..main' 2>&1 | grep -v '^$' || true); \
+            fi; \
+        fi; \
+    done
+    @echo "✅ Done. Verify: just jj::check-signatures"
+
 # --- Sync ---
 
 # Fetch from origin in every repo and rebase the working-copy change
