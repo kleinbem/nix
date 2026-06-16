@@ -15,9 +15,15 @@
 locals {
   # repo -> secrets it receives.
   ci_secrets = {
-    "nix"          = ["ATTIC_PUSH_TOKEN"]
-    "nix-config"   = ["ATTIC_PUSH_TOKEN", "APP_ID", "APP_PRIVATE_KEY"]
-    "nix-packages" = ["ATTIC_PUSH_TOKEN", "APP_ID", "APP_PRIVATE_KEY"]
+    "nix"            = ["ATTIC_PUSH_TOKEN"]
+    "nix-config"     = ["ATTIC_PUSH_TOKEN", "APP_ID", "APP_PRIVATE_KEY"]
+    "nix-packages"   = ["ATTIC_PUSH_TOKEN", "APP_ID", "APP_PRIVATE_KEY"]
+    # APP_ID + APP_PRIVATE_KEY needed by each sub-flake's maintain.yaml
+    # workflow (auto-updates flake.lock + commits via Contents API).
+    "nix-devshells"  = ["APP_ID", "APP_PRIVATE_KEY"]
+    "nix-hardware"   = ["APP_ID", "APP_PRIVATE_KEY"]
+    "nix-templates"  = ["APP_ID", "APP_PRIVATE_KEY"]
+    "nix-presets"    = ["APP_ID", "APP_PRIVATE_KEY"]
   }
 
   secret_values = {
