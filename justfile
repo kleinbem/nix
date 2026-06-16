@@ -49,6 +49,15 @@ switch *args="":
 status-all:
     @just jj::status-all
 
+# Pass-through to any sub-flake's justfile from the meta root.
+# Usage:
+#   just in nix-config nixos::switch
+#   just in nix-presets check
+#   just in nix-secrets edit secrets.yaml
+[group("Main")]
+in repo *args:
+    @cd {{repo}} && just {{args}}
+
 [group("Main")]
 audit-locks-all:
     @just maintenance::audit-locks-all
