@@ -1,0 +1,96 @@
+# AWS SES — outbound mail relay for Stalwart.
+#
+# Stalwart's host IP doesn't have email-sending reputation; SES does.
+# Stalwart authenticates to SES via SMTP credentials (an IAM user with
+# `ses:SendRawEmail`, converted to SMTP user/pass via AWS's standard
+# derivation).
+#
+# Cost: $0.10 per 1000 emails sent. At persona-fleet volumes (mostly
+# GitHub notifications + 2FA codes received, occasional outbound),
+# this rounds to free.
+
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = var.aws_region
+}
+
+variable "aws_region" {
+  type        = string
+  default     = "eu-central-1"
+  description = "AWS region for the SES identity (eu-central-1 = Frankfurt, low latency to EU senders)."
+}
+
+# --- SES domain identity for kleinbem.dev ---
+# Triggers AWS to expect 3 DKIM CNAMEs in the zone (auto-published by
+# aws_route53_record if you ran the zone in Route53; for Cloudflare DNS,
+# you fetch the DKIM tokens from this resource and add CNAMEs manually
+# via the cloudflare_record block below).
+resource "aws_sesv2_email_identity" "primary_domain" {
+  email_identity = local.primary_domain
+  dkim_signing_attributes {
+    next_signing_key_length = "RSA_2048_BIT"
+  }
+}
+
+# --- Cloudflare CNAMEs for SES-generated DKIM tokens ---
+# SES emits 3 tokens; each becomes a CNAME pointing at the SES service.
+resource "cloudflare_record" "ses_dkim" {
+  count   = 3
+  zone_id = data.cloudflare_zone.main.id
+  name    = "${aws_sesv2_email_identity.primary_domain.dkim_signing_attributes[0].tokens[count.index]}._domainkey"
+  type    = "CNAME"
+  content = "${aws_sesv2_email_identity.primary_domain.dkim_signing_attributes[0].tokens[count.index]}.dkim.amazonses.com"
+  proxied = false
+}
+
+# --- IAM user with SES sending permissions ---
+# A single SMTP user covers all personas; SES doesn't need per-sender
+# IAM. If you ever want per-persona send quotas/billing, switch to
+# configuration sets keyed off the persona name.
+resource "aws_iam_user" "stalwart_smtp" {
+  name = "stalwart-smtp-sender"
+  path = "/system/"
+}
+
+resource "aws_iam_user_policy" "stalwart_smtp" {
+  name = "ses-send-raw-email"
+  user = aws_iam_user.stalwart_smtp.name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["ses:SendRawEmail", "ses:SendEmail"]
+      Resource = "*"
+    }]
+  })
+}
+
+# Access keys for the IAM user — Terraform generates them, you then
+# convert to SMTP credentials per AWS docs:
+#   https://docs.aws.amazon.com/ses/latest/dg/smtp-credentials.html
+# Final user/pass goes into nix-secrets/stalwart/ses-smtp-credentials.
+resource "aws_iam_access_key" "stalwart_smtp" {
+  user = aws_iam_user.stalwart_smtp.name
+}
+
+# Sensitive outputs — capture once after `tofu apply`, encrypt into sops,
+# then never read from state again. Output them sensitive so they don't
+# print to a screen-recording during plan.
+output "ses_smtp_username" {
+  value     = aws_iam_access_key.stalwart_smtp.id
+  sensitive = true
+}
+
+output "ses_smtp_password_raw_secret" {
+  value     = aws_iam_access_key.stalwart_smtp.secret
+  sensitive = true
+  description = "Raw IAM secret — convert to SMTP password via AWS's SMTP-credential derivation (`ses_smtp_password_v4`). Then store the SMTP password (not this raw secret) in sops."
+}

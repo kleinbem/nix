@@ -41,3 +41,10 @@ variable "attic_push_token" {
   sensitive   = true
   description = "Attic cache push token, distributed as the ATTIC_PUSH_TOKEN Actions secret."
 }
+
+# --- Persona-fleet mail infrastructure ---
+
+variable "mail_host_ip" {
+  type        = string
+  description = "Public IPv4 of the host serving Stalwart (referenced by mail.kleinbem.dev A record). Stalwart's SMTP port can't be Cloudflare-proxied."
+}
