@@ -263,47 +263,12 @@ build-history:
     @echo "📜 Rebuilding history index..."
     @python3 ./scripts/rebuild_history.py --sync
 
-[group("Notes")]
-link-docs:
-    @echo "🔗 Linking docs to Obsidian..."
-    @ln -sf $(pwd)/docs $HOME/Documents/Notes/Project-Docs
-
+# Workspace-wide grep. Personal/OS recipes (Obsidian notes, Firefox
+# cleanup, fix-yubikey/fix-chrome) live in the home-manager justfile —
+# call them via `os <recipe>`.
 [group("System")]
 find pattern:
     @grep -rnE "{{pattern}}" . --exclude-dir=.git
-
-[group("Notes")]
-capture message="":
-    @echo "📝 Capturing note..."
-    @echo "- [ ] {{message}} (Captured on $(date))" >> $HOME/Documents/Notes/Inbox.md
-
-[group("Notes")]
-obsidian:
-    @obsidian &
-
-[group("Notes")]
-organize-notes:
-    @bash ./scripts/organize-notes.sh
-
-[group("Notes")]
-check-vault:
-    @echo "🏠 Checking vault integrity..."
-    @bash ./scripts/vault-health.sh
-
-[group("Cleanup")]
-[confirm("🦊 Delete all Firefox profile folders that aren't 'standard'?")]
-clean-browsers:
-    @echo "🦊 Cleaning browser profiles..."
-    @find ~/.mozilla/firefox -maxdepth 1 -type d -name "*.default*" -not -path "*standard*" -delete
-
-[group("Cleanup")]
-[confirm("🧪 Reset the Firefox Laboratory profile? All data in that profile will be lost.")]
-reset-firefox-laboratory:
-    @echo "🧪 Resetting Laboratory profile..."
-    @rm -rf ~/.mozilla/firefox/*.laboratory
-    @firefox -P laboratory --headless &
-    @sleep 3
-    @pkill firefox
 
 [group("Updates")]
 [private]
