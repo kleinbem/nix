@@ -30,60 +30,83 @@ status-all:
         printf "%-30s %s — %s\n" "$name" "$change" "$diff"; \
     done
 
-# Audit commits ahead of origin for missing/bad signatures.
-# Surfaces the silent-unsigned-commit failure mode where jj describe
-# from a non-interactive context (e.g. Claude subprocess) produced a
-# commit without signing.
-# Exit code is 0 if all clean, non-zero if any unsigned commits exist.
+# Audit commits ahead of origin for missing signatures.
+# Status codes (git's %G?):
+#   G  good signature, verified locally
+#   U  signed but signing key not in ~/.ssh/allowed_signers
+#      (still accepted by GitHub if the key is uploaded there;
+#       fix locally by adding the key to allowed_signers)
+#   B  bad signature (forgery / corruption — investigate)
+#   N  NO signature — the actual problem. GitHub will reject.
+#   E, X, Y, R  various error states (expired/revoked/etc.)
+#
+# Recipe distinguishes N (real problem, exit 1) from U (cosmetic,
+# warn but exit 0).
 [group("Status")]
 check-signatures:
     @echo "🔐 Signature audit (commits ahead of origin/main)"
     @echo "------------------------------------------------"
-    @any_bad=0; \
+    @any_unsigned=0; any_unverified=0; \
     for repo in {{REPOS}} .; do \
         name=$([ "$repo" = "." ] && echo "(meta)" || echo "$repo"); \
-        unsigned=$(git -C $repo log --format='%H %G? %s' "origin/main..HEAD" 2>/dev/null \
-            | awk '$2 != "G" && $2 != ""' || true); \
+        lines=$(git -C $repo log --format='%H %G? %s' "origin/main..HEAD" 2>/dev/null || true); \
+        unsigned=$(echo "$lines" | awk '$2 == "N" || $2 == "B" || $2 == "E"'); \
+        unverified=$(echo "$lines" | awk '$2 == "U" || $2 == "X" || $2 == "Y" || $2 == "R"'); \
+        ahead=$(echo "$lines" | grep -c .); \
         if [ -n "$unsigned" ]; then \
-            echo "❌ $name"; \
+            echo "❌ $name (TRULY UNSIGNED — GitHub will reject)"; \
             echo "$unsigned" | awk '{printf "   %s [%s] %s\n", substr($1,1,12), $2, substr($0, index($0,$3))}'; \
-            any_bad=1; \
+            any_unsigned=1; \
+        elif [ -n "$unverified" ]; then \
+            echo "⚠️  $name (signed, but local verify fails — GitHub may still accept)"; \
+            echo "$unverified" | awk '{printf "   %s [%s] %s\n", substr($1,1,12), $2, substr($0, index($0,$3))}'; \
+            echo "   ↳ fix locally by adding the signing key to ~/.ssh/allowed_signers"; \
+            any_unverified=1; \
+        elif [ "$ahead" -eq 0 ] || [ -z "$lines" ]; then \
+            echo "✓  $name (no commits ahead)"; \
         else \
-            ahead=$(git -C $repo rev-list --count "origin/main..HEAD" 2>/dev/null || echo 0); \
-            if [ "$ahead" -eq 0 ]; then \
-                echo "✓  $name (no commits ahead)"; \
-            else \
-                echo "✓  $name ($ahead commit(s), all signed)"; \
-            fi; \
+            echo "✓  $name ($ahead commit(s), all signed + verified)"; \
         fi; \
     done; \
     echo "------------------------------------------------"; \
-    if [ "$any_bad" -eq 1 ]; then \
-        echo "🔧 Fix with: just jj::sign-unsigned"; \
+    if [ "$any_unsigned" -eq 1 ]; then \
+        echo "🔧 Fix unsigned with: just jj::sign-unsigned"; \
         exit 1; \
+    elif [ "$any_unverified" -eq 1 ]; then \
+        echo "ℹ️  Unverified ≠ rejected. Push will likely succeed; local 'No principal matched' is cosmetic."; \
     else \
-        echo "✅ All ahead-of-origin commits are signed"; \
+        echo "✅ All ahead-of-origin commits are signed and verified"; \
     fi
 
 # Sign every unsigned commit ahead of origin across the workspace.
-# Each repo's first signing triggers one YubiKey PIN/touch (cached
-# thereafter). Companion to check-signatures.
+# Uses `git rebase --exec` rather than `jj sign` for two reasons:
+#   1. `jj sign` silently fails when askpass can't reach a TTY,
+#      producing unsigned commits with new hashes (infinite loop).
+#   2. `git rebase --exec` uses git's view (consistent with
+#      check-signatures), so it catches commits jj's bookmark
+#      doesn't see (e.g. CI-bot commits that are ahead of jj's
+#      tracked main but not pushed yet).
+#
+# First operation per session may need a YubiKey PIN entry; cached
+# thereafter. MUST be run from a terminal (FIDO needs interactive UI).
 [group("Sync")]
 sign-unsigned:
-    @echo "🔐 Signing unsigned commits ahead of origin..."
-    @for repo in {{REPOS}} .; do \
+    @echo "🔐 Signing unsigned commits ahead of origin (via git rebase)..."
+    @any_done=0; \
+    for repo in {{REPOS}} .; do \
         name=$([ "$repo" = "." ] && echo "(meta)" || echo "$repo"); \
-        ahead=$(git -C $repo rev-list --count "origin/main..HEAD" 2>/dev/null || echo 0); \
-        if [ "$ahead" -gt 0 ]; then \
-            unsigned=$(git -C $repo log --format='%H %G?' "origin/main..HEAD" 2>/dev/null \
-                | awk '$2 != "G" && $2 != ""' | wc -l); \
-            if [ "$unsigned" -gt 0 ]; then \
-                echo "  🖊️  $name — signing $unsigned commit(s)..."; \
-                (cd $repo && jj sign -r 'main@origin..main' 2>&1 | grep -v '^$' || true); \
-            fi; \
+        unsigned=$(git -C $repo log --format='%G?' "origin/main..HEAD" 2>/dev/null \
+            | awk '$1 != "G" && $1 != ""' | wc -l); \
+        if [ "$unsigned" -gt 0 ]; then \
+            echo "  🖊️  $name — re-signing $unsigned commit(s)..."; \
+            (cd $repo && git rebase --exec \
+                'if [ "$(git log -1 --format=%G?)" != "G" ]; then git commit --amend --no-edit -S; fi' \
+                origin/main) || echo "    ⚠️  rebase failed in $name — fix manually"; \
+            any_done=1; \
         fi; \
-    done
-    @echo "✅ Done. Verify: just jj::check-signatures"
+    done; \
+    if [ "$any_done" -eq 0 ]; then echo "✓ Nothing to sign — all ahead-of-origin commits already signed"; \
+    else echo "✅ Done. Verify: just jj::check-signatures"; fi
 
 # --- Sync ---
 
