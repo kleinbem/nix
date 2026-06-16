@@ -267,20 +267,7 @@ find pattern:
     @grep -rnE "{{pattern}}" . --exclude-dir=.git
 
 [group("Updates")]
-[private]
-_warmup-ssh:
-    @if ! ssh -O check git@github.com 2>/dev/null; then \
-        echo "🔑 Waking up YubiKey for GitHub (enter PIN & touch)..."; \
-        ssh -f -N git@github.com; \
-    fi
-
-[group("Updates")]
-[private]
-update-core *args="": _warmup-ssh
-    @{{LOCK_CMD}} nix flake update {{OVERRIDES}} {{args}}
-
-[group("Updates")]
-update-local: _warmup-ssh
+update-local:
     @{{LOCK_CMD}} python3 ./scripts/sync_locks.py
 
 # Bump Antigravity to latest (delegates to nix-packages' own justfile, which
@@ -298,7 +285,7 @@ update-container container_name:
     @echo "   journalctl -fu update-container@{{container_name}}.service"
 
 [group("Updates")]
-lock-refresh-all: _warmup-ssh
+lock-refresh-all:
     @echo "🔄 Refreshing all sub-flake lock files with local overrides..."
     @for repo in {{REPOS}}; do \
         if [ -f "$repo/flake.nix" ]; then \
@@ -330,7 +317,7 @@ check-flakes:
 who:
     @bash ./scripts/check-lock.sh
 
-update-all *args="": _warmup-ssh
+update-all *args="":
     @echo "🚀 Starting System Update ..."
     @{{LOCK_CMD}} nix flake update {{OVERRIDES}} {{args}}
     @echo "📦 Updating Flatpaks..."
