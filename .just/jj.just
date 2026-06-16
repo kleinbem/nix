@@ -55,14 +55,33 @@ pull-all:
 [group("Sync")]
 save-all message:
     @echo "💾 Saving workspace state: {{message}}"
-    @for repo in {{REPOS}} .; do \
+    @author=""; if [ -n "${KLEINBEM_PERSONA:-}" ]; then \
+        author=$(nix eval --raw --file nix-config/personas.nix --apply \
+            "p: p.${KLEINBEM_PERSONA}.full-name + \" <\" + p.${KLEINBEM_PERSONA}.email + \">\"" 2>/dev/null); \
+        echo "  🎭 Acting as: $author"; \
+    fi; \
+    for repo in {{REPOS}} .; do \
         name=$([ "$repo" = "." ] && echo "(meta)" || echo "$repo"); \
         if [ -n "$(cd $repo && jj diff --summary 2>/dev/null)" ]; then \
             echo "  📝 $name — describing..."; \
-            (cd $repo && jj describe -m "{{message}}" && jj bookmark move main --to @ && jj new); \
-        fi \
+            if [ -n "$author" ]; then \
+                (cd $repo && jj describe -m "{{message}}" --author "$author" && jj bookmark move main --to @ && jj new); \
+            else \
+                (cd $repo && jj describe -m "{{message}}" && jj bookmark move main --to @ && jj new); \
+            fi; \
+        fi; \
     done
     @echo "✅ Workspace state saved."
+
+# Wrap any jj subcommand to commit as a specific persona from
+# personas.nix. The persona's full-name + email become the git author
+# on every commit produced. Example:
+#   just jj::as michael save-all "feat(presets): add stalwart container"
+# becomes equivalent to setting Author: "Michael Gruber <michael@kleinbem.dev>"
+# on each describe.
+[group("Sync")]
+as persona *args:
+    @KLEINBEM_PERSONA={{persona}} just jj::{{args}}
 
 # Push every repo. `--allow-new` covers first push of a new bookmark.
 [group("Sync")]
