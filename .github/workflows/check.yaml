@@ -5,8 +5,22 @@ on:
     branches:
       - main
       - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'terraform/**'
+      - 'LICENSE'
   workflow_dispatch:
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'terraform/**'
+      - 'LICENSE'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint-and-format:
@@ -35,8 +49,8 @@ jobs:
             --override-input nix-packages git+file://$GITHUB_WORKSPACE/nix-packages \
             --override-input nix-templates git+file://$GITHUB_WORKSPACE/nix-templates" >> "$GITHUB_ENV"
 
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v22
+      - name: Install Nix (Determinate)
+        uses: DeterminateSystems/determinate-nix-action@v3
 
       - name: Run format check
         run: nix fmt $NIX_OVERRIDES -- --fail-on-change
@@ -67,8 +81,8 @@ jobs:
             --override-input nix-packages git+file://$GITHUB_WORKSPACE/nix-packages \
             --override-input nix-templates git+file://$GITHUB_WORKSPACE/nix-templates" >> "$GITHUB_ENV"
 
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v22
+      - name: Install Nix (Determinate)
+        uses: DeterminateSystems/determinate-nix-action@v3
 
       - name: Setup NetBird VPN
         run: |
@@ -145,8 +159,8 @@ jobs:
             --override-input nix-packages git+file://$GITHUB_WORKSPACE/nix-packages \
             --override-input nix-templates git+file://$GITHUB_WORKSPACE/nix-templates" >> "$GITHUB_ENV"
 
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v22
+      - name: Install Nix (Determinate)
+        uses: DeterminateSystems/determinate-nix-action@v3
 
       - name: Setup NetBird VPN
         run: |

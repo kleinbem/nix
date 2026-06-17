@@ -20,6 +20,10 @@ on:
       - "nix-devshells/**"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ---------------------------------------------------------
   # STAGE 1: Discover all exposed devShells
@@ -41,8 +45,8 @@ jobs:
       - name: Set up dummy secrets
         run: ./scripts/write-dummy-secrets.sh
 
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v22
+      - name: Install Nix (Determinate)
+        uses: DeterminateSystems/determinate-nix-action@v3
 
       - name: Set Nix input overrides
         run: |
@@ -102,8 +106,8 @@ jobs:
             --override-input nix-packages git+file://$GITHUB_WORKSPACE/nix-packages \
             --override-input nix-templates git+file://$GITHUB_WORKSPACE/nix-templates" >> "$GITHUB_ENV"
 
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v22
+      - name: Install Nix (Determinate)
+        uses: DeterminateSystems/determinate-nix-action@v3
         with:
           extra-conf: |
             sandbox = false

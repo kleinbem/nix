@@ -6,6 +6,13 @@ on:
     - cron: '0 5 * * 0'
   workflow_dispatch:
 
+# cancel-in-progress: false — this workflow opens + auto-merges a PR; cancelling
+# midway risks leaving a half-created PR (or one without auto-merge enabled).
+# Group still set so duplicate dispatches don't race.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
   pull-requests: write
@@ -31,8 +38,8 @@ jobs:
       - name: Clone sub-flakes (from repos.nix)
         run: ./scripts/clone-subflakes.sh
 
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v22
+      - name: Install Nix (Determinate)
+        uses: DeterminateSystems/determinate-nix-action@v3
         with:
           extra-conf: |
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}

@@ -5,7 +5,23 @@ on:
     branches:
       - main
       - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'terraform/**'
+      - 'LICENSE'
   workflow_dispatch:
+  schedule:
+    # Weekly heavy-host warm-up: builds the closures that are too big for
+    # per-push (nixos-nvme) so the Attic cache stays warm for `just apply`.
+    # Mondays 04:00 UTC.
+    - cron: '0 4 * * 1'
+
+# Cancel any in-flight run on the same ref when a newer push arrives —
+# stops back-to-back fixes from piling up CI minutes on stale code.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # ---------------------------------------------------------
@@ -28,8 +44,8 @@ jobs:
       - name: Set up dummy secrets
         run: ./scripts/write-dummy-secrets.sh
 
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v22
+      - name: Install Nix (Determinate)
+        uses: DeterminateSystems/determinate-nix-action@v3
 
       - name: Set Nix input overrides
         run: |
@@ -45,14 +61,14 @@ jobs:
       - name: Generate Dynamic Matrix
         id: set-matrix
         run: |
-          # Evaluate flake.nix and cross-reference with inventory.nix to find all deployed hosts and their architectures
+          # Evaluate flake.nix and cross-reference with inventory.nix to find all deployed hosts and their architectures.
+          # Filters:
+          # - orin-nano: jetpack-nixos has eval skew on CI runners (separate ticket).
+          # - container-factory / orin-nano-bootstrap: non-host build targets, not deployable closures.
           MATRIX_JSON=$(nix eval .#nixosConfigurations --impure --apply 'configs:
             let
               inv = import ./nix-config/inventory.nix;
               getRunner = sys: if sys == "aarch64-linux" then "ubuntu-24.04-arm" else "ubuntu-latest";
-              # Filter out helper hosts that we do not want to build as full standalone OS closures
-              # orin-nano excluded: jetpack-nixos has eval skew on CI runners (separate ticket).
-              # container-factory / orin-nano-bootstrap are non-host build targets, not deployable closures.
               hosts = builtins.filter (h: h != "container-factory" && h != "orin-nano-bootstrap" && h != "orin-nano") (builtins.attrNames configs);
             in
               builtins.filter (x: x != null) (builtins.map (name:
@@ -63,7 +79,15 @@ jobs:
                 }
               ) hosts)
           ' --json $NIX_OVERRIDES)
-          
+
+          # Tier filter: nixos-nvme's closure is too big to fit a per-push budget
+          # (huge desktop+AI+gaming closure). On `push` events build the lighter
+          # fleet; on `workflow_dispatch` / `schedule` build everything so the
+          # weekly fleet-health run warms the cache for `just apply`.
+          if [ "${{ github.event_name }}" = "push" ]; then
+            MATRIX_JSON=$(echo "$MATRIX_JSON" | jq '[.[] | select(.host != "nixos-nvme")]')
+          fi
+
           echo "Discovered Matrix: $MATRIX_JSON"
           echo "matrix=$MATRIX_JSON" >> "$GITHUB_OUTPUT"
 
@@ -73,6 +97,7 @@ jobs:
   build-system:
     name: "Build ${{ matrix.host }}"
     needs: generate-matrix
+    if: ${{ needs.generate-matrix.outputs.matrix != '[]' }}
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -82,44 +107,24 @@ jobs:
       matrix:
         include: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
     steps:
-      - name: Maximize Build Space
-        if: matrix.runner == 'ubuntu-latest'
-        uses: easimon/maximize-build-space@master
+      # Reclaim disk for the Nix store by deleting preinstalled toolchains.
+      # endersonmenezes/free-disk-space@v3 is the actively-maintained successor
+      # to the LVM-juggling easimon/maximize-build-space — same headroom, no
+      # mount surgery (which silently lost log output on big closures).
+      # Reference: carpenike/nix-config and colemickens/nixcfg.
+      - name: Free disk space
+        uses: endersonmenezes/free-disk-space@v3
         with:
-          # Mount the reclaimed LVM volume at /nix so the Nix store lives on the
-          # big partition. Default (/home/runner/work/...) leaves /nix on /dev/root,
-          # which fills to 100% on any non-trivial NixOS closure → silent crash before
-          # the Build System Top-Level step can write any logs.
-          build-mount-path: '/nix'
-          # root-reserve-mb 8192: leaves room on /dev/root for /tmp, /home/runner cache,
-          # /var, and the Determinate Nix daemon state. With the prior 512 MB reserve,
-          # nixos-nvme's eval cache + ~/.cache/nix exhausted / before Build System Top-Level
-          # could write a single log line (nasbook's smaller closure fit fine, masking it).
-          root-reserve-mb: 8192
-          swap-size-mb: 1024
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-docker-images: 'true'
-          remove-codeql: 'true'
-
-      - name: Redirect TMPDIR to LVM
-        if: matrix.runner == 'ubuntu-latest'
-        run: |
-          # Nix CLI and the substituter stage intermediates through $TMPDIR; for
-          # a NixOS closure this can be multiple GB. Default /tmp lives on /dev/root,
-          # which we've intentionally kept small. Point TMPDIR at /nix/tmp where
-          # the LVM volume has ~100 GB to absorb staging.
-          sudo mkdir -p /nix/tmp
-          sudo chown runner:runner /nix/tmp
-          echo "TMPDIR=/nix/tmp" >> "$GITHUB_ENV"
-
-      - name: Free Disk Space (ARM fallback)
-        if: matrix.runner != 'ubuntu-latest'
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
-          docker system prune -af || true
-          sudo apt-get clean || true
+          remove_android: 'true'
+          remove_dotnet: 'true'
+          remove_haskell: 'true'
+          remove_tool_cache: 'true'
+          remove_swap: 'true'
+          remove_packages: "azure-cli google-cloud-cli microsoft-edge-stable google-chrome-stable firefox postgresql* temurin-* *llvm* mysql* dotnet-sdk-*"
+          remove_packages_one_command: 'true'
+          remove_folders: "/usr/share/swift /usr/share/miniconda /usr/share/az* /usr/local/lib/node_modules /usr/local/share/chromium /usr/local/share/powershell /usr/local/julia /usr/local/aws-cli /usr/local/aws-sam-cli /usr/share/gradle /usr/lib/jvm /home/runner/.rust /usr/local/.ghcup"
+          rm_cmd: "rmz"
+          rmz_version: "3.1.1"
 
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
@@ -143,8 +148,8 @@ jobs:
             --override-input nix-packages git+file://$GITHUB_WORKSPACE/nix-packages \
             --override-input nix-templates git+file://$GITHUB_WORKSPACE/nix-templates" >> "$GITHUB_ENV"
 
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v22
+      - name: Install Nix (Determinate)
+        uses: DeterminateSystems/determinate-nix-action@v3
         with:
           extra-conf: |
             sandbox = false
@@ -183,8 +188,24 @@ jobs:
 
       - name: Build System Top-Level
         run: |
+          set -o pipefail
           nix build .#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel \
-            --impure -L $NIX_OVERRIDES
+            --impure -L $NIX_OVERRIDES \
+            > >(tee /tmp/nix-build.log) 2> >(tee /tmp/nix-build.err >&2)
+
+      - name: Surface build failure
+        if: failure()
+        run: |
+          # Extract the failing drv from stderr and print its full builder log.
+          # Saves a round-trip versus tailing the run log manually.
+          if [ -f /tmp/nix-build.err ]; then
+            drv=$(grep -oE "/nix/store/[^ ]+\.drv" /tmp/nix-build.err | tail -1 || true)
+            if [ -n "$drv" ]; then
+              echo "::group::nix log $drv"
+              nix log "$drv" || true
+              echo "::endgroup::"
+            fi
+          fi
 
       - name: Push to Attic
         run: |

@@ -22,6 +22,10 @@ on:
       - "scripts/container-deploy.sh"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ---------------------------------------------------------
   # STAGE 1: Discover every container declared by container-factory
@@ -43,8 +47,8 @@ jobs:
       - name: Set up dummy secrets
         run: ./scripts/write-dummy-secrets.sh
 
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v22
+      - name: Install Nix (Determinate)
+        uses: DeterminateSystems/determinate-nix-action@v3
 
       - name: Set Nix input overrides
         run: |
@@ -105,8 +109,8 @@ jobs:
             --override-input nix-packages git+file://$GITHUB_WORKSPACE/nix-packages \
             --override-input nix-templates git+file://$GITHUB_WORKSPACE/nix-templates" >> "$GITHUB_ENV"
 
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v22
+      - name: Install Nix (Determinate)
+        uses: DeterminateSystems/determinate-nix-action@v3
         with:
           extra-conf: |
             sandbox = false
