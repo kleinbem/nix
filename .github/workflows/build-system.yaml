@@ -84,6 +84,11 @@ jobs:
         if: matrix.runner == 'ubuntu-latest'
         uses: easimon/maximize-build-space@master
         with:
+          # Mount the reclaimed LVM volume at /nix so the Nix store lives on the
+          # big partition. Default (/home/runner/work/...) leaves /nix on /dev/root,
+          # which fills to 100% on any non-trivial NixOS closure → silent crash before
+          # the Build System Top-Level step can write any logs.
+          build-mount-path: '/nix'
           root-reserve-mb: 512
           swap-size-mb: 1024
           remove-dotnet: 'true'
