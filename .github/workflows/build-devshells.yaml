@@ -39,25 +39,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Clone sub-flakes (from repos.nix)
-        run: ./scripts/clone-subflakes.sh
-
-      - name: Set up dummy secrets
-        run: ./scripts/write-dummy-secrets.sh
-
-      - name: Install Nix (Determinate)
-        uses: DeterminateSystems/determinate-nix-action@v3
-
-      - name: Set Nix input overrides
-        run: |
-          echo "NIX_OVERRIDES=\
-            --override-input nix-secrets /tmp/dummy-secrets \
-            --override-input nix-config git+file://$GITHUB_WORKSPACE/nix-config \
-            --override-input nix-devshells git+file://$GITHUB_WORKSPACE/nix-devshells \
-            --override-input nix-presets git+file://$GITHUB_WORKSPACE/nix-presets \
-            --override-input nix-hardware git+file://$GITHUB_WORKSPACE/nix-hardware \
-            --override-input nix-packages git+file://$GITHUB_WORKSPACE/nix-packages \
-            --override-input nix-templates git+file://$GITHUB_WORKSPACE/nix-templates" >> "$GITHUB_ENV"
+      - name: Nix fleet setup (no cache push)
+        uses: ./.github/actions/nix-fleet-setup
+        with:
+          enable-cache: 'false'
 
       - name: Generate Dynamic Matrix
         id: set-matrix
@@ -72,8 +57,6 @@ jobs:
   build-devshell:
     name: "Build devShell ${{ matrix.shell }}"
     needs: generate-matrix
-    # Self-hosted (nixos-nvme): build + push to Attic over LAN. Hosted runners hit
-    # Cloudflare's 413 body cap on large NAR pushes (ai-dev/ultimate are multi-GB).
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -83,60 +66,16 @@ jobs:
       matrix:
         shell: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
     steps:
-      # (Maximize Build Space removed — Ubuntu-only step, N/A on the self-hosted NixOS runner.)
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
 
-      - name: Clone sub-flakes (from repos.nix)
-        run: ./scripts/clone-subflakes.sh
-
-      - name: Set up dummy secrets
-        run: ./scripts/write-dummy-secrets.sh
-
-      - name: Set Nix input overrides
-        run: |
-          echo "NIX_OVERRIDES=\
-            --override-input nix-secrets /tmp/dummy-secrets \
-            --override-input nix-config git+file://$GITHUB_WORKSPACE/nix-config \
-            --override-input nix-devshells git+file://$GITHUB_WORKSPACE/nix-devshells \
-            --override-input nix-presets git+file://$GITHUB_WORKSPACE/nix-presets \
-            --override-input nix-hardware git+file://$GITHUB_WORKSPACE/nix-hardware \
-            --override-input nix-packages git+file://$GITHUB_WORKSPACE/nix-packages \
-            --override-input nix-templates git+file://$GITHUB_WORKSPACE/nix-templates" >> "$GITHUB_ENV"
-
-      - name: Install Nix (Determinate)
-        uses: DeterminateSystems/determinate-nix-action@v3
+      - name: Nix fleet setup
+        uses: ./.github/actions/nix-fleet-setup
         with:
-          extra-conf: |
-            sandbox = false
-            trusted-users = root runner
-
-      - name: Setup NetBird VPN
-        run: |
-          if ! command -v netbird &> /dev/null; then
-            curl -fsSL https://pkgs.netbird.io/install.sh | sh
-          fi
-          sudo systemctl start netbird || true
-          sudo netbird up --setup-key ${{ secrets.NETBIRD_SETUP_KEY }}
-
-      - name: Route Attic over NetBird
-        run: echo "100.117.212.232 cache.kleinbem.dev" | sudo tee -a /etc/hosts
-
-      - name: Trust internal Caddy CA
-        run: |
-          sudo cp nix-config/pki/caddy-root.crt /usr/local/share/ca-certificates/caddy-root.crt
-          sudo update-ca-certificates
-          echo "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt" >> $GITHUB_ENV
-          echo "NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt" >> $GITHUB_ENV
-
-      - name: Setup Attic Cache
-        uses: ryanccn/attic-action@v0
-        with:
-          endpoint: https://cache.kleinbem.dev/
-          cache: system
-          token: ${{ secrets.ATTIC_PUSH_TOKEN }}
+          netbird-setup-key: ${{ secrets.NETBIRD_SETUP_KEY }}
+          attic-token: ${{ secrets.ATTIC_PUSH_TOKEN }}
 
       - name: Build devShell closure
         run: |

@@ -32,25 +32,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Clone sub-flakes (from repos.nix)
-        run: ./scripts/clone-subflakes.sh
-
-      - name: Set up dummy secrets
-        run: ./scripts/write-dummy-secrets.sh
-
-      - name: Set Nix input overrides
-        run: |
-          echo "NIX_OVERRIDES=\
-            --override-input nix-secrets /tmp/dummy-secrets \
-            --override-input nix-config git+file://$GITHUB_WORKSPACE/nix-config \
-            --override-input nix-devshells git+file://$GITHUB_WORKSPACE/nix-devshells \
-            --override-input nix-presets git+file://$GITHUB_WORKSPACE/nix-presets \
-            --override-input nix-hardware git+file://$GITHUB_WORKSPACE/nix-hardware \
-            --override-input nix-packages git+file://$GITHUB_WORKSPACE/nix-packages \
-            --override-input nix-templates git+file://$GITHUB_WORKSPACE/nix-templates" >> "$GITHUB_ENV"
-
-      - name: Install Nix (Determinate)
-        uses: DeterminateSystems/determinate-nix-action@v3
+      - name: Nix fleet setup (no cache push)
+        uses: ./.github/actions/nix-fleet-setup
+        with:
+          enable-cache: 'false'
 
       - name: Run format check
         run: nix fmt $NIX_OVERRIDES -- --fail-on-change
@@ -64,50 +49,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Clone sub-flakes (from repos.nix)
-        run: ./scripts/clone-subflakes.sh
-
-      - name: Set up dummy secrets
-        run: ./scripts/write-dummy-secrets.sh
-
-      - name: Set Nix input overrides
-        run: |
-          echo "NIX_OVERRIDES=\
-            --override-input nix-secrets /tmp/dummy-secrets \
-            --override-input nix-config git+file://$GITHUB_WORKSPACE/nix-config \
-            --override-input nix-devshells git+file://$GITHUB_WORKSPACE/nix-devshells \
-            --override-input nix-presets git+file://$GITHUB_WORKSPACE/nix-presets \
-            --override-input nix-hardware git+file://$GITHUB_WORKSPACE/nix-hardware \
-            --override-input nix-packages git+file://$GITHUB_WORKSPACE/nix-packages \
-            --override-input nix-templates git+file://$GITHUB_WORKSPACE/nix-templates" >> "$GITHUB_ENV"
-
-      - name: Install Nix (Determinate)
-        uses: DeterminateSystems/determinate-nix-action@v3
-
-      - name: Setup NetBird VPN
-        run: |
-          if ! command -v netbird &> /dev/null; then
-            curl -fsSL https://pkgs.netbird.io/install.sh | sh
-          fi
-          sudo systemctl start netbird || true
-          sudo netbird up --setup-key ${{ secrets.NETBIRD_SETUP_KEY }}
-
-      - name: Route Attic over NetBird
-        run: echo "100.117.212.232 cache.kleinbem.dev" | sudo tee -a /etc/hosts
-
-      - name: Trust internal Caddy CA
-        run: |
-          sudo cp nix-config/pki/caddy-root.crt /usr/local/share/ca-certificates/caddy-root.crt
-          sudo update-ca-certificates
-          echo "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt" >> $GITHUB_ENV
-          echo "NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt" >> $GITHUB_ENV
-
-      - name: Setup Attic Cache
-        uses: ryanccn/attic-action@v0
+      - name: Nix fleet setup
+        uses: ./.github/actions/nix-fleet-setup
         with:
-          endpoint: https://cache.kleinbem.dev/
-          cache: system
-          token: ${{ secrets.ATTIC_PUSH_TOKEN }}
+          netbird-setup-key: ${{ secrets.NETBIRD_SETUP_KEY }}
+          attic-token: ${{ secrets.ATTIC_PUSH_TOKEN }}
 
       - name: Run root flake checks (x86_64-scoped — TEMPORARY)
         run: |
@@ -132,8 +78,8 @@ jobs:
   integration-tests:
     name: "System Integration & VM Tests"
     if: >
-      github.event_name == 'workflow_dispatch' || 
-      github.event_name == 'schedule' || 
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[run-tests]'))
     runs-on: ubuntu-latest
     steps:
@@ -142,50 +88,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Clone sub-flakes (from repos.nix)
-        run: ./scripts/clone-subflakes.sh
-
-      - name: Set up dummy secrets
-        run: ./scripts/write-dummy-secrets.sh
-
-      - name: Set Nix input overrides
-        run: |
-          echo "NIX_OVERRIDES=\
-            --override-input nix-secrets /tmp/dummy-secrets \
-            --override-input nix-config git+file://$GITHUB_WORKSPACE/nix-config \
-            --override-input nix-devshells git+file://$GITHUB_WORKSPACE/nix-devshells \
-            --override-input nix-presets git+file://$GITHUB_WORKSPACE/nix-presets \
-            --override-input nix-hardware git+file://$GITHUB_WORKSPACE/nix-hardware \
-            --override-input nix-packages git+file://$GITHUB_WORKSPACE/nix-packages \
-            --override-input nix-templates git+file://$GITHUB_WORKSPACE/nix-templates" >> "$GITHUB_ENV"
-
-      - name: Install Nix (Determinate)
-        uses: DeterminateSystems/determinate-nix-action@v3
-
-      - name: Setup NetBird VPN
-        run: |
-          if ! command -v netbird &> /dev/null; then
-            curl -fsSL https://pkgs.netbird.io/install.sh | sh
-          fi
-          sudo systemctl start netbird || true
-          sudo netbird up --setup-key ${{ secrets.NETBIRD_SETUP_KEY }}
-
-      - name: Route Attic over NetBird
-        run: echo "100.117.212.232 cache.kleinbem.dev" | sudo tee -a /etc/hosts
-
-      - name: Trust internal Caddy CA
-        run: |
-          sudo cp nix-config/pki/caddy-root.crt /usr/local/share/ca-certificates/caddy-root.crt
-          sudo update-ca-certificates
-          echo "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt" >> $GITHUB_ENV
-          echo "NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt" >> $GITHUB_ENV
-
-      - name: Setup Attic Cache
-        uses: ryanccn/attic-action@v0
+      - name: Nix fleet setup
+        uses: ./.github/actions/nix-fleet-setup
         with:
-          endpoint: https://cache.kleinbem.dev/
-          cache: system
-          token: ${{ secrets.ATTIC_PUSH_TOKEN }}
+          netbird-setup-key: ${{ secrets.NETBIRD_SETUP_KEY }}
+          attic-token: ${{ secrets.ATTIC_PUSH_TOKEN }}
 
       - name: Build & run x86_64 checks (executes the nixosTest VMs)
         run: |

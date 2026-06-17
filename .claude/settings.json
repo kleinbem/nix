@@ -5,7 +5,16 @@
       "Bash(journalctl *)",
       "Bash(systemctl status *)",
       "Bash(just check)",
-      "Bash(netbird status)"
+      "Bash(netbird status)",
+      "Bash(jj log *)",
+      "Bash(jj status *)",
+      "Bash(gh search *)",
+      "Bash(nix flake show *)",
+      "Bash(nix flake metadata *)",
+      "Bash(nix-store --query *)",
+      "Bash(nix log *)",
+      "Bash(nix show-derivation *)",
+      "Bash(nix path-info *)"
     ]
   }
 }
