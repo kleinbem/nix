@@ -108,8 +108,13 @@ sign-unsigned:
             if (cd $repo && git rebase --exec \
                 'if [ "$(git log -1 --format=%G?)" != "G" ]; then git commit --amend --no-edit -S; fi' \
                 origin/main); then \
-                (cd $repo && git branch -f main HEAD && git checkout main >/dev/null 2>&1 && jj git import >/dev/null 2>&1) \
-                    && echo "    ↳ reattached main + jj bookmark"; \
+                if [ "$(git -C $repo symbolic-ref --quiet HEAD 2>/dev/null)" = "refs/heads/main" ]; then \
+                    (cd $repo && jj git import >/dev/null 2>&1) \
+                        && echo "    ↳ main already at signed HEAD; jj bookmark synced"; \
+                else \
+                    (cd $repo && git branch -f main HEAD && git checkout main >/dev/null 2>&1 && jj git import >/dev/null 2>&1) \
+                        && echo "    ↳ reattached main + jj bookmark"; \
+                fi; \
             else \
                 echo "    ⚠️  rebase failed in $name — fix manually"; \
             fi; \
@@ -172,14 +177,21 @@ save-all message:
 as persona *args:
     @KLEINBEM_PERSONA={{persona}} just jj::{{args}}
 
-# Push every repo. `--allow-new` covers first push of a new bookmark.
+# Push every repo. Auto-advances `main` to @ if the working-copy change
+# has a description and is ahead of the local `main` bookmark — covers the
+# common `jj describe ... → push` flow where the bookmark doesn't follow
+# automatically. Skips repos where @ is empty or main is already at @.
 [group("Sync")]
 push-all:
     @echo "📤 Pushing all changes..."
     @for repo in {{REPOS}} .; do \
         name=$([ "$repo" = "." ] && echo "(meta)" || echo "$repo"); \
         echo "  $name..."; \
-        (cd $repo && jj git push 2>&1 | grep -v 'Nothing changed' || true); \
+        (cd $repo && \
+            if [ -n "$(jj log -r 'main..@' --no-graph -T 'description' 2>/dev/null)" ]; then \
+                jj bookmark move main --to @ >/dev/null 2>&1 || true; \
+            fi && \
+            jj git push 2>&1 | grep -v 'Nothing changed' || true); \
     done
 
 # --- Bootstrap ---
