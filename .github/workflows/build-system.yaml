@@ -51,7 +51,9 @@ jobs:
               inv = import ./nix-config/inventory.nix;
               getRunner = sys: if sys == "aarch64-linux" then "ubuntu-24.04-arm" else "ubuntu-latest";
               # Filter out helper hosts that we do not want to build as full standalone OS closures
-              hosts = builtins.filter (h: h != "container-factory" && h != "orin-nano-bootstrap" && h != "orin-nano" && h != "core-pi") (builtins.attrNames configs);
+              # orin-nano excluded: jetpack-nixos has eval skew on CI runners (separate ticket).
+              # container-factory / orin-nano-bootstrap are non-host build targets, not deployable closures.
+              hosts = builtins.filter (h: h != "container-factory" && h != "orin-nano-bootstrap" && h != "orin-nano") (builtins.attrNames configs);
             in
               builtins.filter (x: x != null) (builtins.map (name:
                 let meta = inv.hosts.${name} or {}; in
