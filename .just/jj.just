@@ -80,9 +80,13 @@ status-all:
             change=$(cd $repo && jj log -r @ --no-graph -T 'change_id.short()' 2>/dev/null)
             empty=$(cd $repo && jj log -r @ --no-graph -T 'if(empty, "1", "0")' 2>/dev/null)
             desc=$(cd $repo && jj log -r @ --no-graph -T 'description.first_line()' 2>/dev/null)
+            # Truncate long descriptions so gum table doesn't widen the column to
+            # half the terminal. 60 chars is enough to recognise the change.
+            desc_short="${desc:0:60}"
+            [ "${#desc}" -gt 60 ] && desc_short="${desc_short}…"
             if [ "$empty" = "1" ]; then status_desc="(empty)";
             elif [ -z "$desc" ]; then status_desc="⚠ undescribed";
-            else status_desc="📝 $desc"; fi
+            else status_desc="📝 $desc_short"; fi
             described_n=$(cd $repo && jj log -r 'main@origin..@ & ~empty()' --no-graph -T 'if(description, "1\n", "")' 2>/dev/null | grep -c . || true)
             undescribed_n=$(cd $repo && jj log -r 'main@origin..@ & ~empty()' --no-graph -T 'if(description, "", "1\n")' 2>/dev/null | grep -c . || true)
             if [ "$described_n" -eq 0 ] && [ "$undescribed_n" -eq 0 ]; then ahead="(none)";
