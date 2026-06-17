@@ -18,12 +18,12 @@ PERSONAS_NIX="$META_ROOT/nix-config/personas.nix"
 CONTACT_NIX="$META_ROOT/nix-secrets/personas-contact.nix"
 PERSONAS_JSON="$META_ROOT/terraform/personas.json"
 
-if [[ ! -f "$PERSONAS_NIX" ]]; then
+if [[ ! -f $PERSONAS_NIX ]]; then
   echo "❌ Missing $PERSONAS_NIX" >&2
   exit 1
 fi
 
-if [[ -f "$CONTACT_NIX" ]]; then
+if [[ -f $CONTACT_NIX ]]; then
   echo "📤 Exporting personas.nix ⊕ personas-contact.nix → $(basename "$PERSONAS_JSON")..."
   nix eval --json --impure --expr "
     let
@@ -31,11 +31,11 @@ if [[ -f "$CONTACT_NIX" ]]; then
       contact = import $CONTACT_NIX;
     in
     builtins.mapAttrs (name: p: p // (contact.\${name} or {})) pub
-  " > "$PERSONAS_JSON"
+  " >"$PERSONAS_JSON"
 else
   echo "⚠️  nix-secrets/personas-contact.nix not found — exporting PUBLIC-ONLY data" >&2
-  nix eval --json --file "$PERSONAS_NIX" > "$PERSONAS_JSON"
+  nix eval --json --file "$PERSONAS_NIX" >"$PERSONAS_JSON"
 fi
 
-echo "✅ Wrote $(jq 'keys | length' < "$PERSONAS_JSON") personas to $PERSONAS_JSON"
-echo "   $(jq -r 'keys | join(", ")' < "$PERSONAS_JSON")"
+echo "✅ Wrote $(jq 'keys | length' <"$PERSONAS_JSON") personas to $PERSONAS_JSON"
+echo "   $(jq -r 'keys | join(", ")' <"$PERSONAS_JSON")"

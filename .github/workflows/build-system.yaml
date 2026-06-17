@@ -84,8 +84,12 @@ jobs:
           # (huge desktop+AI+gaming closure). On `push` events build the lighter
           # fleet; on `workflow_dispatch` / `schedule` build everything so the
           # weekly fleet-health run warms the cache for `just apply`.
+          # `jq -c` keeps the JSON on one line — GITHUB_OUTPUT can't accept
+          # pretty-printed multiline values.
           if [ "${{ github.event_name }}" = "push" ]; then
-            MATRIX_JSON=$(echo "$MATRIX_JSON" | jq '[.[] | select(.host != "nixos-nvme")]')
+            MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c '[.[] | select(.host != "nixos-nvme")]')
+          else
+            MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c .)
           fi
 
           echo "Discovered Matrix: $MATRIX_JSON"
