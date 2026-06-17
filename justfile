@@ -38,6 +38,10 @@ check:
     @cd nix-config && just maintenance::check
 
 [group("Main")]
+attic-coverage:
+    @cd nix-config && just maintenance::attic-coverage
+
+[group("Main")]
 check-shells:
     @just maintenance::check-shells
 

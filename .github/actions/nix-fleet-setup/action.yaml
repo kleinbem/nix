@@ -63,10 +63,19 @@ runs:
       run: |
         set -euo pipefail
         if ! command -v netbird &> /dev/null; then
-          curl -fsSL https://pkgs.netbird.io/install.sh | sh
+          # Tolerate "Init already exists" errors from install.sh: hosted
+          # runner images sometimes ship the systemd unit but not the binary,
+          # which makes install.sh exit non-zero even when the binary install
+          # itself succeeds. We re-check below and fail loud if it really didn't.
+          curl -fsSL https://pkgs.netbird.io/install.sh | sh || true
+          sudo systemctl daemon-reload
         fi
-        # No `|| true` here — if NetBird can't come up, the attic push will
-        # eventually 413 on a >100 MiB NAR via Cloudflare anyway. Fail loud.
+        if ! command -v netbird &> /dev/null; then
+          echo "::error::NetBird install failed — binary not in PATH after install.sh"
+          exit 1
+        fi
+        # No `|| true` on `netbird up` — if NetBird can't come up, the attic push
+        # will eventually 413 on a >100 MiB NAR via Cloudflare anyway. Fail loud.
         sudo systemctl start netbird
         sudo netbird up --setup-key "${{ inputs.netbird-setup-key }}"
 
