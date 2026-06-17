@@ -7,6 +7,7 @@ on:
       - master
     paths:
       - ".github/workflows/build-packages.yaml"
+      - ".github/actions/nix-fleet-setup/**"
       - "flake.nix"
       - "flake.lock"
       - "nix-packages/**"
@@ -15,6 +16,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/build-packages.yaml"
+      - ".github/actions/nix-fleet-setup/**"
       - "flake.nix"
       - "flake.lock"
       - "nix-packages/**"

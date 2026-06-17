@@ -7,6 +7,7 @@ on:
       - master
     paths:
       - ".github/workflows/build-containers.yaml"
+      - ".github/actions/nix-fleet-setup/**"
       - "nix-presets/containers/**"
       - "nix-config/hosts/**"
       - "nix-config/flake.nix"
@@ -15,6 +16,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/build-containers.yaml"
+      - ".github/actions/nix-fleet-setup/**"
       - "nix-presets/containers/**"
       - "nix-config/hosts/**"
       - "nix-config/flake.nix"
