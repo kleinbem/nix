@@ -26,14 +26,6 @@ apply *args="":
     @cd nix-config && just maintenance::apply {{args}}
 
 [group("Main")]
-apply-fast *args="":
-    @cd nix-config && just maintenance::apply-fast {{args}}
-
-[group("Main")]
-apply-boot *args="":
-    @cd nix-config && just maintenance::apply-boot {{args}}
-
-[group("Main")]
 check:
     @cd nix-config && just maintenance::check
 

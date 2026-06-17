@@ -4,21 +4,25 @@ set working-directory := ".."
 
 # --- Workspace VCS operations (jj-first) ---
 #
-# Every commit/log/push/branch op flows through jj. Signing is automatic
-# via the file-based NoTouch key (`sign-all = true` in jj config) — no
-# agent, no PIN, no touch, no -S flag.
-#
-# Each sub-flake listed in `repos.nix` is its own independent git+jj
-# repo (NOT a git submodule — see `just jj::bootstrap`). The meta repo
-# is also a colocated jj repo. These recipes loop over each sub-flake
-# AND meta, calling jj inside each.
+# Every commit/log/push/branch op flows through jj. Each sub-flake listed
+# in `repos.nix` is its own independent git+jj repo (NOT a git submodule
+# — see `just jj::bootstrap`). The meta repo is also a colocated jj repo.
+# These recipes loop over each sub-flake AND meta, calling jj inside each.
 #
 # Use `git` only for legacy rescue ops or destructive resets — none of
 # those are wrapped here; type them directly when needed.
 #
 # TUI output uses `gum` (charmbracelet/gum) — install via `nix-env` or
-# add to home-manager packages. Recipes degrade gracefully if absent
-# (they call gum and the user sees a clear "gum: command not found").
+# add to home-manager packages. Recipes degrade noticeably if absent
+# (they call gum and the user sees "gum: command not found").
+#
+# --- Signing ---
+#
+# Today's reality: commits are signed via `git commit --amend -S` during
+# `sign-unsigned`, which touches the YubiKey on every signing operation.
+# TODO: wire a NoTouch SSH-FIDO key + `sign-all = true` in ~/.config/jj/
+# config.toml so jj signs at describe-time without prompting. Until then,
+# expect one YubiKey touch per repo per signing pass.
 
 # --- Interactive hub ---
 
@@ -227,7 +231,9 @@ check-signatures:
 
 # Sign every unsigned commit ahead of origin across the workspace.
 # Uses `git rebase --exec` rather than `jj sign` (more reliable).
-# After rebase, reattaches main and runs `jj git import` so bookmarks follow.
+# Auto-advances the local `main` bookmark to @ first if @ has a description
+# and is ahead — so users can run `sign-unsigned` directly after `jj describe`
+# without needing a redundant `push-all` to trigger the bookmark move.
 # First operation per session may need a YubiKey PIN; cached thereafter.
 [group("Sync")]
 sign-unsigned:
@@ -237,6 +243,11 @@ sign-unsigned:
     any_done=0
     for repo in {{REPOS}} .; do
         name=$([ "$repo" = "." ] && echo "nix" || echo "$repo")
+        # Auto-advance: if @ has a description and is ahead of main bookmark,
+        # move main to @ so the unsigned commit becomes visible to git.
+        if [ -n "$(cd $repo && jj log -r 'main..@' --no-graph -T 'description' 2>/dev/null)" ]; then
+            (cd $repo && jj bookmark move main --to @ >/dev/null 2>&1 || true)
+        fi
         unsigned=$(git -C $repo log --format='%G?' "origin/main..main" 2>/dev/null \
             | awk '$1 != "G" && $1 != ""' | wc -l)
         if [ "$unsigned" -gt 0 ]; then

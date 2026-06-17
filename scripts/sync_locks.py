@@ -62,7 +62,15 @@ def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     root_dir = os.path.dirname(script_dir)
 
-    print(f"{BOLD}{CYAN}🔄 Topological Workspace Lockfile Sync...{RESET}\n")
+    print(f"{BOLD}{CYAN}🔄 Topological Workspace Lockfile Sync...{RESET}")
+    print(
+        f"{CYAN}📌 Local-only: re-pins sub-flake inputs to local HEADs."
+        f" Upstream bumps (ghostty, rust-overlay, openclaw, nixpkgs, …) are"
+        f" CI-only via lockfile-autopilot PRs.{RESET}"
+    )
+    print(
+        f"{YELLOW}   To bump upstream manually (rare): cd <sub> && nix flake update{RESET}\n"
+    )
 
     # 1. Pre-check: Ensure no sub-flake has other uncommitted changes
     dirty_repos = []
@@ -94,27 +102,39 @@ def main():
 
         print(f"{BOLD}Updating {CYAN}{sub}{RESET}...")
 
-        # Read the inputs of the submodule to determine overrides
+        # Read the inputs of the submodule
         lock_path = os.path.join(sub_path, "flake.lock")
-        overrides = []
+        local_deps = []
         if os.path.exists(lock_path):
             try:
                 with open(lock_path, "r") as f:
                     data = json.load(f)
                 inputs = data.get("nodes", {}).get("root", {}).get("inputs", {}).keys()
-                for dep in TOPOLOGICAL_ORDER:
-                    if dep in inputs:
-                        dep_path = os.path.join(root_dir, dep)
-                        overrides.extend(
-                            ["--override-input", dep, f"git+file://{dep_path}"]
-                        )
+                # Only sub-flake inputs that live in this workspace count as
+                # "local deps" — those are the ones we re-pin to local HEADs.
+                local_deps = [dep for dep in TOPOLOGICAL_ORDER if dep in inputs]
             except Exception as e:
                 print(
-                    f"  {YELLOW}Warning: Failed to parse flake.lock for overrides in {sub}: {e}{RESET}"
+                    f"  {YELLOW}Warning: Failed to parse flake.lock in {sub}: {e}{RESET}"
                 )
 
-        # Run nix flake update
-        cmd = ["nix", "flake", "update", "--flake", f"./{sub}"] + overrides
+        # No local sub-flake deps → nothing to re-pin → skip entirely.
+        # External inputs (ghostty, rust-overlay, openclaw, nixpkgs, …) are
+        # CI's responsibility — lockfile-autopilot opens PRs for those.
+        if not local_deps:
+            print(
+                f"  ⏭  {CYAN}No local sub-flake deps — skipping"
+                f" (upstream bumps via CI PR).{RESET}"
+            )
+            continue
+
+        # Pass local dep names as positional args so `nix flake update` only
+        # refreshes those specific inputs. External inputs keep their pins.
+        cmd = ["nix", "flake", "update"] + local_deps + ["--flake", f"./{sub}"]
+        for dep in local_deps:
+            dep_path = os.path.join(root_dir, dep)
+            cmd += ["--override-input", dep, f"git+file://{dep_path}"]
+
         success, err = run_cmd(cmd, cwd=root_dir, capture=True)
         if not success:
             print(f"  {RED}❌ Update failed: {err}{RESET}")
@@ -138,14 +158,24 @@ def main():
                 f"  🟢 {GREEN}Already in sync at {BOLD}{get_git_head(sub_path)}{RESET}"
             )
 
-    # 3. Update root flake.lock
+    # 3. Update root flake.lock — same local-only logic as sub-flakes.
     print(f"\n{BOLD}Updating root {CYAN}flake.lock{RESET}...")
-    overrides = []
-    for dep in TOPOLOGICAL_ORDER:
-        dep_path = os.path.join(root_dir, dep)
-        overrides.extend(["--override-input", dep, f"git+file://{dep_path}"])
+    root_lock = os.path.join(root_dir, "flake.lock")
+    root_local_deps = []
+    if os.path.exists(root_lock):
+        try:
+            with open(root_lock, "r") as f:
+                data = json.load(f)
+            inputs = data.get("nodes", {}).get("root", {}).get("inputs", {}).keys()
+            root_local_deps = [dep for dep in TOPOLOGICAL_ORDER if dep in inputs]
+        except Exception as e:
+            print(f"  {YELLOW}Warning: Failed to parse root flake.lock: {e}{RESET}")
 
-    cmd = ["nix", "flake", "update"] + overrides
+    cmd = ["nix", "flake", "update"] + root_local_deps
+    for dep in root_local_deps:
+        dep_path = os.path.join(root_dir, dep)
+        cmd += ["--override-input", dep, f"git+file://{dep_path}"]
+
     success, err = run_cmd(cmd, cwd=root_dir, capture=True)
     if not success:
         print(f"  {RED}❌ Root update failed: {err}{RESET}")

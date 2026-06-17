@@ -314,23 +314,6 @@ update-container-all:
     @echo "   journalctl -fu 'update-container-stage@*.service'    # stages"
     @echo "   journalctl -fu 'update-container-activate@*.service' # activations"
 
-[group("Updates")]
-lock-refresh-all:
-    @echo "🔄 Refreshing all sub-flake lock files with local overrides..."
-    @for repo in {{REPOS}}; do \
-        if [ -f "$repo/flake.nix" ]; then \
-            echo "Updating $repo..."; \
-            inputs=$(jq -r '.nodes.root.inputs | keys[]' "$repo/flake.lock" 2>/dev/null || true); \
-            overrides=""; \
-            for dep in {{REPOS}}; do \
-                if echo "$inputs" | grep -q "^$dep$"; then \
-                    overrides="$overrides --override-input $dep git+file://{{ROOT}}/$dep"; \
-                fi; \
-            done; \
-            {{LOCK_CMD}} nix flake update --flake "./$repo" $overrides || echo "Failed to update $repo"; \
-        fi; \
-    done
-
 [group("Audit")]
 audit-locks-all:
     @bash ./scripts/audit-locks.sh
@@ -347,12 +330,3 @@ check-flakes:
 who:
     @bash ./scripts/check-lock.sh
 
-[group("Updates")]
-update-all *args="":
-    @echo "🚀 Starting System Update ..."
-    @{{LOCK_CMD}} nix flake update {{OVERRIDES}} {{args}}
-    @echo "📦 Updating Flatpaks..."
-    @flatpak update -y
-    @echo "🏗️  Applying system changes..."
-    @just apply
-    @echo "✅ System fully updated and synced!"
