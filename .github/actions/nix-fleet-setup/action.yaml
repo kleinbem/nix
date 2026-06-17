@@ -18,10 +18,38 @@ inputs:
     description: 'Configure Nix auto-gc (min-free / max-free) — recommended for big closure builds, skip for small jobs.'
     required: false
     default: 'false'
+  free-disk-space:
+    description: 'Reclaim ~20 GiB by deleting preinstalled toolchains. Set true for big-closure jobs (NixOS System); leave false for containers/devshells/packages — saves ~30s of overhead per job.'
+    required: false
+    default: 'false'
+  netbird:
+    description: 'Bring up the NetBird WireGuard tunnel for Attic push. Set true only when the closure NAR may exceed Cloudflare''s 100 MiB upload limit (NixOS System). Direct HTTPS push is ~15-20s faster and works fine for smaller NARs.'
+    required: false
+    default: 'true'
 
 runs:
   using: 'composite'
   steps:
+    # Reclaim disk for the Nix store by deleting preinstalled toolchains.
+    # endersonmenezes/free-disk-space@v3 is the actively-maintained successor
+    # to the LVM-juggling easimon/maximize-build-space — same headroom, no
+    # mount surgery (which silently lost log output on big closures).
+    # Reference: carpenike/nix-config and colemickens/nixcfg.
+    - name: Free disk space
+      if: inputs.free-disk-space == 'true'
+      uses: endersonmenezes/free-disk-space@v3
+      with:
+        remove_android: 'true'
+        remove_dotnet: 'true'
+        remove_haskell: 'true'
+        remove_tool_cache: 'true'
+        remove_swap: 'true'
+        remove_packages: "azure-cli google-cloud-cli microsoft-edge-stable google-chrome-stable firefox postgresql* temurin-* *llvm* mysql* dotnet-sdk-*"
+        remove_packages_one_command: 'true'
+        remove_folders: "/usr/share/swift /usr/share/miniconda /usr/share/az* /usr/local/lib/node_modules /usr/local/share/chromium /usr/local/share/powershell /usr/local/julia /usr/local/aws-cli /usr/local/aws-sam-cli /usr/share/gradle /usr/lib/jvm /home/runner/.rust /usr/local/.ghcup"
+        rm_cmd: "rmz"
+        rmz_version: "3.1.1"
+
     - name: Clone sub-flakes (from repos.nix)
       shell: bash
       run: ./scripts/clone-subflakes.sh
@@ -58,7 +86,7 @@ runs:
         sudo systemctl restart nix-daemon
 
     - name: Setup NetBird VPN
-      if: inputs.enable-cache == 'true'
+      if: inputs.enable-cache == 'true' && inputs.netbird == 'true'
       shell: bash
       run: |
         set -euo pipefail
@@ -80,7 +108,7 @@ runs:
         sudo netbird up --setup-key "${{ inputs.netbird-setup-key }}"
 
     - name: Route Attic over NetBird (fail-closed)
-      if: inputs.enable-cache == 'true'
+      if: inputs.enable-cache == 'true' && inputs.netbird == 'true'
       shell: bash
       run: |
         set -euo pipefail

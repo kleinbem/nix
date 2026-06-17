@@ -81,6 +81,7 @@ jobs:
         with:
           netbird-setup-key: ${{ secrets.NETBIRD_SETUP_KEY }}
           attic-token: ${{ secrets.ATTIC_PUSH_TOKEN }}
+          netbird: 'false'
 
       - name: Build container path
         run: |
