@@ -49,7 +49,7 @@ check-signatures:
     @any_unsigned=0; any_unverified=0; \
     for repo in {{REPOS}} .; do \
         name=$([ "$repo" = "." ] && echo "(meta)" || echo "$repo"); \
-        lines=$(git -C $repo log --format='%H %G? %s' "origin/main..HEAD" 2>/dev/null || true); \
+        lines=$(git -C $repo log --format='%H %G? %s' "origin/main..main" 2>/dev/null || true); \
         unsigned=$(echo "$lines" | awk '$2 == "N" || $2 == "B" || $2 == "E"'); \
         unverified=$(echo "$lines" | awk '$2 == "U" || $2 == "X" || $2 == "Y" || $2 == "R"'); \
         ahead=$(echo "$lines" | grep -c .); \
@@ -101,10 +101,15 @@ sign-unsigned:
     @any_done=0; \
     for repo in {{REPOS}} .; do \
         name=$([ "$repo" = "." ] && echo "(meta)" || echo "$repo"); \
-        unsigned=$(git -C $repo log --format='%G?' "origin/main..HEAD" 2>/dev/null \
+        unsigned=$(git -C $repo log --format='%G?' "origin/main..main" 2>/dev/null \
             | awk '$1 != "G" && $1 != ""' | wc -l); \
         if [ "$unsigned" -gt 0 ]; then \
             echo "  🖊️  $name — re-signing $unsigned commit(s)..."; \
+            stashed=0; \
+            if (cd $repo && git stash push -u -m "auto-stash for sign-unsigned" >/dev/null 2>&1); then \
+                stashed=1; \
+            fi; \
+            (cd $repo && git checkout main >/dev/null 2>&1 || true); \
             if (cd $repo && git rebase --exec \
                 'if [ "$(git log -1 --format=%G?)" != "G" ]; then git commit --amend --no-edit -S; fi' \
                 origin/main); then \
@@ -115,7 +120,13 @@ sign-unsigned:
                     (cd $repo && git branch -f main HEAD && git checkout main >/dev/null 2>&1 && jj git import >/dev/null 2>&1) \
                         && echo "    ↳ reattached main + jj bookmark"; \
                 fi; \
+                if [ "$stashed" -eq 1 ]; then \
+                    (cd $repo && git stash pop >/dev/null 2>&1 || true); \
+                fi; \
             else \
+                if [ "$stashed" -eq 1 ]; then \
+                    (cd $repo && git stash pop >/dev/null 2>&1 || true); \
+                fi; \
                 echo "    ⚠️  rebase failed in $name — fix manually"; \
             fi; \
             any_done=1; \
