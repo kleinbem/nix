@@ -91,13 +91,28 @@ jobs:
           # which fills to 100% on any non-trivial NixOS closure → silent crash before
           # the Build System Top-Level step can write any logs.
           build-mount-path: '/nix'
-          root-reserve-mb: 512
+          # root-reserve-mb 8192: leaves room on /dev/root for /tmp, /home/runner cache,
+          # /var, and the Determinate Nix daemon state. With the prior 512 MB reserve,
+          # nixos-nvme's eval cache + ~/.cache/nix exhausted / before Build System Top-Level
+          # could write a single log line (nasbook's smaller closure fit fine, masking it).
+          root-reserve-mb: 8192
           swap-size-mb: 1024
           remove-dotnet: 'true'
           remove-android: 'true'
           remove-haskell: 'true'
           remove-docker-images: 'true'
           remove-codeql: 'true'
+
+      - name: Redirect TMPDIR to LVM
+        if: matrix.runner == 'ubuntu-latest'
+        run: |
+          # Nix CLI and the substituter stage intermediates through $TMPDIR; for
+          # a NixOS closure this can be multiple GB. Default /tmp lives on /dev/root,
+          # which we've intentionally kept small. Point TMPDIR at /nix/tmp where
+          # the LVM volume has ~100 GB to absorb staging.
+          sudo mkdir -p /nix/tmp
+          sudo chown runner:runner /nix/tmp
+          echo "TMPDIR=/nix/tmp" >> "$GITHUB_ENV"
 
       - name: Free Disk Space (ARM fallback)
         if: matrix.runner != 'ubuntu-latest'
