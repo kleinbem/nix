@@ -30,6 +30,32 @@ status-all:
         printf "%-30s %s — %s\n" "$name" "$change" "$diff"; \
     done
 
+# Show the working-copy diff for every dirty sub-repo + meta in one go.
+# Variadic — pass any `jj diff` flag through:
+#   just jj::diff-all             # default jj diff format
+#   just jj::diff-all --git       # git-style unified diff
+#   just jj::diff-all --stat      # stat summary only
+#   just jj::diff-all --color-words
+[group("Status")]
+diff-all *args="":
+    @echo "🔍 Workspace diff (per-repo, dirty only)"
+    @echo "============================================================"
+    @any=0; \
+    for repo in {{REPOS}} .; do \
+        name=$([ "$repo" = "." ] && echo "(meta)" || echo "$repo"); \
+        if [ -n "$(cd $repo && jj diff --summary 2>/dev/null)" ]; then \
+            any=1; \
+            echo ""; \
+            echo "📦 $name"; \
+            echo "------------------------------------------------------------"; \
+            (cd $repo && jj diff {{args}}); \
+        fi; \
+    done; \
+    if [ "$any" -eq 0 ]; then \
+        echo ""; \
+        echo "✓ Workspace clean — no uncommitted changes anywhere."; \
+    fi
+
 # Audit commits ahead of origin for missing signatures.
 # Status codes (git's %G?):
 #   G  good signature, verified locally
