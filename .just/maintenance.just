@@ -284,6 +284,16 @@ update-container container_name:
     @echo "⏳ Update started in the background. Check logs with:"
     @echo "   journalctl -fu update-container@{{container_name}}.service"
 
+# Trigger update for every container registered with `my.services.container-updater`.
+# Equivalent to what the nightly 03:00 timer does, on demand.
+[group("Updates")]
+update-container-all:
+    @echo "🚀 Triggering out-of-band update for ALL registered containers..."
+    @sudo systemctl start update-containers.service
+    @echo "⏳ Updates running in the background. Watch progress with:"
+    @echo "   journalctl -fu update-containers.service"
+    @echo "   journalctl -fu 'update-container@*.service'"
+
 [group("Updates")]
 lock-refresh-all:
     @echo "🔄 Refreshing all sub-flake lock files with local overrides..."
