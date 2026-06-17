@@ -279,20 +279,40 @@ update-antigravity:
 
 [group("Updates")]
 update-container container_name:
-    @echo "🚀 Triggering out-of-band update for container '{{container_name}}'..."
+    @echo "🚀 Triggering full update (stage + activate) for container '{{container_name}}'..."
     @sudo systemctl start update-container@{{container_name}}.service
     @echo "⏳ Update started in the background. Check logs with:"
     @echo "   journalctl -fu update-container@{{container_name}}.service"
 
-# Trigger update for every container registered with `my.services.container-updater`.
-# Equivalent to what the nightly 03:00 timer does, on demand.
+# Stage a container update — fetch new closure, register profile, swap symlink.
+# The running container keeps serving the OLD closure. Safe to run on attic
+# without breaking other containers' substituter access. Activate when ready.
+[group("Updates")]
+update-container-stage container_name:
+    @echo "📦 Staging update for container '{{container_name}}' (no restart)..."
+    @sudo systemctl start update-container-stage@{{container_name}}.service
+    @echo "⏳ Stage logs: journalctl -fu update-container-stage@{{container_name}}.service"
+    @echo "   Activate with: just maintenance::update-container-activate {{container_name}}"
+
+# Activate a previously-staged container update — restart the container so it
+# runs the staged closure. ~5-30s downtime per container.
+[group("Updates")]
+update-container-activate container_name:
+    @echo "🔄 Activating staged update for container '{{container_name}}' (restart)..."
+    @sudo systemctl start update-container-activate@{{container_name}}.service
+
+# Smart bulk update of every container registered with `my.services.container-updater`:
+# stages all in parallel (no restarts) → activates non-attic in parallel → activates
+# attic last. Avoids the attic-eats-itself bootstrap window during the restart phase.
+# Same as the nightly 03:00 timer, on demand.
 [group("Updates")]
 update-container-all:
-    @echo "🚀 Triggering out-of-band update for ALL registered containers..."
+    @echo "🚀 Triggering smart bulk update for ALL registered containers..."
     @sudo systemctl start update-containers.service
-    @echo "⏳ Updates running in the background. Watch progress with:"
-    @echo "   journalctl -fu update-containers.service"
-    @echo "   journalctl -fu 'update-container@*.service'"
+    @echo "⏳ Watch progress:"
+    @echo "   journalctl -fu update-containers.service        # orchestrator"
+    @echo "   journalctl -fu 'update-container-stage@*.service'    # stages"
+    @echo "   journalctl -fu 'update-container-activate@*.service' # activations"
 
 [group("Updates")]
 lock-refresh-all:
