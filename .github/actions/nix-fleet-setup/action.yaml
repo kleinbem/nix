@@ -49,6 +49,17 @@ runs:
           sandbox = false
           trusted-users = root runner
 
+    # Magic Nix Cache uses GitHub's per-repo Action cache (~10 GB) as a
+    # transparent Nix substituter. Layers on Attic: store paths already
+    # present at cache.kleinbem.dev aren't duplicated into GHA cache
+    # (via upstream-cache). Most-effective on cold runs where neither
+    # Attic nor nixos.org has a needed path — falls back to GHA's cache
+    # of prior CI builds before rebuilding from source.
+    - name: Set up Magic Nix Cache
+      uses: DeterminateSystems/magic-nix-cache-action@v14
+      with:
+        upstream-cache: 'https://cache.kleinbem.dev/system'
+
     - name: Configure Nix Auto-GC
       if: inputs.configure-auto-gc == 'true'
       shell: bash
