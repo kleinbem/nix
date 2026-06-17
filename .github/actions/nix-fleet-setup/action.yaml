@@ -49,16 +49,20 @@ runs:
           sandbox = false
           trusted-users = root runner
 
-    # Magic Nix Cache uses GitHub's per-repo Action cache (~10 GB) as a
-    # transparent Nix substituter. Layers on Attic: store paths already
-    # present at cache.kleinbem.dev aren't duplicated into GHA cache
-    # (via upstream-cache). Most-effective on cold runs where neither
-    # Attic nor nixos.org has a needed path — falls back to GHA's cache
-    # of prior CI builds before rebuilding from source.
-    - name: Set up Magic Nix Cache
-      uses: DeterminateSystems/magic-nix-cache-action@v14
+    # Cache /nix/store via GitHub's per-repo Action cache (~10 GB).
+    # Community alternative to DeterminateSystems/magic-nix-cache-action,
+    # which has transitioned to a FlakeHub-authenticated product and slowed
+    # builds 3-14× when unauthenticated. cache-nix-action is a plain
+    # actions/cache wrapper with Nix-store-aware GC — no phone-home auth.
+    # Scoped per-workflow + lockfile hash so different workflows don't
+    # evict each other's caches; prefix-based restore lets a new lockfile
+    # still benefit from the previous run's store.
+    - name: Cache /nix/store via GitHub Actions cache
+      uses: nix-community/cache-nix-action@v7
       with:
-        upstream-cache: 'https://cache.kleinbem.dev/system'
+        primary-key: nix-${{ runner.os }}-${{ github.workflow }}-${{ hashFiles('**/flake.lock') }}
+        restore-prefixes-first-match: nix-${{ runner.os }}-${{ github.workflow }}-
+        gc-max-store-size-linux: 5G
 
     - name: Configure Nix Auto-GC
       if: inputs.configure-auto-gc == 'true'
