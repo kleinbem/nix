@@ -51,8 +51,15 @@ jobs:
       - name: Generate Dynamic Matrix
         id: set-matrix
         run: |
-          MATRIX_JSON=$(nix eval .#nixosConfigurations.container-factory.config.containers \
+          NAMES_JSON=$(nix eval .#nixosConfigurations.container-factory.config.containers \
             --impure --apply 'builtins.attrNames' --json $NIX_OVERRIDES)
+          # Containers whose pushed NAR exceeds Cloudflare's 100 MiB upload
+          # limit need NetBird for the Attic push (direct HTTPS 413s otherwise).
+          # Everything else opts out for the ~15-20s setup-tax saving.
+          # Add names here as new big-closure containers emerge.
+          LARGE_NAR='["openclaw"]'
+          MATRIX_JSON=$(echo "$NAMES_JSON" | jq -c --argjson large "$LARGE_NAR" \
+            'map({container: ., needsNetbird: (IN($large[]))})')
           echo "Discovered Containers: $MATRIX_JSON"
           echo "matrix=$MATRIX_JSON" >> "$GITHUB_OUTPUT"
 
@@ -69,7 +76,7 @@ jobs:
       # → "Bad chunk hash or size"). 29 parallel pushes would be the worst offender.
       max-parallel: 1
       matrix:
-        container: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+        include: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
@@ -81,7 +88,7 @@ jobs:
         with:
           netbird-setup-key: ${{ secrets.NETBIRD_SETUP_KEY }}
           attic-token: ${{ secrets.ATTIC_PUSH_TOKEN }}
-          netbird: 'false'
+          netbird: ${{ matrix.needsNetbird }}
 
       - name: Build container path
         run: |
