@@ -33,6 +33,8 @@ hub:
     #!/usr/bin/env bash
     set -e
     choice=$(gum choose --header "📦 Workspace Operations" \
+        "ship             — describe + sign + push (the everything button)" \
+        "─────────────────────────────────────────────" \
         "status-all       — repo state + ahead-of-origin counts" \
         "diff-all         — uncommitted changes across the workspace" \
         "remote-status    — GitHub dashboard (CI, PRs, issues)" \
@@ -49,6 +51,7 @@ hub:
         "init-bookmarks   — link local main to origin/main" \
         "quit")
     case "$choice" in
+        ship*)              msg=$(gum input --header "Ship message" --placeholder "feat(...): ..."); just jj::ship "$msg" ;;
         status-all*)        just jj::status-all ;;
         diff-all*)          just jj::diff-all ;;
         remote-status*)     just jj::remote-status ;;
@@ -256,6 +259,16 @@ sign-unsigned:
             | awk '$1 != "G" && $1 != ""' | wc -l)
         if [ "$unsigned" -gt 0 ]; then
             gum style --foreground 212 "  🖊  $name — re-signing $unsigned commit(s)..."
+            # Pre-flight: jj-colocated repos frequently leave git's HEAD
+            # detached (from various jj ops, prior rebase failures, etc.).
+            # `git rebase` needs an attached branch. Detect detached HEAD and
+            # force-attach to main BEFORE the stash dance. Safe because after
+            # the auto-advance above, jj's working copy == main == tree, so
+            # `checkout -f main` doesn't discard anything new.
+            head_ref=$(cd $repo && git symbolic-ref --quiet HEAD 2>/dev/null || true)
+            if [ "$head_ref" != "refs/heads/main" ]; then
+                (cd $repo && git checkout -f main >/dev/null 2>&1 || true)
+            fi
             # Stash dance — use a unique marker so we never accidentally pop a
             # pre-existing stash that lives in the user's stash list from
             # earlier work. `git stash push` on a clean tree exits 0 without
@@ -345,6 +358,33 @@ save-all message="":
     else
         gum style --foreground 46 --margin "1 0" "✅ Workspace state saved."
     fi
+
+# One-shot: describe every dirty repo with the given message, sign anything
+# unsigned ahead of origin, and push. The "commit and ship" muscle-memory
+# command — covers the entire describe → sign → push flow in one keystroke.
+#
+# With V2 NoTouch signing active this whole pipeline is silent and ~5s.
+# If a sub-repo's signed-commit branch rule rejects, push-all surfaces it.
+#
+# Prompts for the message via `gum input` if not given. Same persona env
+# var (KLEINBEM_PERSONA) works as with save-all.
+[group("Sync")]
+ship message="":
+    #!/usr/bin/env bash
+    set -e
+    msg="{{message}}"
+    if [ -z "$msg" ]; then
+        msg=$(gum input --header "Ship: commit message" --placeholder "feat(...): ...")
+    fi
+    if [ -z "$msg" ]; then
+        gum style --foreground 196 "❌ No message — aborting ship."
+        exit 1
+    fi
+    gum style --border normal --padding "0 2" --border-foreground 99 --foreground 99 "🚢 Shipping: $msg"
+    just jj::save-all "$msg"
+    just jj::sign-unsigned
+    just jj::push-all
+    gum style --foreground 46 --margin "1 0" "✅ Shipped."
 
 # Wrap any jj subcommand to commit as a specific persona.
 [group("Sync")]
