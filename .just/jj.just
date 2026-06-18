@@ -256,10 +256,13 @@ sign-unsigned:
             | awk '$1 != "G" && $1 != ""' | wc -l)
         if [ "$unsigned" -gt 0 ]; then
             gum style --foreground 212 "  🖊  $name — re-signing $unsigned commit(s)..."
-            stashed=0
-            if (cd $repo && git stash push -u -m "auto-stash for sign-unsigned" >/dev/null 2>&1); then
-                stashed=1
-            fi
+            # Stash dance — use a unique marker so we never accidentally pop a
+            # pre-existing stash that lives in the user's stash list from
+            # earlier work. `git stash push` on a clean tree exits 0 without
+            # actually creating an entry, so we verify the entry by message.
+            stash_msg="auto-stash-sign-unsigned-$$-$(date +%s%N)"
+            (cd $repo && git stash push -u -m "$stash_msg" >/dev/null 2>&1 || true)
+            stash_ref=$(cd $repo && git stash list 2>/dev/null | grep -F "$stash_msg" | head -1 | cut -d: -f1)
             (cd $repo && git checkout main >/dev/null 2>&1 || true)
             if (cd $repo && git rebase --exec \
                 'if [ "$(git log -1 --format=%G?)" != "G" ]; then git commit --amend --no-edit -S; fi' \
@@ -271,9 +274,10 @@ sign-unsigned:
                     (cd $repo && git branch -f main HEAD && git checkout main >/dev/null 2>&1 && jj git import >/dev/null 2>&1) \
                         && gum style --foreground 46 "    ↳ reattached main + jj bookmark"
                 fi
-                [ "$stashed" -eq 1 ] && (cd $repo && git stash pop >/dev/null 2>&1 || true)
+                # Pop ONLY our marker-tagged stash, never a pre-existing one.
+                [ -n "$stash_ref" ] && (cd $repo && git stash pop "$stash_ref" >/dev/null 2>&1 || true)
             else
-                [ "$stashed" -eq 1 ] && (cd $repo && git stash pop >/dev/null 2>&1 || true)
+                [ -n "$stash_ref" ] && (cd $repo && git stash pop "$stash_ref" >/dev/null 2>&1 || true)
                 gum style --foreground 196 "    ⚠ rebase failed in $name — fix manually"
             fi
             any_done=1
