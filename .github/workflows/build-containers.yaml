@@ -91,7 +91,7 @@ jobs:
       - name: Build container path
         run: |
           nix build ".#nixosConfigurations.container-factory.config.containers.${{ matrix.container }}.path" \
-            --impure -L $NIX_OVERRIDES
+            --impure --fallback -L $NIX_OVERRIDES
 
       - name: Push to Attic
         run: |

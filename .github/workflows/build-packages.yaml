@@ -59,7 +59,7 @@ jobs:
           FAILED=()
           for pkg in $PKGS; do
             echo "::group::Building $pkg"
-            if nix build ".#packages.x86_64-linux.$pkg" --impure -L $NIX_OVERRIDES --out-link "result-$pkg"; then
+            if nix build ".#packages.x86_64-linux.$pkg" --impure --fallback -L $NIX_OVERRIDES --out-link "result-$pkg"; then
               attic push system $(nix-store -qR "result-$pkg")
             else
               echo "::warning::Failed to build package: $pkg"

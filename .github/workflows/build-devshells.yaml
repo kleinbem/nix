@@ -82,7 +82,7 @@ jobs:
       - name: Build devShell closure
         run: |
           nix build ".#devShells.x86_64-linux.${{ matrix.shell }}" \
-            --impure -L $NIX_OVERRIDES
+            --impure --fallback -L $NIX_OVERRIDES
 
       - name: Push to Attic
         run: |

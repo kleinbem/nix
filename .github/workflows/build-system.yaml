@@ -113,7 +113,7 @@ jobs:
         run: |
           set -o pipefail
           nix build .#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel \
-            --impure -L $NIX_OVERRIDES \
+            --impure --fallback -L $NIX_OVERRIDES \
             > >(tee /tmp/nix-build.log) 2> >(tee /tmp/nix-build.err >&2)
 
       - name: Surface build failure
