@@ -32,7 +32,7 @@ jobs:
       - name: Realize nixos-nvme closure (local store / cache)
         run: |
           nix build .#nixosConfigurations.nixos-nvme.config.system.build.toplevel \
-            --impure --fallback -L $NIX_OVERRIDES --out-link result
+            --impure --keep-going -L $NIX_OVERRIDES --out-link result
 
       - name: Run vulnix
         run: |
