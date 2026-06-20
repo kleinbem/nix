@@ -154,26 +154,9 @@
           ];
 
           _module.args.pkgs = pkgs;
-          packages =
-            packagesFromPackages
-            // packagesFromPresets
-            // {
-              atlas = pkgs.callPackage ./scripts/default.nix { };
-              inherit (inputs.nix-config.packages.${system}) router-1-image;
-            }
-            // (
-              if system == "x86_64-linux" then
-                let
-                  containers = inputs.nix-config.nixosConfigurations.container-factory.config.containers;
-                in
-                {
-                  container-caddy = containers.caddy.path;
-                  container-n8n = containers.n8n.path;
-                  container-code-server = containers."code-server".path;
-                }
-              else
-                { }
-            );
+          packages = packagesFromPackages // packagesFromPresets // {
+            atlas = pkgs.callPackage ./scripts/default.nix { };
+          };
 
           devenv.shells = {
             default = {
