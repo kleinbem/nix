@@ -89,12 +89,14 @@ GH_TF_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.github_tf_token')
 GH_APP_ID=$(echo "$DECRYPTED_YAML" | yq '.github_app_id')
 GH_APP_PRIVATE_KEY=$(echo "$DECRYPTED_YAML" | yq '.github_app_private_key')
 ATTIC_PUSH=$(echo "$DECRYPTED_YAML" | yq '.attic_push_token')
+NETBIRD_KEY=$(echo "$DECRYPTED_YAML" | yq '.netbird_setup_key')
 
 # Normalise missing keys ("null") to empty strings
 [ "$GH_TF_TOKEN" = "null" ] && GH_TF_TOKEN=""
 [ "$GH_APP_ID" = "null" ] && GH_APP_ID=""
 [ "$GH_APP_PRIVATE_KEY" = "null" ] && GH_APP_PRIVATE_KEY=""
 [ "$ATTIC_PUSH" = "null" ] && ATTIC_PUSH=""
+[ "$NETBIRD_KEY" = "null" ] && NETBIRD_KEY=""
 
 if [ -z "$GH_TF_TOKEN" ]; then
   echo -e "${YELLOW}⚠️  github_tf_token not set in secrets.yaml — GitHub resources will fail to authenticate."
@@ -109,6 +111,7 @@ export TF_VAR_github_tf_token="$GH_TF_TOKEN"
 export TF_VAR_github_app_id="$GH_APP_ID"
 export TF_VAR_github_app_private_key="$GH_APP_PRIVATE_KEY"
 export TF_VAR_attic_push_token="$ATTIC_PUSH"
+export TF_VAR_netbird_setup_key="$NETBIRD_KEY"
 
 # 2. OpenTofu Init & Plan/Apply
 echo -e "\n${BOLD}[2/4] Initializing OpenTofu...${RESET}"

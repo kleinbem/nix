@@ -42,6 +42,12 @@ variable "attic_push_token" {
   description = "Attic cache push token, distributed as the ATTIC_PUSH_TOKEN Actions secret."
 }
 
+variable "netbird_setup_key" {
+  type        = string
+  sensitive   = true
+  description = "NetBird setup key, distributed as the NETBIRD_SETUP_KEY Actions secret. Used by hosted CI runners to bring up the NetBird WireGuard tunnel and push large NARs to Attic without hitting Cloudflare's 100 MiB upload limit."
+}
+
 # --- Persona-fleet mail infrastructure ---
 
 variable "mail_host_ip" {
