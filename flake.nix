@@ -181,48 +181,6 @@
               _module.args.inputs = inputs;
             };
 
-            apps = {
-              imports = [ inputs.nix-devshells.devenvModules.apps ];
-              devenv.root = workspaceRoot;
-              _module.args.inputs = inputs;
-              _module.args.system = system;
-            };
-
-            pentest = {
-              imports = [ inputs.nix-devshells.devenvModules.pentest ];
-              devenv.root = workspaceRoot;
-              _module.args.inputs = inputs;
-              _module.args.system = system;
-            };
-
-            ai-dev = {
-              imports = [ inputs.nix-devshells.devenvModules.ai-dev ];
-              devenv.root = workspaceRoot;
-              _module.args.inputs = inputs;
-              _module.args.system = system;
-            };
-
-            math = {
-              imports = [ inputs.nix-devshells.devenvModules.math ];
-              devenv.root = workspaceRoot;
-              _module.args.inputs = inputs;
-              _module.args.system = system;
-            };
-
-            media = {
-              imports = [ inputs.nix-devshells.devenvModules.media ];
-              devenv.root = workspaceRoot;
-              _module.args.inputs = inputs;
-              _module.args.system = system;
-            };
-
-            android = {
-              imports = [ inputs.nix-devshells.devenvModules.android ];
-              devenv.root = workspaceRoot;
-              _module.args.inputs = inputs;
-              _module.args.system = system;
-            };
-
             ultimate = {
               imports = [
                 inputs.nix-devshells.devenvModules.apps

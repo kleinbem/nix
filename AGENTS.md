@@ -118,19 +118,21 @@ my = {
 
 ## Devshells
 
-The root `devenv.nix` imports `nix-devshells.devenvModules.default`. Specialized shells are exposed as `devenv.shells` in `flake.nix`:
+The root `devenv.nix` imports `nix-devshells.devenvModules.default`. The meta flake exposes two shells (`default`, `ultimate`); all specialized shells live in `nix-devshells`:
 
-| Shell | Purpose |
-|---|---|
-| `default` | Meta-workspace (just, gh, lazygit, workspace-status) |
-| `apps` | General application tooling |
-| `ai-dev` | AI/ML development stack |
-| `pentest` | Security testing tools |
-| `math` | Scientific computing (octave, etc.) |
-| `media` | Media processing |
-| `ultimate` | All of the above combined |
+| Shell | Source | Purpose |
+|---|---|---|
+| `default` | meta (`./devenv.nix`) | Meta-workspace (just, gh, lazygit, workspace-status) |
+| `ultimate` | meta | All specialized shells combined + inventory script |
+| `apps` | `nix-devshells` | General application tooling |
+| `ai-dev` | `nix-devshells` | AI/ML development stack |
+| `pentest` | `nix-devshells` | Security testing tools |
+| `math` | `nix-devshells` | Scientific computing (octave, etc.) |
+| `media` | `nix-devshells` | Media processing |
+| `android` | `nix-devshells` | Android tooling |
+| `arm` | `nix-devshells` | ARM cross-build environment |
 
-Enter a specific shell: `nix develop .#<name>` or `devenv shell <name>`.
+Enter via `just devshell::<name>` (recommended — handles the meta-vs-sub-flake routing). Manual equivalents: `nix develop .#default`/`.#ultimate` for meta, `nix develop ./nix-devshells#<name>` for the rest.
 
 ## Ground Truth & Agent Context
 

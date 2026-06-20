@@ -7,8 +7,10 @@
 # shell's build attempt and report success/failure per shell. Bailing on
 # the first failure would defeat its purpose.
 
-# List of shells to verify (from root flake.nix)
-SHELLS=("default" "apps" "pentest" "ai-dev" "math" "media" "ultimate")
+# Shells to verify, keyed by flake. Meta exposes default + ultimate; the rest
+# live in nix-devshells.
+META_SHELLS=("default" "ultimate")
+DEVSHELL_SHELLS=("apps" "pentest" "ai-dev" "math" "media" "android" "arm")
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -21,21 +23,27 @@ echo "------------------------------------------------------------"
 printf "%-15s | %-10s | %-30s\n" "Shell" "Status" "Details/Error"
 echo "------------------------------------------------------------"
 
-for shell in "${SHELLS[@]}"; do
-  # Capture only the error message if it fails
-  # We use --no-link to avoid creating 'result' symlinks
-  if nix build .#devShells.x86_64-linux."$shell" --no-link --print-build-logs >verify_shell.log 2>&1; then
+verify_one() {
+  local flake_ref="$1"
+  local shell="$2"
+  if nix build "${flake_ref}#devShells.x86_64-linux.${shell}" --no-link --print-build-logs >verify_shell.log 2>&1; then
     printf "${GREEN}✅ %-13s${NC} | OK         | -\n" "$shell"
   else
-    # Extract the most relevant error line
     ERROR=$(grep -E "error:" verify_shell.log | head -n 1 | sed 's/error: //')
     if [ -z "$ERROR" ]; then
       ERROR="Evaluation failed (check verify_shell.log)"
     fi
     printf "${RED}❌ %-13s${NC} | FAILED     | %-30s\n" "$shell" "$ERROR"
   fi
+}
+
+for shell in "${META_SHELLS[@]}"; do
+  verify_one "." "$shell"
+done
+for shell in "${DEVSHELL_SHELLS[@]}"; do
+  verify_one "./nix-devshells" "$shell"
 done
 
 rm -f verify_shell.log
 echo "------------------------------------------------------------"
-echo -e "${YELLOW}Tip: Use 'nix develop .#<shell>' to debug specific failures.${NC}"
+echo -e "${YELLOW}Tip: Use 'just devshell::<shell>' or 'nix develop ./nix-devshells#<shell>' to debug.${NC}"
