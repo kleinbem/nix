@@ -9,15 +9,6 @@
 # GitHub notifications + 2FA codes received, occasional outbound),
 # this rounds to free.
 
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
 provider "aws" {
   region = var.aws_region
 }
@@ -90,7 +81,7 @@ output "ses_smtp_username" {
 }
 
 output "ses_smtp_password_raw_secret" {
-  value     = aws_iam_access_key.stalwart_smtp.secret
-  sensitive = true
+  value       = aws_iam_access_key.stalwart_smtp.secret
+  sensitive   = true
   description = "Raw IAM secret — convert to SMTP password via AWS's SMTP-credential derivation (`ses_smtp_password_v4`). Then store the SMTP password (not this raw secret) in sops."
 }

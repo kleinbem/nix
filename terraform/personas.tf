@@ -8,7 +8,7 @@
 
 locals {
   personas_json_path = "${path.module}/personas.json"
-  personas = jsondecode(file(local.personas_json_path))
+  personas           = jsondecode(file(local.personas_json_path))
   # Convenience: just the email-local-part keys (michael, thomas, …).
   persona_names = keys(local.personas)
   # Convenience: just the email-domain (deduped — should be a single domain).
