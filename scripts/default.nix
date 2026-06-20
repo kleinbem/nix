@@ -27,12 +27,6 @@ pkgs.writeShellApplication {
   ];
 
   text = ''
-    # Find the script location relative to this tool
-    # In a real flake we would copy the source, but for this dev setup 
-    # we point to your live scripts folder for easy editing.
-    PYTHON_SCRIPT="/home/martin/Develop/github.com/kleinbem/nix/scripts/workspace-mcp.py"
-
-    # Run the atlas logic with the bundled python environment
-    exec python3 "$PYTHON_SCRIPT" "$@"
+    exec python3 ${./workspace-mcp.py} "$@"
   '';
 }
