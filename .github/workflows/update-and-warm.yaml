@@ -98,18 +98,15 @@ jobs:
     if: needs.update.outputs.created != 'none'
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch cache-warming builds against the update branch
+      - name: Dispatch build-all against the update branch
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # GITHUB_TOKEN-created PRs don't cascade-trigger workflows, so warm each
-          # cache explicitly against the update branch. These run on the self-hosted
-          # runner (nixos-nvme) and push to Attic, so `just apply` pulls instead of
-          # rebuilding locally. Containers are omitted (rarely change on a root-lock
-          # bump, and 29 closures are heavy) — dispatch build-containers.yaml manually
-          # if a bump touches them.
+          # GITHUB_TOKEN-created PRs don't cascade-trigger workflows, so dispatch
+          # build-all.yaml explicitly against the update branch. build-all warms
+          # nixosConfigurations + packages + devShells + checks in one matrix run
+          # and pushes to Attic, so `just apply` pulls instead of rebuilding
+          # locally after the PR auto-merges.
           BR="${{ needs.update.outputs.branch }}"
-          for wf in build-system.yaml build-packages.yaml build-devshells.yaml check.yaml; do
-            echo "Dispatching $wf against $BR"
-            gh workflow run "$wf" --repo "$GITHUB_REPOSITORY" --ref "$BR"
-          done
+          echo "Dispatching build-all.yaml against $BR"
+          gh workflow run build-all.yaml --repo "$GITHUB_REPOSITORY" --ref "$BR"
