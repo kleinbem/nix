@@ -9,7 +9,9 @@
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-LOCKS=$(nix flake metadata --json "$REPO_ROOT" 2>/dev/null | jq -c '.locks.nodes')
+# nix-config is the root flake — its lock has the canonical pins for every
+# sub-flake. (Meta dir no longer has a flake.nix.)
+LOCKS=$(nix flake metadata --json "$REPO_ROOT/nix-config" 2>/dev/null | jq -c '.locks.nodes')
 
 GREEN='\033[1;32m'
 YELLOW='\033[1;33m'

@@ -30,7 +30,7 @@ apps:
 [group("Shells")]
 ultimate:
     @echo "🌌 Entering Ultimate DevShell..."
-    @nix develop .#ultimate
+    @nix develop ./nix-devshells#ultimate
 
 [group("Shells")]
 arm:

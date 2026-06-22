@@ -62,8 +62,6 @@ _check-flakes *args="--impure":
             {{LOCK_CMD}} nix flake check ./$repo --impure {{OVERRIDES}} {{args}} 2>&1 | grep -v "does not match any input" || true; \
         fi; \
     done
-    @echo "  └─ root meta-workspace"
-    @{{LOCK_CMD}} nix flake check . {{OVERRIDES}} {{args}} 2>&1 | grep -v "does not match any input" || true
     @echo "  ✅ Stage 2 OK"
 
 [private]
@@ -243,11 +241,6 @@ hooks-refresh-all:
     @for repo in {{REPOS}}; do rm -rf "$repo/.git/hooks/*" 2>/dev/null || true; done
     @direnv allow
     @nix develop --command bash -c 'prek install && for repo in {{REPOS}}; do if [ -f "$repo/.pre-commit-config.yaml" ]; then echo "Installing hooks in $repo..."; (cd "$repo" && prek install) || true; fi; done'
-
-[group("System")]
-build-docs:
-    @echo "📚 Generating configuration documentation..."
-    @{{LOCK_CMD}} nix build .#docs
 
 [group("System")]
 check-health:
