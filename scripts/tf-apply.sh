@@ -9,15 +9,25 @@ set -euo pipefail
 #                     via `tofu state rm` + `tofu import`. Idempotent: skips
 #                     cleanly if state is already at the new address.
 MODE="apply"
+PASSTHROUGH=()
+SAW_DDASH=0
 for arg in "$@"; do
+  if [ $SAW_DDASH -eq 1 ]; then
+    PASSTHROUGH+=("$arg")
+    continue
+  fi
   case "$arg" in
   --plan-only | --plan) MODE="plan" ;;
   --migrate-tunnel) MODE="migrate-tunnel" ;;
+  --) SAW_DDASH=1 ;;
   -h | --help)
-    echo "Usage: $0 [--plan-only | --migrate-tunnel]"
+    echo "Usage: $0 [--plan-only | --migrate-tunnel] [-- <tofu-args>...]"
     echo "  Default:          decrypt sops, run 'tofu apply -auto-approve', write back tunnel_id."
     echo "  --plan-only:      decrypt sops, run 'tofu plan', exit."
     echo "  --migrate-tunnel: rebind tunnel state to the new resource address."
+    echo "  -- <tofu-args>:   pass everything after -- straight to 'tofu apply'."
+    echo "                    (default apply: tofu apply -auto-approve \$PASSTHROUGH)"
+    echo "                    Example: $0 -- -target='github_actions_secret.ci' -auto-approve"
     exit 0
     ;;
   esac
@@ -159,6 +169,15 @@ if [ "$MODE" = "migrate-tunnel" ]; then
 fi
 
 echo -e "\n${BOLD}Applying OpenTofu plan...${RESET}"
+if [ ${#PASSTHROUGH[@]} -gt 0 ]; then
+  echo -e "${YELLOW}Passthrough args: ${PASSTHROUGH[*]}${RESET}"
+  tofu apply "${PASSTHROUGH[@]}"
+  # Targeted/passthrough applies skip the tunnel-id capture below: the user
+  # is intentionally narrowing scope and tofu output -raw tunnel_id would
+  # error out if the tunnel wasn't part of the apply set.
+  echo -e "\n${BOLD}${GREEN}✅ Passthrough apply complete. Skipping tunnel-id capture.${RESET}"
+  exit 0
+fi
 tofu apply -auto-approve
 
 # 3. Capture Output
