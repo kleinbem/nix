@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scripts/phone-activate.sh
+# tools/phone-activate.sh
 # To be run ON THE PHONE inside the nix-config directory.
 # Automates Git initialization, Nix building with overrides, and the PTY-bypass symlink.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scripts/git-sign-all.sh
+# tools/git-sign-all.sh
 # Squashes and signs unpushed commits in the workspace to satisfy GitHub verified signature rules.
 
 set -euo pipefail

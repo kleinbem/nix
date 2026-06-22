@@ -195,24 +195,24 @@ ci:
 
 [group("Linter")]
 check-shells:
-    @bash ./scripts/verify-devshells.sh
+    @bash ./tools/verify-devshells.sh
 
-# Lint Python in the meta-workspace scripts/ dir (workspace-mcp, ai-logs, etc).
+# Lint Python in the meta-workspace tools/ dir (workspace-mcp, ai-logs, etc).
 # nix-config has its own `just maintenance::lint-python` for its scripts.
 [group("Linter")]
 lint-python *args="":
-    @nix shell nixpkgs#ruff --command ruff check ./scripts/ {{args}}
+    @nix shell nixpkgs#ruff --command ruff check ./tools/ {{args}}
 
-# Format Python in the meta-workspace scripts/ dir.
+# Format Python in the meta-workspace tools/ dir.
 [group("Formatting")]
 format-python *args="":
-    @nix shell nixpkgs#ruff --command ruff format ./scripts/ {{args}}
+    @nix shell nixpkgs#ruff --command ruff format ./tools/ {{args}}
 
 # Verify the small set of scripts mirrored across nix-presets and nix-devshells
 # haven't drifted. nix-presets is the source of truth.
 [group("Linter")]
 check-mirrors:
-    @bash ./scripts/check-script-mirrors.sh
+    @bash ./tools/check-script-mirrors.sh
 
 [group("Security")]
 audit-security *args="":
@@ -245,12 +245,12 @@ hooks-refresh-all:
 [group("System")]
 check-health:
     @echo "🏥 Running system health check..."
-    @python3 ./scripts/ai-logs.py --sink
+    @python3 ./tools/ai-logs.py --sink
 
 [group("System")]
 build-history:
     @echo "📜 Rebuilding history index..."
-    @python3 ./scripts/rebuild_history.py --sync
+    @python3 ./tools/rebuild_history.py --sync
 
 # Workspace-wide grep. Personal/OS recipes (Obsidian notes, Firefox
 # cleanup, fix-yubikey/fix-chrome) live in the home-manager justfile —
@@ -261,7 +261,7 @@ find pattern:
 
 [group("Updates")]
 update-local:
-    @{{LOCK_CMD}} python3 ./scripts/sync_locks.py
+    @{{LOCK_CMD}} python3 ./tools/sync_locks.py
 
 # Bump Antigravity to latest (delegates to nix-packages' own justfile, which
 # owns the upstream URL and the script). Run `cd nix-packages && just --list`
@@ -309,7 +309,7 @@ update-container-all:
 
 [group("Audit")]
 audit-locks-all:
-    @bash ./scripts/audit-locks.sh
+    @bash ./tools/audit-locks.sh
 
 # Lint flake.lock for staleness, EOL inputs, security issues (DeterminateSystems'
 # flake-checker). Complements `audit-locks` (which compares your local sub-flake
@@ -321,5 +321,5 @@ check-flakes:
 
 [group("System")]
 who:
-    @bash ./scripts/check-lock.sh
+    @bash ./tools/check-lock.sh
 

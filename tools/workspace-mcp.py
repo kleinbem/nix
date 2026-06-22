@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# SOURCE OF TRUTH: scripts/workspace-mcp.py
+# SOURCE OF TRUTH: tools/workspace-mcp.py
 import os
 import json
 import subprocess
@@ -417,7 +417,7 @@ def distill_knowledge(
             f.write(content)
 
         # Link to obsidian if the script exists
-        linker = os.path.join(DEFAULT_FLAKE_PATH, "scripts/link-docs-to-obsidian.sh")
+        linker = os.path.join(DEFAULT_FLAKE_PATH, "tools/link-docs-to-obsidian.sh")
         if os.path.exists(linker):
             subprocess.run([linker], capture_output=True)
 
@@ -435,7 +435,7 @@ def analyze_logs(unit: str = None, machine: str = None, lines: int = 50):
     try:
         cmd = [
             "python3",
-            os.path.join(DEFAULT_FLAKE_PATH, "scripts/ai-logs.py"),
+            os.path.join(DEFAULT_FLAKE_PATH, "tools/ai-logs.py"),
             "--json",
             "-n",
             str(lines),
@@ -622,7 +622,7 @@ def reindex_vault():
     try:
         cmd = [
             "python3",
-            os.path.join(DEFAULT_FLAKE_PATH, "scripts/workspace-indexer.py"),
+            os.path.join(DEFAULT_FLAKE_PATH, "tools/workspace-indexer.py"),
         ]
         result = subprocess.run(cmd, capture_output=True, text=True)
         return {"stdout": result.stdout, "stderr": result.stderr}
@@ -694,7 +694,7 @@ def get_system_telemetry():
                     subprocess.Popen(
                         [
                             "python3",
-                            os.path.join(DEFAULT_FLAKE_PATH, "scripts/ai-logs.py"),
+                            os.path.join(DEFAULT_FLAKE_PATH, "tools/ai-logs.py"),
                             "--sink",
                         ]
                     )
@@ -703,7 +703,7 @@ def get_system_telemetry():
             subprocess.Popen(
                 [
                     "python3",
-                    os.path.join(DEFAULT_FLAKE_PATH, "scripts/ai-logs.py"),
+                    os.path.join(DEFAULT_FLAKE_PATH, "tools/ai-logs.py"),
                     "--sink",
                 ]
             )

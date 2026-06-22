@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scripts/phone-backup.sh
+# tools/phone-backup.sh
 # Run this ON THE PHONE to create a safe snapshot of your working environment.
 
 set -e

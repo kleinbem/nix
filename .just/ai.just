@@ -44,4 +44,4 @@ local:
 [group("Knowledge")]
 distill:
     @echo "🧪 Distilling conversation history..."
-    @python3 ./scripts/rebuild_history.py --distill
+    @python3 ./tools/rebuild_history.py --distill

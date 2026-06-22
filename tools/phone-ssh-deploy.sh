@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scripts/phone-ssh-deploy.sh
+# tools/phone-ssh-deploy.sh
 # Deploys the meta-repo to Nix-on-Droid via SSH
 
 set -e
@@ -24,6 +24,6 @@ rsync -avz --delete -h --progress --info=progress2 \
 
 # 2. Trigger activation remotely
 echo "🚀 Activating configuration on phone..."
-ssh -p "$PHONE_PORT" "$PHONE_IP" "bash $TARGET_DIR/scripts/phone-activate.sh"
+ssh -p "$PHONE_PORT" "$PHONE_IP" "bash $TARGET_DIR/tools/phone-activate.sh"
 
 echo "✅ Phone deployment complete!"

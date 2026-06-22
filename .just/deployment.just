@@ -22,4 +22,4 @@ launch-dashboard:
 [group("Cloudflare")]
 [doc("Deploy Cloudflare Tunnel and wildcard CNAME records via OpenTofu")]
 deploy-cloudflare:
-    @./scripts/tf-apply.sh
+    @./tools/tf-apply.sh

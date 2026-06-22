@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scripts/verify-devshells.sh
+# tools/verify-devshells.sh
 # Verifies all defined devshells by attempting to build their derivations.
 # This catches evaluation errors and missing dependencies.
 #
