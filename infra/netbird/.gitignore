@@ -1,0 +1,7 @@
+# Terraform / OpenTofu — state lives in R2, keep local artifacts out.
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+.r2-endpoint.hcl
+crash.log

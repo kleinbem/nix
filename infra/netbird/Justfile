@@ -1,0 +1,31 @@
+default:
+    @just --list
+
+# --- NetBird control plane (declarative, OpenTofu; state in Cloudflare R2) ---
+#
+# Required env (same as github-config's R2 backend):
+#   CLOUDFLARE_ACCOUNT_ID                       — for the R2 S3 endpoint
+#   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY   — an R2 access key (token)
+# The NetBird API token is sourced from sops (nix-secrets/secrets.yaml →
+# netbird_api_token). Run inside a shell with tofu+sops+yq, e.g.
+#   nix shell nixpkgs#opentofu nixpkgs#sops nixpkgs#yq-go
+
+secrets := "../../nix-secrets/secrets.yaml"
+
+# Init the R2 backend.
+init:
+    @test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || { echo "set CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+    @printf 'endpoints = { s3 = "https://%s.r2.cloudflarestorage.com" }\n' "$CLOUDFLARE_ACCOUNT_ID" > .r2-endpoint.hcl
+    tofu init -input=false -backend-config=.r2-endpoint.hcl
+
+# Review planned NetBird control-plane changes.
+plan: init
+    TF_VAR_netbird_api_token="$(sops -d {{secrets}} | yq '.netbird_api_token')" tofu plan
+
+# Apply the NetBird control-plane config.
+apply: init
+    TF_VAR_netbird_api_token="$(sops -d {{secrets}} | yq '.netbird_api_token')" tofu apply
+
+# Dump the live provider schema to verify resource/attribute names.
+schema: init
+    tofu providers schema -json | yq -P
