@@ -158,42 +158,10 @@ def main():
                 f"  🟢 {GREEN}Already in sync at {BOLD}{get_git_head(sub_path)}{RESET}"
             )
 
-    # 3. Update root flake.lock — same local-only logic as sub-flakes.
-    print(f"\n{BOLD}Updating root {CYAN}flake.lock{RESET}...")
-    root_lock = os.path.join(root_dir, "flake.lock")
-    root_local_deps = []
-    if os.path.exists(root_lock):
-        try:
-            with open(root_lock, "r") as f:
-                data = json.load(f)
-            inputs = data.get("nodes", {}).get("root", {}).get("inputs", {}).keys()
-            root_local_deps = [dep for dep in TOPOLOGICAL_ORDER if dep in inputs]
-        except Exception as e:
-            print(f"  {YELLOW}Warning: Failed to parse root flake.lock: {e}{RESET}")
-
-    cmd = ["nix", "flake", "update"] + root_local_deps
-    for dep in root_local_deps:
-        dep_path = os.path.join(root_dir, dep)
-        cmd += ["--override-input", dep, f"git+file://{dep_path}"]
-
-    success, err = run_cmd(cmd, cwd=root_dir, capture=True)
-    if not success:
-        print(f"  {RED}❌ Root update failed: {err}{RESET}")
-        sys.exit(1)
-
-    success, status = run_cmd(
-        ["git", "status", "--porcelain", "flake.lock"], cwd=root_dir, capture=True
-    )
-    if success and status.strip():
-        print(f"  📝 {YELLOW}Root flake.lock updated. Staging change...{RESET}")
-        run_cmd(["git", "add", "flake.lock"], cwd=root_dir)
-        # Note: sub-flakes are no longer git submodules of meta (see
-        # repos.nix + .gitignore). Their per-repo flake.lock commits land
-        # in their own repos; nothing further to stage here.
-        print(f"  {GREEN}Workspace root lockfile staged!{RESET}")
-    else:
-        print(f"  🟢 {GREEN}Root lockfile already in sync!{RESET}")
-
+    # The meta dir no longer has a flake.nix (deleted 2026-06-22 — nix-config
+    # is the root flake). Each sub-flake's lockfile is the source of truth
+    # for its own inputs; the topological sweep above already handles the
+    # cross-sub-flake propagation.
     print(f"\n✨ {BOLD}{GREEN}Topological lockfile sync complete!{RESET}")
     print("To save the updated state in the root repository, run:")
     print(f'  {BOLD}jj describe -m "chore: update flake lockfiles"{RESET}')
