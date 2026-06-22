@@ -4,7 +4,7 @@ Guidance for AI assistants (Claude Code, Gemini CLI, Codex, Aider, Antigravity, 
 
 ## Overview
 
-This is a **meta-workspace** — a root flake that aggregates multiple independent sub-flakes cloned via a manifest (`repos.nix`) into one cohesive NixOS environment. It does not contain most configuration logic itself; it orchestrates sub-repos that do. The sub-flakes are **independent git+jj repos** (not git submodules); meta references their live filesystem paths via `--override-input`. Bootstrap a fresh checkout with `just jj::bootstrap`.
+This is a **meta-workspace dir** — a tooling-only orchestrator for several independent flakes cloned via `repos.nix`. **There is no `flake.nix` at the meta root.** `nix-config` is the root flake everything builds from; the meta dir holds `just`, `repos.nix`, `.agent/`, the `jj` dashboard, and the `.envrc` that points direnv at `./nix-devshells#workspace`. Bootstrap a fresh checkout with `just jj::bootstrap`.
 
 ## Key Commands
 
@@ -12,8 +12,8 @@ All common operations go through `just`. Run `just` (no args) to open an fzf-bas
 
 ```bash
 # Environment
-direnv allow              # Load devshell (preferred)
-nix develop               # Pure fallback
+direnv allow              # Load the workspace shell from nix-devshells
+nix develop ./nix-devshells#workspace   # Pure fallback (no direnv)
 
 # System deployment
 just apply                # Stage → update lock → check → switch → sync agent
@@ -57,17 +57,24 @@ just maintenance::who             # Show who holds the workspace lock
 ## Flake Hierarchy
 
 ```
-nix (this repo — meta-workspace)
-└── nix-config       ← primary consumer; owns host definitions
-    ├── nix-devshells ← shared dev shells and tools
-    ├── nix-hardware  ← device-specific hardware modules
-    ├── nix-presets   ← reusable service/desktop bundles
-    ├── nix-packages  ← custom packages (NUR-style)
-    ├── nix-templates ← project scaffolding
-    └── nix-secrets   ← sops-encrypted secrets (flake = false)
+nix/ (meta workspace dir — NO flake.nix; tooling only: just, repos.nix, .agent/)
+├── nix-config       ← ROOT FLAKE; owns hosts/checks/packages; CI runs from here
+│   ├── nix-devshells ← shared dev shells (workspace + ultimate + per-language)
+│   ├── nix-hardware  ← device-specific hardware modules
+│   ├── nix-presets   ← reusable service/desktop bundles
+│   ├── nix-packages  ← custom packages (NUR-style)
+│   ├── nix-templates ← project scaffolding
+│   └── nix-secrets   ← sops-encrypted secrets (flake = false)
+└── (other peer dirs: scripts/, .just/, .agent/, terraform/)
 ```
 
-All sub-flakes are **standalone git+jj repos** cloned under the meta root (NOT git submodules — see `repos.nix` for the manifest, `just jj::bootstrap` to set up a fresh machine). They are referenced from `nix-config/flake.nix` as local `git+file://` inputs. The `OVERRIDES` variable in `common.just` generates `--override-input` flags so local edits are picked up without pushing.
+All sub-flakes are **standalone git+jj repos** cloned under the meta dir (NOT git submodules — see `repos.nix` for the manifest, `just jj::bootstrap` to set up a fresh machine). They are referenced from `nix-config/flake.nix` as local `git+file://` inputs. The `OVERRIDES` variable in `common.just` generates `--override-input` flags so local edits are picked up without pushing.
+
+## Deploy Model
+
+**Pull-based via `system.autoUpgrade`** (NixOS-native). Each host that opts in (`my.deploy.autoUpgrade.enable = true`) runs a `system.autoUpgrade` timer that polls `github:kleinbem/nix-config?ref=production#<host>` on its schedule (default nightly 04:00 ±30min) and switches if the SHA has moved. The `production` tag is advanced automatically by `.github/workflows/promote-production.yaml` after a green build-all — never a failed build's SHA, so hosts only auto-deploy CI-validated commits.
+
+Offline hosts catch up next cycle; no special handling. No inbound SSH credentials in CI. `just deployment::deploy-fleet` (colmena push) is still available locally for immediate / out-of-band deploys.
 
 ## nix-config Structure
 
@@ -118,21 +125,21 @@ my = {
 
 ## Devshells
 
-The root `devenv.nix` imports `nix-devshells.devenvModules.default`. The meta flake exposes two shells (`default`, `ultimate`); all specialized shells live in `nix-devshells`:
+All devshells live in `nix-devshells`. Direnv at the meta dir loads `./nix-devshells#workspace` automatically (see `.envrc`).
 
-| Shell | Source | Purpose |
-|---|---|---|
-| `default` | meta (`./devenv.nix`) | Meta-workspace (just, gh, lazygit, workspace-status) |
-| `ultimate` | meta | All specialized shells combined + inventory script |
-| `apps` | `nix-devshells` | General application tooling |
-| `ai-dev` | `nix-devshells` | AI/ML development stack |
-| `pentest` | `nix-devshells` | Security testing tools |
-| `math` | `nix-devshells` | Scientific computing (octave, etc.) |
-| `media` | `nix-devshells` | Media processing |
-| `android` | `nix-devshells` | Android tooling |
-| `arm` | `nix-devshells` | ARM cross-build environment |
+| Shell | Purpose |
+|---|---|
+| `workspace` | Meta-workspace shell loaded by direnv: just, gh, lazygit, claude-code, workspace-status, ollama health check |
+| `ultimate` | Composite of apps + pentest + ai-dev + math + media with inventory script |
+| `apps` | General application tooling |
+| `ai-dev` | AI/ML development stack |
+| `pentest` | Security testing tools |
+| `math` | Scientific computing (octave, etc.) |
+| `media` | Media processing |
+| `android` | Android tooling |
+| `arm` | ARM cross-build environment |
 
-Enter via `just devshell::<name>` (recommended — handles the meta-vs-sub-flake routing). Manual equivalents: `nix develop .#default`/`.#ultimate` for meta, `nix develop ./nix-devshells#<name>` for the rest.
+Enter via `just devshell::<name>` (handles the path for you). Manual equivalent: `nix develop ./nix-devshells#<name>`.
 
 ## Ground Truth & Agent Context
 
