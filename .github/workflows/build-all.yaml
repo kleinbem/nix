@@ -74,6 +74,11 @@ jobs:
             "--no-nom"
             "--skip-cached"
             "--eval-workers" "2"
+            # Skip VM-based NixOS tests (code-server-test, caddy-test,
+            # mobile-link-test, recovery-test) — they require {kvm,nixos-test}
+            # features but hosted GitHub runners don't expose /dev/kvm.
+            # Run them locally via `just check` where KVM is available.
+            "--exclude" "(code-server|caddy|mobile-link|recovery)-test"
             "--systems" "${{ matrix.system }}"
             "--flake" ".#nixosConfigurations"
             "--flake" ".#packages"
