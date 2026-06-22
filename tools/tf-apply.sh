@@ -125,7 +125,7 @@ export TF_VAR_netbird_setup_key="$NETBIRD_KEY"
 
 # 2. OpenTofu Init & Plan/Apply
 echo -e "\n${BOLD}[2/4] Initializing OpenTofu...${RESET}"
-cd terraform
+cd infra
 tofu init
 
 if [ "$MODE" = "plan" ]; then

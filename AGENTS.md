@@ -65,7 +65,7 @@ nix/ (meta workspace dir — NO flake.nix; tooling only: just, repos.nix, .agent
 │   ├── nix-packages  ← custom packages (NUR-style)
 │   ├── nix-templates ← project scaffolding
 │   └── nix-secrets   ← sops-encrypted secrets (flake = false)
-└── (other peer dirs: tools/, .just/, .agent/, terraform/)
+└── (other peer dirs: tools/, .just/, .agent/, infra/)
 ```
 
 All sub-flakes are **standalone git+jj repos** cloned under the meta dir (NOT git submodules — see `repos.nix` for the manifest, `just jj::bootstrap` to set up a fresh machine). They are referenced from `nix-config/flake.nix` as local `git+file://` inputs. The `OVERRIDES` variable in `common.just` generates `--override-input` flags so local edits are picked up without pushing.

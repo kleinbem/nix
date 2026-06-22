@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Exports personas → terraform/personas.json so Terraform consumes the
+# Exports personas → infra/personas.json so OpenTofu consumes the
 # same source of truth as Nix.
 #
 # Merges the PUBLIC layer (nix-config/personas.nix — roles/auth) with
@@ -16,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 META_ROOT="$(dirname "$SCRIPT_DIR")"
 PERSONAS_NIX="$META_ROOT/nix-config/personas.nix"
 CONTACT_NIX="$META_ROOT/nix-secrets/personas-contact.nix"
-PERSONAS_JSON="$META_ROOT/terraform/personas.json"
+PERSONAS_JSON="$META_ROOT/infra/personas.json"
 
 if [[ ! -f $PERSONAS_NIX ]]; then
   echo "❌ Missing $PERSONAS_NIX" >&2
