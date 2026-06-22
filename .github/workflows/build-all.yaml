@@ -70,21 +70,28 @@ jobs:
           # produces any output (visible as "hosted runner lost
           # communication"). Verified fix on the nix-config sibling
           # build-all (commit 4361d9b).
+          # VM-based NixOS tests (caddy/code-server/mobile-link/recovery)
+          # require {kvm,nixos-test} features. Hosted GitHub runners don't
+          # expose /dev/kvm, so we enumerate .#checks and build only the
+          # non-VM ones explicitly. They stay in .#checks for local runs
+          # where KVM is available.
+          SYSTEM="${{ matrix.system }}"
+          mapfile -t CI_CHECKS < <(nix flake show --json $NIX_OVERRIDES 2>/dev/null \
+            | nix run nixpkgs#jq -- -r --arg sys "$SYSTEM" \
+                '.checks[$sys] | keys[] | select(test("(caddy|code-server|mobile-link|recovery)-test") | not)')
+
           ARGS=(
             "--no-nom"
             "--skip-cached"
             "--eval-workers" "2"
-            # Skip VM-based NixOS tests (code-server-test, caddy-test,
-            # mobile-link-test, recovery-test) — they require {kvm,nixos-test}
-            # features but hosted GitHub runners don't expose /dev/kvm.
-            # Run them locally via `just check` where KVM is available.
-            "--exclude" "(code-server|caddy|mobile-link|recovery)-test"
-            "--systems" "${{ matrix.system }}"
+            "--systems" "$SYSTEM"
             "--flake" ".#nixosConfigurations"
             "--flake" ".#packages"
             "--flake" ".#devShells"
-            "--flake" ".#checks"
           )
+          for c in "${CI_CHECKS[@]}"; do
+            ARGS+=("--flake" ".#checks.$SYSTEM.$c")
+          done
           
           # If pushing to cache, tell nix-fast-build to use Attic directly
           if [ "${{ steps.cache.outputs.push_cache }}" == "true" ]; then
