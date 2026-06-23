@@ -2,7 +2,8 @@
 # auto-assignment (see setup-keys.tf) or in the console; this root defines the
 # group objects + intent, not peer membership lists (peers self-register).
 #
-# ⚠️ Verify attribute names against the provider schema after `just init`.
+# Schema reconciled against provider v0.0.9: group = name (required) + optional
+# peers (list of peer ids).
 
 # Your trusted machines (workstation, laptop, phone) — the only peers allowed to
 # SSH into infrastructure. Add existing peers here, or in the console, by id.

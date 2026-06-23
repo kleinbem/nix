@@ -8,14 +8,13 @@
 #   3. Retire the hand-made console key.
 # Until migrated, leave this commented to avoid creating an orphan key.
 #
-# ⚠️ Verify attribute names (auto_groups vs autoGroups, ephemeral, etc.) against
-#    the provider schema after `just init`.
+# Attributes reconciled against provider schema v0.0.9.
 
 # resource "netbird_setup_key" "smart_home" {
-#   name        = "smart-home-hosts"
-#   type        = "reusable"          # multiple hosts (hass-pi + future satellites)
-#   expiry_days = 365
-#   auto_groups = [netbird_group.smart_home.id]  # enrolled peers → smart-home
+#   name           = "smart-home-hosts"
+#   type           = "reusable"            # multiple hosts (hass-pi + future satellites)
+#   expiry_seconds = 31536000              # 365d (schema uses seconds, not days)
+#   auto_groups    = [netbird_group.smart_home.id]  # enrolled peers → smart-home
 # }
 #
 # output "smart_home_setup_key" {

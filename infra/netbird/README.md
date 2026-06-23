@@ -26,10 +26,11 @@ just apply    # apply
 just schema   # dump provider schema to verify resource/attribute names
 ```
 
-## Status: SCAFFOLD — not yet applied
-- Provider **resource/attribute names are best-effort**. Run `just schema`
-  (or read the `netbirdio/netbird` registry docs) and reconcile before applying.
-  `tofu plan` is the source of truth.
+## Status: SCAFFOLD — schema-verified, not yet applied
+- Resource/attribute names reconciled against **`netbirdio/netbird` v0.0.9**
+  (`tofu providers schema`). Provider is **unsigned** on the registry (no GPG
+  keys) and pre-1.0 — re-verify the schema on any version bump. Not yet applied
+  (needs the API token + R2 env); `tofu plan` remains the final check.
 - `setup-keys.tf` is **commented out** until you migrate the hand-made console
   key to TF (steps in that file) — avoids orphaning the current
   `netbird_setup_key` that the NixOS autojoin + CI depend on.

@@ -7,17 +7,16 @@
 #   - This root owns the CONTROL PLANE: groups, access policies, setup keys,
 #     (later) nameservers / routes / posture checks.
 #
-# ⚠️ PROVIDER SCHEMA: the resource/attribute names below are a best-effort
-#    starting point. After `just init`, run `tofu providers schema -json | jq`
-#    (or read the registry docs for netbirdio/netbird) and reconcile names
-#    before the first apply. `tofu plan` is the source of truth here.
+# Resource/attribute names below were reconciled against the netbirdio/netbird
+# provider schema (v0.0.9, `tofu providers schema -json`). Note: this provider
+# is UNSIGNED on the registry (no GPG keys) — early-stage; review on upgrades.
+# Still gated on creds/token before a real apply; `tofu plan` is the final word.
 terraform {
   required_providers {
     netbird = {
-      # Official provider: https://registry.terraform.io/providers/netbirdio/netbird
       source = "netbirdio/netbird"
-      # Pin after `tofu init` selects a version (then commit .terraform.lock.hcl).
-      version = "~> 0.1"
+      # Pinned exactly — provider is pre-1.0, so minor bumps may break schema.
+      version = "0.0.9"
     }
   }
 }

@@ -7,9 +7,8 @@
 # narrowing here (or in the console) — otherwise every peer, including the
 # persona fleet, can already reach hass-pi regardless of the rule below.
 #
-# ⚠️ Verify the policy/rule schema (rules block vs flat, protocol/ports naming,
-#    action enum) against the provider docs after `just init`; this is the
-#    intended shape, not a guaranteed-valid one.
+# Schema reconciled against provider v0.0.9: `rule` is a list-nested block with
+# sources/destinations (group-id lists), protocol, ports, bidirectional, action.
 
 resource "netbird_policy" "ssh_personal_to_smart_home" {
   name        = "ssh-personal-to-smart-home"
