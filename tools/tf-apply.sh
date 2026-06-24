@@ -26,7 +26,7 @@ for arg in "$@"; do
     echo "  --plan-only:      decrypt sops, run 'tofu plan', exit."
     echo "  --migrate-tunnel: rebind tunnel state to the new resource address."
     echo "  -- <tofu-args>:   pass everything after -- straight to 'tofu apply'."
-    echo "                    (default apply: tofu apply -auto-approve \$PASSTHROUGH)"
+    echo '                    (default apply: tofu apply -auto-approve $PASSTHROUGH)'
     echo "                    Example: $0 -- -target='github_actions_secret.ci' -auto-approve"
     exit 0
     ;;
