@@ -8,15 +8,27 @@ set working-directory := ".."
 # Invoke them from the meta root via root justfile [Main] shortcuts (apply,
 # apply-fast, apply-boot, check) or `cd nix-config && just maintenance::X`.
 
+# Formats the whole workspace: each sub-flake via its own `nix fmt`, plus the
+# meta's own files (tools/, repos.nix) via nix-devshells' formatter-meta (the
+# meta root has no flake.nix post-2026-06-22-migration, so a plain `treefmt` /
+# `nix fmt` can't run here).
 [group("Formatting")]
 format:
-    @echo "🎨 Formatting and fixing all Nix and Shell code..."
-    treefmt
+    @echo "🎨 Formatting all Nix/Shell/Python code (sub-flakes + meta)..."
+    @for repo in {{REPOS}}; do \
+        if [ -f "$repo/flake.nix" ]; then echo "  └─ $repo"; ( cd "$repo" && nix fmt ); fi; \
+    done
+    @echo "  └─ meta files"
+    @nix run ./nix-devshells#formatter-meta
 
 [group("Linter")]
 lint:
-    @echo "🔍 Linting workspace..."
-    treefmt --fail-on-change
+    @echo "🔍 Linting workspace (sub-flakes + meta)..."
+    @for repo in {{REPOS}}; do \
+        if [ -f "$repo/flake.nix" ]; then echo "  └─ $repo"; ( cd "$repo" && nix fmt -- --fail-on-change ) || exit 1; fi; \
+    done
+    @echo "  └─ meta files"
+    @nix run ./nix-devshells#formatter-meta -- --fail-on-change
 
 # ============================================================================
 #  COMPREHENSIVE WORKSPACE AUDIT — 7-stage check-all
@@ -50,6 +62,8 @@ _check-lints:
             ( cd "$repo" && nix fmt -- --fail-on-change ) || exit 1; \
         fi; \
     done
+    @echo "  └─ meta files (tools/, repos.nix) via formatter-meta"
+    @nix run ./nix-devshells#formatter-meta -- --fail-on-change
     @echo "  └─ lint-python (meta)"
     @just maintenance::lint-python
     @echo "  └─ lint-python + test-python (nix-config)"
