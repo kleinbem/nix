@@ -176,8 +176,32 @@ _check-vm-tests:
         echo "  ✅ Stage 6 OK"; \
     fi
 
+# Deep audit, default. Skips the host/package BUILD stages (4-5): CI's
+# build-all already builds every host toplevel + package and pushes them to
+# Attic, so rebuilding them locally is redundant. Runs lints + flake evals +
+# audits + VM tests. ~15-45 min (VM tests dominate). Use `check-all-full` when
+# you can't rely on CI/Attic (offline / pre-CI), or `check-quick` for 1-3 only.
 [group("Linter")]
 check-all *args="--impure":
+    @echo "═══════════════════════════════════════════════════════════════"
+    @echo "  WORKSPACE AUDIT (lints + evals + audits + VM tests)"
+    @echo "═══════════════════════════════════════════════════════════════"
+    @just maintenance::_check-lints
+    @just maintenance::_check-flakes {{args}}
+    @just maintenance::_check-audits
+    @echo
+    @echo "▶ Stages 4-5 (host + package builds) SKIPPED — CI build-all builds +"
+    @echo "  caches these in Attic. Run \`just maintenance::check-all-full\` to build locally."
+    @just maintenance::_check-vm-tests
+    @echo
+    @echo "═══════════════════════════════════════════════════════════════"
+    @echo "  ✅ AUDIT COMPLETED (builds offloaded to CI)"
+    @echo "═══════════════════════════════════════════════════════════════"
+
+# Full local audit: everything including local host + package builds (Stages
+# 4-5). For offline / pre-CI validation when you can't rely on Attic. 60-110 min.
+[group("Linter")]
+check-all-full *args="--impure":
     @echo "═══════════════════════════════════════════════════════════════"
     @echo "  COMPREHENSIVE WORKSPACE AUDIT (7 stages, expect 60-110 min)"
     @echo "═══════════════════════════════════════════════════════════════"
