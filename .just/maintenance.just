@@ -40,8 +40,16 @@ lint:
 _check-lints:
     @echo
     @echo "▶ Stage 1/7: Lints + format + Python tests"
-    @echo "  └─ nix fmt --fail-on-change (treefmt via flake: nixfmt, statix, deadnix, shellcheck, shfmt, ruff-format)"
-    @nix fmt -- --fail-on-change
+    @echo "  └─ nix fmt --fail-on-change per sub-flake (nixfmt, statix, deadnix, shellcheck, shfmt, ruff-format)"
+    @# The meta root has no flake.nix since the 2026-06-22 migration, so a single
+    @# `nix fmt` here aborts ("not part of a flake"). Each sub-flake carries the
+    @# shared formatter, so format-check them individually instead.
+    @for repo in {{REPOS}}; do \
+        if [ -f "$repo/flake.nix" ]; then \
+            echo "    └─ $repo"; \
+            ( cd "$repo" && nix fmt -- --fail-on-change ) || exit 1; \
+        fi; \
+    done
     @echo "  └─ lint-python (meta)"
     @just maintenance::lint-python
     @echo "  └─ lint-python + test-python (nix-config)"
