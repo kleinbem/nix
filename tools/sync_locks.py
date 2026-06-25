@@ -58,6 +58,20 @@ def get_git_head(path):
     return stdout[:8] if success else "unknown"
 
 
+def get_git_rev_full(path):
+    """Full 40-char HEAD rev (for github: flake refs)."""
+    success, stdout = run_cmd(["git", "rev-parse", "HEAD"], cwd=path, capture=True)
+    return stdout if success else None
+
+
+def rev_on_origin(path, rev):
+    """True if rev is reachable from a remote-tracking branch (i.e. pushed)."""
+    success, out = run_cmd(
+        ["git", "branch", "-r", "--contains", rev], cwd=path, capture=True
+    )
+    return success and bool(out.strip())
+
+
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     root_dir = os.path.dirname(script_dir)
@@ -130,10 +144,34 @@ def main():
 
         # Pass local dep names as positional args so `nix flake update` only
         # refreshes those specific inputs. External inputs keep their pins.
+        # Re-pin each local dep to a github: ref at its current HEAD rev —
+        # reproducible and committable (the old git+file:// form produced
+        # non-reproducible locks that CI couldn't resolve and that the
+        # flake-lock-no-file-url guard rejects). The actual local build still
+        # resolves unpushed work via the OVERRIDES --override-input flags, so
+        # the lock only needs to be the canonical github form. We require the
+        # dep's HEAD to be pushed (else a github:<rev> ref wouldn't resolve in
+        # a clean eval) — if it isn't, skip the re-pin and tell the user.
         cmd = ["nix", "flake", "update"] + local_deps + ["--flake", f"./{sub}"]
+        skip = False
         for dep in local_deps:
             dep_path = os.path.join(root_dir, dep)
-            cmd += ["--override-input", dep, f"git+file://{dep_path}"]
+            rev = get_git_rev_full(dep_path)
+            if rev is None:
+                print(f"  {RED}❌ Cannot resolve {dep} HEAD — skipping {sub}{RESET}")
+                skip = True
+                break
+            if not rev_on_origin(dep_path, rev):
+                print(
+                    f"  {YELLOW}⚠  {dep} HEAD ({rev[:8]}) is not pushed — skipping"
+                    f" {sub} re-pin (push {dep} first; the build still works via"
+                    f" OVERRIDES).{RESET}"
+                )
+                skip = True
+                break
+            cmd += ["--override-input", dep, f"github:kleinbem/{dep}/{rev}"]
+        if skip:
+            continue
 
         success, err = run_cmd(cmd, cwd=root_dir, capture=True)
         if not success:
