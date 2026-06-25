@@ -13,7 +13,7 @@ set working-directory := ".."
 # meta root has no flake.nix post-2026-06-22-migration, so a plain `treefmt` /
 # `nix fmt` can't run here).
 [group("Formatting")]
-format:
+format-all:
     @echo "🎨 Formatting all Nix/Shell/Python code (sub-flakes + meta)..."
     @for repo in {{REPOS}}; do \
         if [ -f "$repo/flake.nix" ]; then echo "  └─ $repo"; ( cd "$repo" && nix fmt ); fi; \
@@ -22,7 +22,7 @@ format:
     @nix run ./nix-devshells#formatter-meta
 
 [group("Linter")]
-lint:
+lint-all:
     @echo "🔍 Linting workspace (sub-flakes + meta)..."
     @for repo in {{REPOS}}; do \
         if [ -f "$repo/flake.nix" ]; then echo "  └─ $repo"; ( cd "$repo" && nix fmt -- --fail-on-change ) || exit 1; fi; \
@@ -179,7 +179,7 @@ _check-vm-tests:
 # Deep audit, default. Skips the host/package BUILD stages (4-5): CI's
 # build-all already builds every host toplevel + package and pushes them to
 # Attic, so rebuilding them locally is redundant. Runs lints + flake evals +
-# audits + VM tests. ~15-45 min (VM tests dominate). Use `check-all-full` when
+# audits + VM tests. ~15-45 min (VM tests dominate). Use `check-full-all` when
 # you can't rely on CI/Attic (offline / pre-CI), or `check-quick` for 1-3 only.
 [group("Linter")]
 check-all *args="--impure":
@@ -191,7 +191,7 @@ check-all *args="--impure":
     @just maintenance::_check-audits
     @echo
     @echo "▶ Stages 4-5 (host + package builds) SKIPPED — CI build-all builds +"
-    @echo "  caches these in Attic. Run \`just maintenance::check-all-full\` to build locally."
+    @echo "  caches these in Attic. Run \`just maintenance::check-full-all\` to build locally."
     @just maintenance::_check-vm-tests
     @echo
     @echo "═══════════════════════════════════════════════════════════════"
@@ -201,7 +201,7 @@ check-all *args="--impure":
 # Full local audit: everything including local host + package builds (Stages
 # 4-5). For offline / pre-CI validation when you can't rely on Attic. 60-110 min.
 [group("Linter")]
-check-all-full *args="--impure":
+check-full-all *args="--impure":
     @echo "═══════════════════════════════════════════════════════════════"
     @echo "  COMPREHENSIVE WORKSPACE AUDIT (7 stages, expect 60-110 min)"
     @echo "═══════════════════════════════════════════════════════════════"

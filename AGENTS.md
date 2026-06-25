@@ -27,8 +27,8 @@ just nixos::dry-run       # Show what would change
 just maintenance::check           # Eval the primary host (nixos-nvme)
 just maintenance::check-all       # Eval + check all sub-flakes
 just maintenance::check-hosts     # Full check of nix-config flake
-just maintenance::lint            # Run treefmt --fail-on-change
-just maintenance::fmt             # Format all Nix and shell code (treefmt)
+just maintenance::lint-all            # Run treefmt --fail-on-change
+just maintenance::format-all             # Format all Nix and shell code (treefmt)
 just nixos::sys-plan              # Diff current system vs new build (nvd)
 
 # Updates
@@ -118,7 +118,7 @@ my = {
 };
 ```
 
-- Format with `nixfmt` (run via `just maintenance::fmt` / `treefmt`).
+- Format with `nixfmt` (run via `just maintenance::format-all` / `treefmt`).
 - Secrets: use `sops-nix`. Access via `config.sops.secrets."name".path`. Never commit secrets.
 - Remove unused variables and empty `let in` blocks (statix enforces this).
 - Strings: double quotes for simple strings, `''` for multi-line.
