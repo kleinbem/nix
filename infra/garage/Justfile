@@ -1,0 +1,36 @@
+default:
+    @just --list
+
+# --- Garage control plane (declarative, OpenTofu; local state) ---------------
+#
+# Talks to the Garage Admin API (default http://127.0.0.1:3903) with the admin
+# token from sops (nix-secrets/secrets.yaml -> garage_admin_token). Run on the
+# host that runs garage (nixos-nvme), or set TF_VAR_garage_endpoint to reach it
+# over NetBird. Needs a shell with tofu+sops+yq.
+#
+# PREREQUISITE: the node must have a layout applied first (run once on the host):
+#   sudo garage layout assign -z dc1 -c 1T "$(sudo garage node id -q | cut -d@ -f1)"
+#   sudo garage layout apply --version 1
+# A node with no layout can't store objects, so `apply` here would fail.
+
+secrets := "../../nix-secrets/secrets.yaml"
+
+# Init (local state — no remote backend; see backend.tf).
+init:
+    tofu init -input=false
+
+# Review planned Garage control-plane changes (buckets / keys / permissions).
+plan: init
+    TF_VAR_garage_admin_token="$(sops -d {{secrets}} | yq '.garage_admin_token')" tofu plan
+
+# Apply.
+apply: init
+    TF_VAR_garage_admin_token="$(sops -d {{secrets}} | yq '.garage_admin_token')" tofu apply
+
+# Read the created credentials (capture these for restic / the tofu s3 backend).
+creds: init
+    TF_VAR_garage_admin_token="$(sops -d {{secrets}} | yq '.garage_admin_token')" tofu output
+
+# Dump the live provider schema to verify resource/attribute names.
+schema: init
+    tofu providers schema -json | yq -P
