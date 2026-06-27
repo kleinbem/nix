@@ -12,6 +12,10 @@
 # Replace var.mail_host_ip with the WAN IP of the host (or use a CNAME
 # to the cloudflared tunnel if you front Stalwart via Cloudflare Spectrum).
 resource "cloudflare_record" "mail_a" {
+  # Only create the record once a real Stalwart host IP is set — same gating
+  # pattern as stalwart_dkim below. Empty mail_host_ip = no record, so the root
+  # applies cleanly (and without prompting) before Stalwart is deployed.
+  count   = var.mail_host_ip == "" ? 0 : 1
   zone_id = data.cloudflare_zone.main.id
   name    = "mail"
   content = var.mail_host_ip

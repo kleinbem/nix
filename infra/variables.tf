@@ -59,5 +59,6 @@ variable "netbird_setup_key_ephemeral" {
 
 variable "mail_host_ip" {
   type        = string
-  description = "Public IPv4 of the host serving Stalwart (referenced by mail.kleinbem.dev A record). Stalwart's SMTP port can't be Cloudflare-proxied."
+  default     = ""
+  description = "Public IPv4 of the host serving Stalwart (referenced by the mail.kleinbem.dev A record). Empty = no A record (the record is gated on this in cloudflare-dns.tf), so the root applies before Stalwart is deployed. Set it when Stalwart goes live. Stalwart's SMTP port can't be Cloudflare-proxied."
 }
