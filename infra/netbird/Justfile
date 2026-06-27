@@ -74,3 +74,32 @@ close-default-policy POLICY_ID:
      printf 'Type DELETE to confirm: '; read c; [ "$c" = "DELETE" ] || { echo "aborted"; exit 1; }; \
      curl -fsSL -X DELETE -H "Authorization: Token $token" "{{api_url}}/api/policies/{{POLICY_ID}}"; \
      echo "deleted policy {{POLICY_ID}} — verify the explicit policies still cover every path you rely on"
+
+# --- Peer pruning (clear the accumulated ephemeral CI-runner peers) -----------
+
+# List all peers (name, connected, last seen) — eyeball the accumulated CI cruft.
+list-peers:
+    @token="$(sops -d {{secrets}} | yq '.netbird_api_token')"; \
+     curl -fsSL -H "Authorization: Token $token" "{{api_url}}/api/peers" \
+       | jq -r '["NAME","CONNECTED","LAST_SEEN","ID"], (.[] | [.name, (.connected|tostring), .last_seen, .id]) | @tsv' \
+       | column -t -s "$(printf '\t')"
+
+# Delete DISCONNECTED peers whose name does NOT match the protect regex (default
+# keeps the persistent hosts). Clears the leaked one-shot CI-runner peers without
+# touching real hosts (even if a host is currently offline — it's kept by name).
+# Override the kept set with NETBIRD_PROTECT="regex". Shows the list and requires
+# typing the COUNT to confirm, so a mass delete can't be fat-fingered.
+prune-peers:
+    @token="$(sops -d {{secrets}} | yq '.netbird_api_token')"; \
+     protect="${NETBIRD_PROTECT:-nixos-nvme|hass-pi|core-pi|orin|nasbook|router|phone}"; \
+     peers="$(curl -fsSL -H "Authorization: Token $token" "{{api_url}}/api/peers")"; \
+     cand="$(echo "$peers" | jq -r --arg p "$protect" '.[] | select(.connected==false) | select((.name|test($p))|not) | "\(.id)\t\(.name)\t\(.last_seen)"')"; \
+     [ -n "$cand" ] || { echo "Nothing to prune: no disconnected peers outside /$protect/."; exit 0; }; \
+     echo "DISCONNECTED peers to DELETE (kept: names matching /$protect/):"; \
+     echo "$cand" | column -t -s "$(printf '\t')"; \
+     n="$(printf '%s\n' "$cand" | wc -l | tr -d ' ')"; \
+     printf 'Type the count %s to confirm deletion: ' "$n"; read c; [ "$c" = "$n" ] || { echo "aborted"; exit 1; }; \
+     printf '%s\n' "$cand" | cut -f1 | while read -r id; do \
+       curl -fsSL -X DELETE -H "Authorization: Token $token" "{{api_url}}/api/peers/$id" && echo "deleted $id"; \
+     done; \
+     echo "done — re-run 'just list-peers' to verify the count is back under the cap"
