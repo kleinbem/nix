@@ -1,0 +1,10 @@
+# Live NetBird object ids for first-apply adoption. Copy to `imports.auto.tfvars`
+# (gitignored) and fill from `just ids`. Leaving a value as "" creates that
+# object fresh instead of importing an existing one.
+#
+#   cp imports.auto.tfvars.example imports.auto.tfvars
+#   just ids   # paste its output over the lines below
+#
+personal_devices_group_id = ""
+smart_home_group_id       = ""
+ssh_policy_id             = ""

@@ -45,7 +45,14 @@ variable "attic_push_token" {
 variable "netbird_setup_key" {
   type        = string
   sensitive   = true
-  description = "NetBird setup key, distributed as the NETBIRD_SETUP_KEY Actions secret. Used by hosted CI runners to bring up the NetBird WireGuard tunnel and push large NARs to Attic without hitting Cloudflare's 100 MiB upload limit."
+  description = "NetBird setup key, distributed as the NETBIRD_SETUP_KEY Actions secret. Used by hosted CI runners to bring up the NetBird WireGuard tunnel and push large NARs to Attic without hitting Cloudflare's 100 MiB upload limit. Being retired in favour of netbird_setup_key_ephemeral (kept as a fallback until CI is confirmed green on the ephemeral key)."
+}
+
+variable "netbird_setup_key_ephemeral" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "EPHEMERAL NetBird setup key (peers auto-deleted ~10 min after going offline), distributed as the NETBIRD_SETUP_KEY_EPHEMERAL Actions secret. Minted by infra/netbird/ (setup-keys.tf) and fanned here via sops. CI workflows prefer it over netbird_setup_key so one-shot runners stop accumulating against the peer cap. Empty default keeps apply working before the key is minted."
 }
 
 # --- Persona-fleet mail infrastructure ---

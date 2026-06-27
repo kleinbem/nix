@@ -12,11 +12,19 @@ default:
 
 secrets := "../../nix-secrets/secrets.yaml"
 
-# Init the R2 backend.
+# Init for LOCAL state (interim — no cloud deps; see backend.tf). plan/apply use this.
 init:
-    @test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || { echo "set CLOUDFLARE_ACCOUNT_ID"; exit 1; }
-    @printf 'endpoints = { s3 = "https://%s.r2.cloudflarestorage.com" }\n' "$CLOUDFLARE_ACCOUNT_ID" > .r2-endpoint.hcl
-    tofu init -input=false -backend-config=.r2-endpoint.hcl
+    tofu init -input=false
+
+# Init the R2 remote backend — only for MIGRATING off local state later (uncomment
+# the backend block in backend.tf first, then `tofu init -migrate-state`).
+# Account id from env or sops; R2 access key via AWS_ACCESS_KEY_ID/SECRET (not in sops).
+init-r2:
+    @account="${CLOUDFLARE_ACCOUNT_ID:-$(sops -d {{secrets}} | yq '.cloudflare_account_id')}"; \
+     [ -n "$account" ] && [ "$account" != "null" ] || { echo "cloudflare_account_id missing in both env and sops"; exit 1; }; \
+     [ -n "${AWS_ACCESS_KEY_ID:-}" ] && [ -n "${AWS_SECRET_ACCESS_KEY:-}" ] || { echo "export AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY (your R2 access key — not stored in sops)"; exit 1; }; \
+     printf 'endpoints = { s3 = "https://%s.r2.cloudflarestorage.com" }\n' "$account" > .r2-endpoint.hcl; \
+     tofu init -input=false -backend-config=.r2-endpoint.hcl -migrate-state
 
 # Review planned NetBird control-plane changes.
 plan: init
@@ -29,3 +37,40 @@ apply: init
 # Dump the live provider schema to verify resource/attribute names.
 schema: init
     tofu providers schema -json | yq -P
+
+# --- First-apply adoption + default-policy closure (NetBird REST API) ---------
+#
+# These talk to the NetBird Management API directly (not via tofu), using the
+# same sops-sourced token. API base defaults to NetBird Cloud; override with
+# NETBIRD_API_URL for a self-hosted server.
+
+api_url := env_var_or_default("NETBIRD_API_URL", "https://api.netbird.io")
+
+# Print live group/policy ids as tfvars (paste into imports.auto.tfvars to adopt).
+ids:
+    @token="$(sops -d {{secrets}} | yq '.netbird_api_token')"; \
+     g="$(curl -fsSL -H "Authorization: Token $token" "{{api_url}}/api/groups")"; \
+     p="$(curl -fsSL -H "Authorization: Token $token" "{{api_url}}/api/policies")"; \
+     echo "# paste into imports.auto.tfvars"; \
+     echo "$g" | jq -r '.[] | select(.name=="personal-devices") | "personal_devices_group_id = \"\(.id)\""'; \
+     echo "$g" | jq -r '.[] | select(.name=="smart-home")       | "smart_home_group_id       = \"\(.id)\""'; \
+     echo "$p" | jq -r '.[] | select(.name=="ssh-personal-to-smart-home") | "ssh_policy_id             = \"\(.id)\""'
+
+# List every policy (id, enabled, name) — spot the built-in "All -> All" default.
+list-policies:
+    @token="$(sops -d {{secrets}} | yq '.netbird_api_token')"; \
+     curl -fsSL -H "Authorization: Token $token" "{{api_url}}/api/policies" \
+       | jq -r '["ID","ENABLED","NAME","DESCRIPTION"], (.[] | [.id, (.enabled|tostring), .name, .description]) | @tsv' | column -t -s "$(printf '\t')"
+
+# Pass the id from `just list-policies`. Shows the object and requires typing
+# DELETE. Reversible: recreate an All->All in the console if a path breaks. Do
+# this only after `just plan` is clean and the explicit SSH policy is adopted.
+# Delete a policy by id (confirmed) — closes the built-in "All -> All" default.
+close-default-policy POLICY_ID:
+    @test -n "{{POLICY_ID}}" || { echo "usage: just close-default-policy <id>   (see: just list-policies)"; exit 1; }
+    @token="$(sops -d {{secrets}} | yq '.netbird_api_token')"; \
+     echo "About to DELETE this NetBird policy:"; \
+     curl -fsSL -H "Authorization: Token $token" "{{api_url}}/api/policies/{{POLICY_ID}}" | jq '{id, name, enabled, description}'; \
+     printf 'Type DELETE to confirm: '; read c; [ "$c" = "DELETE" ] || { echo "aborted"; exit 1; }; \
+     curl -fsSL -X DELETE -H "Authorization: Token $token" "{{api_url}}/api/policies/{{POLICY_ID}}"; \
+     echo "deleted policy {{POLICY_ID}} — verify the explicit policies still cover every path you rely on"

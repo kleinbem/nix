@@ -25,3 +25,65 @@ resource "netbird_policy" "ssh_personal_to_smart_home" {
     action        = "accept"
   }
 }
+
+# --- The built-in "All -> All" default policy ---------------------------------
+#
+# Until this is removed, the SSH gate above is COSMETIC: NetBird ships a default
+# policy that lets every peer reach every other peer, so anything enrolled
+# (including the persona fleet) can already reach hass-pi regardless of the
+# explicit rule. Closing it is the point of this whole root.
+#
+# It is handled OUT-OF-BAND (via `just close-default-policy`) rather than as a
+# managed resource here, deliberately:
+#   - The default policy is a tenant-specific object whose exact rule schema
+#     (the "All" group id, bidirectional/protocol defaults) we have NOT verified
+#     against the live API. Blind-writing a `rule {}` block risks a plan that
+#     destroys/recreates the live policy — exactly the overconfidence we said we
+#     would avoid. `just close-default-policy` deletes it via the API after
+#     showing you what it found, and is reversible (recreate an All->All in the
+#     console if a path breaks).
+#
+# PROMOTE TO DECLARATIVE LATER: once `just schema` + `just ids` confirm the live
+# shape with the token, replace the recipe with an imported, managed resource
+# here so the closure is enforced by `tofu plan`. Sketch:
+#
+#   variable "default_policy_id" { type = string, default = "" }
+#   import {
+#     for_each = var.default_policy_id == "" ? toset([]) : toset([var.default_policy_id])
+#     to       = netbird_policy.default
+#     id       = each.value
+#   }
+#   resource "netbird_policy" "default" {
+#     name    = "Default"
+#     enabled = false                 # disable rather than delete: reversible
+#     rule { ... }                    # must match the live rule exactly
+#     lifecycle { ignore_changes = [rule] }
+#   }
+
+# --- CI runners -> Attic cache (REQUIRED before closing the default policy) ----
+#
+# LANDMINE: the hosted-CI Attic offload (runners pushing >100 MiB NARs over the
+# NetBird tunnel) works TODAY only because the default All->All policy lets the
+# ephemeral CI peers reach the Attic peer. The moment you run
+# `just close-default-policy`, that path dies unless THIS explicit rule exists.
+# Add it (uncomment + apply) BEFORE closing the default, or CI build-all goes red
+# with a 413 fallback. ci-runners must reach ONLY the cache peer — nothing else.
+#
+# Needs the Attic/cache peer in a known group first (e.g. a `cache` group the
+# host's setup key auto-assigns, or add the peer by id in groups.tf). The CI
+# route target today is the cache peer's NetBird IP (see nix-fleet-setup action).
+#
+# resource "netbird_policy" "ci_to_attic" {
+#   name        = "ci-runners-to-attic"
+#   description = "Allow ephemeral CI runners to push to the Attic cache peer only."
+#   enabled     = true
+#   rule {
+#     name          = "attic-push"
+#     sources       = [netbird_group.ci_runners.id]
+#     destinations  = [netbird_group.cache.id]   # define this group
+#     bidirectional = false
+#     protocol      = "tcp"
+#     ports         = ["443"]                     # Attic/cache listener port
+#     action        = "accept"
+#   }
+# }

@@ -17,3 +17,13 @@ resource "netbird_group" "personal_devices" {
 resource "netbird_group" "smart_home" {
   name = "smart-home"
 }
+
+# Hosted CI runners (GitHub Actions). They enroll per-run via the EPHEMERAL
+# setup key (see setup-keys.tf) and are auto-removed ~10 min after the run ends,
+# so this group's membership is transient by design. Isolating them in their own
+# group is what lets policy scope CI to ONLY the Attic cache peer — CI runners
+# must never land in personal-devices (which can SSH infrastructure). See the
+# `ci_to_attic` policy note in policies.tf.
+resource "netbird_group" "ci_runners" {
+  name = "ci-runners"
+}

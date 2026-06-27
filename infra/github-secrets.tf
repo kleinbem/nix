@@ -15,10 +15,13 @@
 locals {
   # repo -> secrets it receives.
   ci_secrets = {
-    # NETBIRD_SETUP_KEY: build-all workflows need the tunnel for the heavy
-    # closure NARs (>100 MiB) that would otherwise 413 via Cloudflare.
-    "nix"          = ["ATTIC_PUSH_TOKEN", "NETBIRD_SETUP_KEY"]
-    "nix-config"   = ["ATTIC_PUSH_TOKEN", "APP_ID", "APP_PRIVATE_KEY", "NETBIRD_SETUP_KEY"]
+    # NETBIRD_SETUP_KEY[_EPHEMERAL]: build-all workflows need the tunnel for the
+    # heavy closure NARs (>100 MiB) that would otherwise 413 via Cloudflare. The
+    # workflows prefer the EPHEMERAL key (one-shot runner peers auto-expire ~10
+    # min after the run); the persistent NETBIRD_SETUP_KEY stays as a fallback
+    # until CI is confirmed green on the ephemeral one, then it can be dropped.
+    "nix"          = ["ATTIC_PUSH_TOKEN", "NETBIRD_SETUP_KEY", "NETBIRD_SETUP_KEY_EPHEMERAL"]
+    "nix-config"   = ["ATTIC_PUSH_TOKEN", "APP_ID", "APP_PRIVATE_KEY", "NETBIRD_SETUP_KEY", "NETBIRD_SETUP_KEY_EPHEMERAL"]
     "nix-packages" = ["ATTIC_PUSH_TOKEN", "APP_ID", "APP_PRIVATE_KEY"]
     # APP_ID + APP_PRIVATE_KEY needed by each sub-flake's maintain.yaml
     # workflow (auto-updates flake.lock + commits via Contents API).
@@ -29,10 +32,11 @@ locals {
   }
 
   secret_values = {
-    "ATTIC_PUSH_TOKEN"  = var.attic_push_token
-    "APP_ID"            = var.github_app_id
-    "APP_PRIVATE_KEY"   = var.github_app_private_key
-    "NETBIRD_SETUP_KEY" = var.netbird_setup_key
+    "ATTIC_PUSH_TOKEN"            = var.attic_push_token
+    "APP_ID"                      = var.github_app_id
+    "APP_PRIVATE_KEY"             = var.github_app_private_key
+    "NETBIRD_SETUP_KEY"           = var.netbird_setup_key
+    "NETBIRD_SETUP_KEY_EPHEMERAL" = var.netbird_setup_key_ephemeral
   }
 
   ci_secret_pairs = merge([
