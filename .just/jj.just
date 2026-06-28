@@ -396,32 +396,45 @@ as persona *args:
 [group("Sync")]
 push-all:
     #!/usr/bin/env bash
-    set -e
-    gum style --border normal --padding "0 2" --border-foreground 212 --foreground 212 "📤 Pushing all changes"
+    set -uo pipefail
+    # Pushes over HTTPS using gh's token (the SSH/FIDO2 path silently fails inside
+    # a spinner — the touch/agent prompt can't show), and VERIFIES the remote SHA
+    # actually advanced before claiming success. Never trust jj's "Move forward"
+    # line: that's the *planned* push, printed before auth runs. Requires the gh
+    # token to carry the `workflow` scope (gh auth refresh -s workflow) so it can
+    # push .github/workflows changes.
+    gum style --border normal --padding "0 2" --border-foreground 212 --foreground 212 "📤 Pushing all changes (HTTPS+gh, verified)"
+    root="$PWD"
     failed=()
     for repo in {{REPOS}} .; do
         name=$([ "$repo" = "." ] && echo "nix" || echo "$repo")
-        output=$(gum spin --spinner dot --title "$name..." --show-output -- bash -c "
-            cd $repo
-            if [ -n \"\$(jj log -r 'main..@' --no-graph -T 'description' 2>/dev/null)\" ]; then
-                jj bookmark move main --to @ >/dev/null 2>&1 || true
-            fi
-            jj git push 2>&1 | grep -v 'Nothing changed' || true
-        ")
-        if echo "$output" | grep -qE "error|rejected"; then
+        url="https://github.com/kleinbem/${name}.git"
+        cd "$root/$repo" 2>/dev/null || { gum style --foreground 196 "  ❌ $name (dir missing)"; failed+=("$name"); continue; }
+        # Advance main to @ if there are new described commits (describe-then-push flow).
+        if [ -n "$(jj log -r 'main..@' --no-graph -T 'description' 2>/dev/null)" ]; then
+            jj bookmark move main --to @ >/dev/null 2>&1 || true
+        fi
+        target=$(jj log -r main --no-graph -T 'commit_id' 2>/dev/null)
+        [ -z "$target" ] && { gum style --foreground 244 "  ⏭  $name (no main bookmark)"; continue; }
+        before=$(git ls-remote "$url" refs/heads/main 2>/dev/null | cut -f1)
+        [ "$before" = "$target" ] && { gum style --foreground 244 "  ✓ $name up to date (${target:0:12})"; continue; }
+        out=$(git -c credential.helper='!gh auth git-credential' push "$url" "$target:main" 2>&1 || true)
+        after=$(git ls-remote "$url" refs/heads/main 2>/dev/null | cut -f1)
+        if [ "$after" = "$target" ]; then
+            gum style --foreground 46 "  ✅ $name → ${target:0:12} (verified on origin)"
+        else
             failed+=("$name")
-            gum style --foreground 196 "  ❌ $name"
-            echo "$output" | sed 's/^/     /'
-        elif echo "$output" | grep -q "move forward"; then
-            gum style --foreground 46 "  ✅ $name — $(echo "$output" | grep -oE 'move forward.*')"
+            gum style --foreground 196 "  ❌ $name — remote still ${after:0:12}, NOT pushed"
+            printf '%s\n' "$out" | grep -iE 'rejected|error|denied|signature|fetch first|behind|protected' | sed 's/^/     /' | head -3
         fi
     done
+    cd "$root"
     if [ ${#failed[@]} -gt 0 ]; then
-        gum style --foreground 196 --margin "1 0" "❌ Failed: ${failed[*]}"
-        gum style --foreground 220 "   ↳ Try: just jj::sign-unsigned (likely cause: signed-commit branch rules)"
+        gum style --foreground 196 --margin "1 0" "❌ NOT pushed: ${failed[*]}"
+        gum style --foreground 220 "   ↳ diverged remote → 'just jj::pull-all' then retry  ·  unsigned → 'just jj::sign-unsigned'  ·  scope → 'gh auth refresh -s workflow'"
         exit 1
     else
-        gum style --foreground 46 --margin "1 0" "✅ All pushes complete."
+        gum style --foreground 46 --margin "1 0" "✅ All pushes verified on origin."
     fi
 
 # --- Bootstrap ---
