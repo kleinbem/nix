@@ -38,11 +38,12 @@ just maintenance::update-all      # Update everything + flatpaks + apply
 # Cleanup
 just maintenance::clean           # Delete old generations, GC
 
-# Git (operates across all sub-repos)
-just status                       # Dashboard showing dirty/clean per repo
-just git::save "message"          # Commit in all dirty repos + root
-just git::push                    # Push all repos
-just git::pull                    # Pull --rebase all repos
+# Version Control (Jujutsu / jj operates across all sub-repos)
+just jj::status-all               # Dashboard showing repo state + ahead-of-origin
+just jj::save-all "message"       # Commit in all dirty repos + root
+just jj::push-all                 # Push all repos
+just jj::pull-all                 # Pull --rebase all repos
+just jj::ship                     # Describe + sign + push (the everything button)
 
 # Fleet deployment
 just deployment::deploy-fleet     # Colmena deploy to all hosts
