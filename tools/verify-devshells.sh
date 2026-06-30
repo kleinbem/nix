@@ -17,7 +17,9 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${YELLOW}🧪 Verifying DevShell Evaluation...${NC}"
+CURRENT_SYSTEM=$(nix eval --raw --impure --expr 'builtins.currentSystem')
+
+echo -e "${YELLOW}🧪 Verifying DevShell Evaluation on ${CURRENT_SYSTEM}...${NC}"
 echo "------------------------------------------------------------"
 printf "%-15s | %-10s | %-30s\n" "Shell" "Status" "Details/Error"
 echo "------------------------------------------------------------"
@@ -25,7 +27,7 @@ echo "------------------------------------------------------------"
 verify_one() {
   local flake_ref="$1"
   local shell="$2"
-  if nix build "${flake_ref}#devShells.x86_64-linux.${shell}" --no-link --print-build-logs >verify_shell.log 2>&1; then
+  if nix build "${flake_ref}#devShells.${CURRENT_SYSTEM}.${shell}" --no-link --print-build-logs >verify_shell.log 2>&1; then
     printf "${GREEN}✅ %-13s${NC} | OK         | -\n" "$shell"
   else
     ERROR=$(grep -E "error:" verify_shell.log | head -n 1 | sed 's/error: //')
