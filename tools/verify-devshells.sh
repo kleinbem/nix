@@ -11,7 +11,6 @@
 META_SHELLS=("workspace" "ultimate")
 DEVSHELL_SHELLS=("apps" "pentest" "ai-dev" "math" "media" "android" "arm")
 
-
 # Colors for output
 GREEN='\033[0;32m'
 RED='\033[0;31m'
