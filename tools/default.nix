@@ -27,6 +27,6 @@ pkgs.writeShellApplication {
   ];
 
   text = ''
-    exec python3 -u ${./workspace-mcp.py} "$@"
+    exec python3 -u ${./.}/workspace-mcp.py "$@"
   '';
 }
