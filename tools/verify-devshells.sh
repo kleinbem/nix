@@ -7,10 +7,10 @@
 # shell's build attempt and report success/failure per shell. Bailing on
 # the first failure would defeat its purpose.
 
-# Shells to verify, keyed by flake. Meta exposes default + ultimate; the rest
-# live in nix-devshells.
-META_SHELLS=("default" "ultimate")
+# Shells to verify, keyed by flake. All shells live in nix-devshells.
+META_SHELLS=("workspace" "ultimate")
 DEVSHELL_SHELLS=("apps" "pentest" "ai-dev" "math" "media" "android" "arm")
+
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -38,7 +38,7 @@ verify_one() {
 }
 
 for shell in "${META_SHELLS[@]}"; do
-  verify_one "." "$shell"
+  verify_one "./nix-devshells" "$shell"
 done
 for shell in "${DEVSHELL_SHELLS[@]}"; do
   verify_one "./nix-devshells" "$shell"
