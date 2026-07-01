@@ -312,8 +312,9 @@ pull-all:
     gum style --border normal --padding "0 2" --border-foreground 212 --foreground 212 "📥 Fetching + rebasing all repositories"
     for repo in {{REPOS}} .; do
         name=$([ "$repo" = "." ] && echo "nix" || echo "$repo")
+        url="https://github.com/kleinbem/${name}.git"
         gum spin --spinner dot --title "$name..." -- \
-            bash -c "cd $repo && jj git fetch && jj rebase -d main@origin >/dev/null 2>&1 || true"
+            bash -c "cd $repo && git -c credential.helper='!gh auth git-credential' fetch '$url' main:refs/remotes/origin/main >/dev/null 2>&1 && jj git import >/dev/null 2>&1 && jj rebase -d main@origin >/dev/null 2>&1 || true"
     done
     gum style --foreground 46 --margin "1 0" "✅ pull-all complete. Run: just jj::status-all"
 
