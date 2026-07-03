@@ -314,7 +314,7 @@ pull-all:
         name=$([ "$repo" = "." ] && echo "nix" || echo "$repo")
         url="https://github.com/kleinbem/${name}.git"
         gum spin --spinner dot --title "$name..." -- \
-            bash -c "cd $repo && git -c credential.helper='!gh auth git-credential' fetch '$url' main:refs/remotes/origin/main >/dev/null 2>&1 && jj git import >/dev/null 2>&1 && jj rebase -d main@origin >/dev/null 2>&1 || true"
+            bash -c "cd $repo && git -c credential.helper= -c credential.helper='!gh auth git-credential' fetch '$url' main:refs/remotes/origin/main >/dev/null 2>&1 && jj git import >/dev/null 2>&1 && jj rebase -d main@origin >/dev/null 2>&1 || true"
     done
     gum style --foreground 46 --margin "1 0" "✅ pull-all complete. Run: just jj::status-all"
 
@@ -419,7 +419,7 @@ push-all:
         [ -z "$target" ] && { gum style --foreground 244 "  ⏭  $name (no main bookmark)"; continue; }
         before=$(git ls-remote "$url" refs/heads/main 2>/dev/null | cut -f1)
         [ "$before" = "$target" ] && { gum style --foreground 244 "  ✓ $name up to date (${target:0:12})"; continue; }
-        out=$(git -c credential.helper='!gh auth git-credential' push "$url" "$target:main" 2>&1 || true)
+        out=$(git -c credential.helper= -c credential.helper='!gh auth git-credential' push "$url" "$target:main" 2>&1 || true)
         after=$(git ls-remote "$url" refs/heads/main 2>/dev/null | cut -f1)
         if [ "$after" = "$target" ]; then
             git update-ref refs/remotes/origin/main "$target" 2>/dev/null || true
