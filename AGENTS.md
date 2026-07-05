@@ -10,33 +10,32 @@ This is a **meta-workspace dir** — a tooling-only orchestrator for several ind
 
 All common operations go through `just`. Run `just` (no args) to open an fzf-based interactive hub.
 
+**Two justfiles, two working directories.** The meta root and `nix-config/` each have their own justfile, and `nix-config`'s shadows the meta one when you're inside it. Recipes below are grouped by where they run.
+
+### From the meta root (`nix/`)
+
 ```bash
 # Environment
 direnv allow              # Load the workspace shell from nix-devshells
 nix develop ./nix-devshells#workspace   # Pure fallback (no direnv)
 
-# System deployment
-just apply                # Stage → update lock → check → switch → sync agent
-just apply-fast           # Same, but skips the eval check (faster)
-just apply-boot           # Like apply, but sets new config as boot default
-just nixos::switch        # Raw nixos-rebuild switch via `nh`
-just nixos::test          # Activate config without making it the boot default
-just nixos::dry-run       # Show what would change
+# System deployment (delegates into nix-config)
+just apply                # Align sub-flakes → sync locks → eval → switch (see `just apply --help`)
+just apply --fast         # Same, but skips the eval check
+just apply --boot         # Activate AND set as boot default
+just switch               # Raw nixos-rebuild switch (delegates to nixos::switch)
+just check                # Eval the primary host (nixos-nvme)
 
 # Validation & linting
-just maintenance::check           # Eval the primary host (nixos-nvme)
 just maintenance::check-all       # Eval + check all sub-flakes
-just maintenance::check-hosts     # Full check of nix-config flake
-just maintenance::lint-all            # Run treefmt --fail-on-change
-just maintenance::format-all             # Format all Nix and shell code (treefmt)
-just nixos::sys-plan              # Diff current system vs new build (nvd)
+just maintenance::check-quick     # Lints + flake evals + audits (~10 min)
+just maintenance::check-full-all  # Full audit, all stages
+just maintenance::lint-all        # Run treefmt --fail-on-change
+just maintenance::format-all      # Format all Nix and shell code (treefmt)
 
-# Updates
-just maintenance::update-local    # nix flake update (root)
-just maintenance::update-all      # Update everything + flatpaks + apply
-
-# Cleanup
-just maintenance::clean           # Delete old generations, GC
+# Updates & cleanup
+just maintenance::update-local    # Sync lockfiles across sub-flakes (stages only, never commits)
+just maintenance::clean-all       # Delete old generations, GC, git gc all repos
 
 # Version Control (Jujutsu / jj operates across all sub-repos)
 just jj::status-all               # Dashboard showing repo state + ahead-of-origin
@@ -45,14 +44,27 @@ just jj::push-all                 # Push all repos
 just jj::pull-all                 # Pull --rebase all repos
 just jj::ship                     # Describe + sign + push (the everything button)
 
-# Fleet deployment
-just deployment::deploy-fleet     # Colmena deploy to all hosts
+# Diagnostics
+just maintenance::check-health    # AI log health check
+just maintenance::who             # Show who holds the workspace lock
+just deployment::fleet            # Container fleet status view (NOT a deploy)
+```
+
+### From `nix-config/`
+
+```bash
+just nixos::switch                # Raw nixos-rebuild switch via `nh`
+just nixos::test                  # Activate config without making it the boot default
+just nixos::sys-plan              # Diff current system vs new build (nvd)
+
+just maintenance::check           # Eval the primary host (nixos-nvme)
+just maintenance::check-hosts     # Full check of nix-config flake
+just maintenance::sync-agent      # Regenerate docs/SYSTEM_REFERENCE.md
+
+just deployment::deploy-fleet     # Colmena deploy to all hosts (out-of-band push)
 just deployment::deploy-orin      # Deploy to Orin Nano only
 
-# Diagnostics
-just maintenance::health-check    # AI log health check
 just ai::ai-check                 # Check Ollama / vLLM status
-just maintenance::who             # Show who holds the workspace lock
 ```
 
 ## Flake Hierarchy
