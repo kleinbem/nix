@@ -33,10 +33,20 @@ which is why the Pis had stayed embedded.
    release asset (`container-manifest`); the updater fetches it, filters by
    its own `stdenv.hostPlatform.system`, and `nix-store --realise`s the path
    from Attic. No flake eval leaves CI.
-3. **Both architectures build in CI.** `container-factory` (x86_64) gains an
-   aarch64 twin (`container-factory-aarch64`, same catalogue minus
-   x86-only entries like llama-cpp). build-all builds both factory toplevels
-   (one build materializes every container closure) and pushes to Attic.
+3. **Both architectures build in CI — deployment-driven.** `container-factory`
+   (x86_64) gains an aarch64 twin (`container-factory-aarch64`, same catalogue
+   minus x86-only entries like llama-cpp). build-all builds both factory
+   toplevels (one build materializes every container closure) and pushes to
+   Attic. **Amendment (same day):** factories enable exactly the union of
+   containers registered with `my.services.container-updater` on real hosts of
+   the matching arch (computed in `modules/flake/hosts.nix`, passed as the
+   `deployedContainers` specialArg), plus a per-arch `preWarm` list for
+   deliberate pre-caching. This cut CI from ~57 container closures to the 13
+   deployed, and manifest completeness holds by construction: a device can
+   only request containers it enables, and enabling one puts it in the
+   factory set. The updater additionally intersects its registration list
+   with `config.containers`, so OCI/podman services (comfyui, vllm, langflow
+   — no nspawn closure) can never enter the stage pipeline.
 4. **Manifest is gated like hosts.** promote-production generates the
    manifest for the exact promoted SHA and drops any container whose full
    closure is not substitutable (same `nix build --dry-run` gate as host
