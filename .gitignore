@@ -22,6 +22,8 @@ result-*
 result_*
 
 # Generated / Runtime State
+__pycache__/
+*.pyc
 conversation_history.md
 force-rebuild-trigger
 .dev-dashboard/cache/
