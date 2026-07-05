@@ -28,6 +28,14 @@ force-rebuild-trigger
 .dev-dashboard/logs/
 
 
+# Scratch space — tool-generated caches and one-off debug files
+# (workspace-atlas indexes, ad-hoc evals). Never version these.
+scratch/
+/*.patch
+/*.diff
+/*.jws
+/test-*.nix
+
 # Temporary Files
 *.bak
 *.tar
