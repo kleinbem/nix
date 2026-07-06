@@ -33,9 +33,9 @@ data "cloudflare_zone" "main" {
 # Create the Zero Trust Tunnel (renamed from the deprecated `cloudflare_tunnel`
 # resource type — same underlying API object, same schema, just the v4.x rename
 # from "tunnel" to "zero_trust_tunnel_cloudflared" namespace).
-resource "cloudflare_zero_trust_tunnel_cloudflared" "nixos_nvme" {
+resource "cloudflare_zero_trust_tunnel_cloudflared" "core_pi" {
   account_id = var.cloudflare_account_id
-  name       = "nixos-nvme"
+  name       = "core-pi"
   secret     = var.cloudflare_tunnel_secret
 
   # The Cloudflare API doesn't return the tunnel secret on read, so after
@@ -60,7 +60,7 @@ resource "cloudflare_record" "wildcard" {
   zone_id = data.cloudflare_zone.main.id
   name    = "*"
   # `content` replaces the deprecated `value` argument (provider v4.x).
-  content = "${cloudflare_zero_trust_tunnel_cloudflared.nixos_nvme.id}.cfargotunnel.com"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.core_pi.id}.cfargotunnel.com"
   type    = "CNAME"
   proxied = true
 }
@@ -69,13 +69,18 @@ resource "cloudflare_record" "wildcard" {
 resource "cloudflare_record" "root" {
   zone_id = data.cloudflare_zone.main.id
   name    = "@"
-  content = "${cloudflare_zero_trust_tunnel_cloudflared.nixos_nvme.id}.cfargotunnel.com"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.core_pi.id}.cfargotunnel.com"
   type    = "CNAME"
   proxied = true
 }
 
 output "tunnel_id" {
-  value = cloudflare_zero_trust_tunnel_cloudflared.nixos_nvme.id
+  value = cloudflare_zero_trust_tunnel_cloudflared.core_pi.id
+}
+
+moved {
+  from = cloudflare_zero_trust_tunnel_cloudflared.nixos_nvme
+  to   = cloudflare_zero_trust_tunnel_cloudflared.core_pi
 }
 
 # R2 bucket that holds the github-config tofu remote state. Provisioned from
