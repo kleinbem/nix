@@ -23,15 +23,15 @@ default:
 
 [group("Main")]
 apply *args="":
-    @cd nix-config && just maintenance::apply {{args}}
+    @cd nix-config && just dev::apply {{args}}
 
 [group("Main")]
 check:
     @cd nix-config && just maintenance::check
 
 [group("Main")]
-attic-coverage:
-    @cd nix-config && just maintenance::attic-coverage
+attic-coverage host="$(hostname)":
+    @cd nix-config && just dev::attic-coverage {{host}}
 
 [group("Main")]
 check-shells:
