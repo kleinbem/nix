@@ -67,9 +67,9 @@ _check-lints:
     @echo "  └─ lint-python (meta)"
     @just maintenance::lint-python
     @echo "  └─ lint-python + test-python (nix-config)"
-    @cd nix-config && just maintenance::lint-python && just maintenance::test-python
+    @cd nix-config && just dev::lint-python && just dev::test-python
     @echo "  └─ lint-conventions (Switchboard pattern)"
-    @cd nix-config && just maintenance::lint-conventions
+    @cd nix-config && just dev::lint-conventions
     @echo "  └─ check-mirrors"
     @just maintenance::check-mirrors
     @echo "  ✅ Stage 1 OK"
@@ -244,7 +244,7 @@ check-shells:
     @bash ./tools/verify-devshells.sh
 
 # Lint Python in the meta-workspace tools/ dir (workspace-mcp, ai-logs, etc).
-# nix-config has its own `just maintenance::lint-python` for its scripts.
+# nix-config has its own `just dev::lint-python` for its scripts.
 [group("Linter")]
 lint-python *args="":
     @nix shell nixpkgs#ruff --command ruff check ./tools/ {{args}}

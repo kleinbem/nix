@@ -27,7 +27,7 @@ apply *args="":
 
 [group("Main")]
 check:
-    @cd nix-config && just maintenance::check
+    @cd nix-config && just dev::check
 
 [group("Main")]
 attic-coverage host="$(hostname)":
