@@ -383,6 +383,8 @@ ship message="":
     fi
     gum style --border normal --padding "0 2" --border-foreground 99 --foreground 99 "🚢 Shipping: $msg"
     just jj::save-all "$msg"
+    just maintenance::update-local
+    just jj::save-all "chore: update flake lockfiles"
     just jj::sign-unsigned
     just jj::push-all
     gum style --foreground 46 --margin "1 0" "✅ Shipped."
