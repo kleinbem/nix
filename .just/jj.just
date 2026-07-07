@@ -421,7 +421,9 @@ push-all:
         [ -z "$target" ] && { gum style --foreground 244 "  ⏭  $name (no main bookmark)"; continue; }
         before=$(git -c credential.helper= -c credential.helper='!gh auth git-credential' ls-remote "$url" refs/heads/main 2>/dev/null | cut -f1)
         [ "$before" = "$target" ] && { gum style --foreground 244 "  ✓ $name up to date (${target:0:12})"; continue; }
-        out=$(git -c credential.helper= -c credential.helper='!gh auth git-credential' push "$url" "$target:main" 2>&1 || true)
+        # Full refname: a SHA source can't resolve a shortname destination on
+        # a remote that doesn't have the branch yet (first push to a new repo).
+        out=$(git -c credential.helper= -c credential.helper='!gh auth git-credential' push "$url" "$target:refs/heads/main" 2>&1 || true)
         after=$(git -c credential.helper= -c credential.helper='!gh auth git-credential' ls-remote "$url" refs/heads/main 2>/dev/null | cut -f1)
         if [ "$after" = "$target" ]; then
             git update-ref refs/remotes/origin/main "$target" 2>/dev/null || true
