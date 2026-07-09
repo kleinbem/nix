@@ -55,6 +55,13 @@ variable "netbird_setup_key_ephemeral" {
   description = "EPHEMERAL NetBird setup key (peers auto-deleted ~10 min after going offline), distributed as the NETBIRD_SETUP_KEY_EPHEMERAL Actions secret. Minted by infra/netbird/ (setup-keys.tf) and fanned here via sops. CI workflows prefer it over netbird_setup_key so one-shot runners stop accumulating against the peer cap. Empty default keeps apply working before the key is minted."
 }
 
+variable "ntfy_deploy_topic" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "Secret ntfy topic name (sops: ntfy_deploy_topic), distributed as the NTFY_DEPLOY_TOPIC Actions secret. promote-production publishes 'production → SHA' to it after advancing the tag; hosts running my.deploy.autoUpgrade.ntfy long-poll it and upgrade immediately. The unguessable name is the access control on the public ntfy.kleinbem.dev vhost. Empty default keeps apply working before the topic is minted (the publish step in CI skips when the secret is empty)."
+}
+
 # --- Persona-fleet mail infrastructure ---
 
 variable "mail_host_ip" {

@@ -21,7 +21,7 @@ locals {
     # min after the run); the persistent NETBIRD_SETUP_KEY stays as a fallback
     # until CI is confirmed green on the ephemeral one, then it can be dropped.
     "nix"          = ["ATTIC_PUSH_TOKEN", "NETBIRD_SETUP_KEY", "NETBIRD_SETUP_KEY_EPHEMERAL"]
-    "nix-config"   = ["ATTIC_PUSH_TOKEN", "APP_ID", "APP_PRIVATE_KEY", "NETBIRD_SETUP_KEY", "NETBIRD_SETUP_KEY_EPHEMERAL"]
+    "nix-config"   = ["ATTIC_PUSH_TOKEN", "APP_ID", "APP_PRIVATE_KEY", "NETBIRD_SETUP_KEY", "NETBIRD_SETUP_KEY_EPHEMERAL", "NTFY_DEPLOY_TOPIC"]
     "nix-packages" = ["ATTIC_PUSH_TOKEN", "APP_ID", "APP_PRIVATE_KEY"]
     # APP_ID + APP_PRIVATE_KEY needed by each sub-flake's maintain.yaml
     # workflow (auto-updates flake.lock + commits via Contents API).
@@ -37,6 +37,7 @@ locals {
     "APP_PRIVATE_KEY"             = var.github_app_private_key
     "NETBIRD_SETUP_KEY"           = var.netbird_setup_key
     "NETBIRD_SETUP_KEY_EPHEMERAL" = var.netbird_setup_key_ephemeral
+    "NTFY_DEPLOY_TOPIC"           = var.ntfy_deploy_topic
   }
 
   ci_secret_pairs = merge([
