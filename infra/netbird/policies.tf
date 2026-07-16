@@ -72,6 +72,29 @@ resource "netbird_policy" "ssh_personal_to_smart_home" {
 # The `cache` group (groups.tf) holds core-pi — the wt0 DNAT on :443 fronts
 # caddy/attic there. The CI route target is the cache peer's NetBird IP (see
 # nix-fleet-setup action).
+# The fleet's own cache access. Without this, closing the default policy
+# breaks nixos-nvme (dnsmasq resolves cache.kleinbem.dev to core-pi's MESH ip,
+# so workstation pulls ride wt0) and hass-pi (autoUpgrade requireCache probes +
+# substitution over the mesh) — not just CI.
+resource "netbird_policy" "fleet_to_cache" {
+  name        = "fleet-to-cache"
+  description = "Allow trusted machines and smart-home nodes to pull from the Attic cache peer."
+  enabled     = true
+
+  rule {
+    name = "cache-pull"
+    sources = [
+      netbird_group.personal_devices.id,
+      netbird_group.smart_home.id,
+    ]
+    destinations  = [netbird_group.cache.id]
+    bidirectional = false
+    protocol      = "tcp"
+    ports         = ["443"]
+    action        = "accept"
+  }
+}
+
 resource "netbird_policy" "ci_to_attic" {
   name        = "ci-runners-to-attic"
   description = "Allow ephemeral CI runners to push to the Attic cache peer only."
