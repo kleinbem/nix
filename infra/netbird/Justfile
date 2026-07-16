@@ -25,6 +25,10 @@ migrate-state:
     @echo "✅ State migrated to R2 (netbird.tfstate). Verify: just plan"
 
 # Review planned NetBird control-plane changes.
+# NOTE: don't chain `just plan && just apply` — each recipe is its own sops
+# decrypt (two YubiKey ceremonies, and the second prompt going stale aborts
+# the apply). `just apply` alone shows the same plan inline and asks for
+# confirmation: one command, one touch.
 plan:
     @. ./state-env.sh && tofu init -input=false -backend-config=.r2-backend.hcl >/dev/null && tofu plan
 
