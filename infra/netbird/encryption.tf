@@ -3,12 +3,6 @@
 # Justfile). netbird state embeds the API token and setup keys in plaintext,
 # so R2 must only ever see ciphertext. Raw `tofu` without the env fails loudly
 # instead of silently writing plaintext — deliberate.
-#
-# enforced=false + fallback stay until the FIRST encrypted write lands (the
-# `just migrate-state` run migrates plaintext local state up, and the next
-# apply encrypts). After verifying ciphertext (a dummy passphrase must fail
-# with "message authentication failed"), delete the fallback and set
-# enforced = true — same closure step root infra/ went through.
 terraform {
   encryption {
     key_provider "pbkdf2" "state_key" {
@@ -19,15 +13,13 @@ terraform {
       keys = key_provider.pbkdf2.state_key
     }
 
-    method "unencrypted" "migrate" {}
-
     state {
       method = method.aes_gcm.state_enc
 
-      enforced = false
-      fallback {
-        method = method.unencrypted.migrate
-      }
+      # Migration completed 2026-07-16 (verified: dummy passphrase fails with
+      # "cipher: message authentication failed" — the R2 object is ciphertext).
+      # enforced: plaintext state is rejected outright, read or write.
+      enforced = true
     }
   }
 }
