@@ -20,19 +20,13 @@ terraform {
       keys = key_provider.pbkdf2.state_key
     }
 
-    method "unencrypted" "migrate" {}
-
     state {
       method = method.aes_gcm.state_enc
 
-      # MIGRATION WINDOW: fallback lets tofu READ the existing plaintext
-      # state; the very next state write comes out encrypted. After the first
-      # successful encrypted write, delete the fallback block and flip
-      # enforced = true so plaintext state is rejected outright.
-      enforced = false
-      fallback {
-        method = method.unencrypted.migrate
-      }
+      # Migration completed 2026-07-16 (verified: dummy passphrase fails with
+      # "cipher: message authentication failed" — the R2 object is ciphertext).
+      # enforced: plaintext state is rejected outright, read or write.
+      enforced = true
     }
   }
 }
