@@ -107,6 +107,7 @@ ATTIC_PUSH=$(echo "$DECRYPTED_YAML" | yq '.attic_push_token')
 NETBIRD_KEY=$(echo "$DECRYPTED_YAML" | yq '.netbird_setup_key')
 NETBIRD_KEY_EPHEMERAL=$(echo "$DECRYPTED_YAML" | yq '.netbird_setup_key_ephemeral')
 NTFY_DEPLOY_TOPIC=$(echo "$DECRYPTED_YAML" | yq '.ntfy_deploy_topic')
+NTFY_ALERT_TOPIC=$(echo "$DECRYPTED_YAML" | yq '.ntfy_alert_topic')
 
 # Normalise missing keys ("null") to empty strings
 [ "$GH_TF_TOKEN" = "null" ] && GH_TF_TOKEN=""
@@ -116,6 +117,7 @@ NTFY_DEPLOY_TOPIC=$(echo "$DECRYPTED_YAML" | yq '.ntfy_deploy_topic')
 [ "$NETBIRD_KEY" = "null" ] && NETBIRD_KEY=""
 [ "$NETBIRD_KEY_EPHEMERAL" = "null" ] && NETBIRD_KEY_EPHEMERAL=""
 [ "$NTFY_DEPLOY_TOPIC" = "null" ] && NTFY_DEPLOY_TOPIC=""
+[ "$NTFY_ALERT_TOPIC" = "null" ] && NTFY_ALERT_TOPIC=""
 
 if [ -z "$GH_TF_TOKEN" ]; then
   echo -e "${YELLOW}⚠️  github_tf_token not set in secrets.yaml — GitHub resources will fail to authenticate."
@@ -133,6 +135,7 @@ export TF_VAR_attic_push_token="$ATTIC_PUSH"
 export TF_VAR_netbird_setup_key="$NETBIRD_KEY"
 export TF_VAR_netbird_setup_key_ephemeral="$NETBIRD_KEY_EPHEMERAL"
 export TF_VAR_ntfy_deploy_topic="$NTFY_DEPLOY_TOPIC"
+export TF_VAR_ntfy_alert_topic="$NTFY_ALERT_TOPIC"
 
 # 2. OpenTofu Init & Plan/Apply
 echo -e "\n${BOLD}[2/4] Initializing OpenTofu...${RESET}"

@@ -55,6 +55,13 @@ variable "netbird_setup_key_ephemeral" {
   description = "EPHEMERAL NetBird setup key (peers auto-deleted ~10 min after going offline), distributed as the NETBIRD_SETUP_KEY_EPHEMERAL Actions secret. Minted by infra/netbird/ (setup-keys.tf) and fanned here via sops. CI workflows prefer it over netbird_setup_key so one-shot runners stop accumulating against the peer cap. Empty default keeps apply working before the key is minted."
 }
 
+variable "ntfy_alert_topic" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "Secret ntfy topic name (sops: ntfy_alert_topic), distributed as the NTFY_ALERT_TOPIC Actions secret. CI posts human-facing failure alerts to it (e.g. build-all's blocking container-factory eval — typically an insecure re-ack after a nixpkgs bump). Deliberately separate from ntfy_deploy_topic: that one is machine-consumed (any message triggers host upgrade polls), this one is for a human's phone. Empty default keeps apply working before the topic is minted (alert steps in CI skip when the secret is empty)."
+}
+
 variable "ntfy_deploy_topic" {
   type        = string
   sensitive   = true
