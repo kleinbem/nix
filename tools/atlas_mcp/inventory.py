@@ -5,6 +5,8 @@ import shutil
 from .core import mcp, DEFAULT_FLAKE_PATH
 from .network import netbird_status
 
+_INVENTORY_CACHE = None
+
 
 def _get_inventory_cached():
     global _INVENTORY_CACHE
@@ -41,9 +43,11 @@ def get_fleet_status():
             for p in nb["peers"]:
                 peers[p.get("hostname", "unknown")] = p.get("status", "offline")
 
-        for host, data in inventory.items():
+        # inventory.nix top level is {git, hardware, hosts, network, …} —
+        # the fleet lives under `hosts`, each entry {ip, tags, type}.
+        for host, data in inventory.get("hosts", {}).items():
             results[host] = {
-                "ip": data.get("ipv4", "unknown"),
+                "ip": data.get("ip", "unknown"),
                 "mesh_status": peers.get(host, "offline"),
                 "tags": data.get("tags", []),
             }
