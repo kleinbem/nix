@@ -94,7 +94,10 @@ moved {
 # state on the first apply after migration; once adopted it's a no-op.
 import {
   to = cloudflare_r2_bucket.tofu_state
-  id = "${var.cloudflare_account_id}/kleinbem-tofu-state"
+  # nonsensitive(): import ids may not be sensitive, and the account id's
+  # sensitivity taints the whole interpolation. The id never appears in
+  # committed files — only in plan output on this machine.
+  id = "${nonsensitive(var.cloudflare_account_id)}/kleinbem-tofu-state"
 }
 
 resource "cloudflare_r2_bucket" "tofu_state" {
