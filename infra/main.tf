@@ -88,6 +88,15 @@ moved {
 # from local state to dodge the chicken-and-egg of a config storing state in a
 # bucket it creates. Requires the cloudflare_api_token to have "Workers R2
 # Storage: Edit" permission.
+# The bucket was created MANUALLY in the dashboard (R2 activation + bucket +
+# scoped API token are a hand-bootstrap: this root's own backend lives in the
+# bucket, so tofu couldn't create it first). This import block adopts it into
+# state on the first apply after migration; once adopted it's a no-op.
+import {
+  to = cloudflare_r2_bucket.tofu_state
+  id = "${var.cloudflare_account_id}/kleinbem-tofu-state"
+}
+
 resource "cloudflare_r2_bucket" "tofu_state" {
   account_id = var.cloudflare_account_id
   name       = "kleinbem-tofu-state"
