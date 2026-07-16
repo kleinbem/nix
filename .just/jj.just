@@ -341,17 +341,38 @@ save-all message="":
             "p: p.${KLEINBEM_PERSONA}.full-name + \" <\" + p.${KLEINBEM_PERSONA}.email + \">\"" 2>/dev/null)
         gum style --foreground 99 "🎭 Acting as: $author"
     fi
-    any=0
+    # Classify dirty repos first: in a fan-out save, a repo whose ONLY change
+    # is flake.lock churn gets a lockfile message instead of the unrelated
+    # fan-out message (prevents "repair cert for monitoring" landing on pure
+    # lock bumps). If EVERY dirty repo is lock-only, the given message is
+    # kept — that's a deliberate lock bump.
+    dirty=()
+    lockonly=()
+    nonlock=0
     for repo in {{REPOS}} .; do
-        name=$([ "$repo" = "." ] && echo "nix" || echo "$repo")
-        if [ -n "$(cd $repo && jj diff --summary 2>/dev/null)" ]; then
-            any=1
-            gum style --foreground 212 "  📝 $name — describing..."
-            if [ -n "$author" ]; then
-                (cd $repo && jj describe -m "$msg" --author "$author" && jj bookmark move main --to @ && jj new) >/dev/null 2>&1
+        summary=$(cd $repo 2>/dev/null && jj diff --summary 2>/dev/null) || summary=""
+        if [ -n "$summary" ]; then
+            dirty+=("$repo")
+            if printf '%s\n' "$summary" | grep -qv 'flake\.lock$'; then
+                nonlock=1
             else
-                (cd $repo && jj describe -m "$msg" && jj bookmark move main --to @ && jj new) >/dev/null 2>&1
+                lockonly+=("$repo")
             fi
+        fi
+    done
+    any=0
+    for repo in ${dirty[@]+"${dirty[@]}"}; do
+        name=$([ "$repo" = "." ] && echo "nix" || echo "$repo")
+        any=1
+        rmsg="$msg"
+        if [ "$nonlock" -eq 1 ] && printf '%s\n' ${lockonly[@]+"${lockonly[@]}"} | grep -qxF -- "$repo"; then
+            rmsg="chore: update flake lockfiles"
+        fi
+        gum style --foreground 212 "  📝 $name — describing ($rmsg)..."
+        if [ -n "$author" ]; then
+            (cd $repo && jj describe -m "$rmsg" --author "$author" && jj bookmark move main --to @ && jj new) >/dev/null 2>&1
+        else
+            (cd $repo && jj describe -m "$rmsg" && jj bookmark move main --to @ && jj new) >/dev/null 2>&1
         fi
     done
     if [ "$any" -eq 0 ]; then
