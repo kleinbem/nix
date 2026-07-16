@@ -149,6 +149,20 @@ R2_KEY_SECRET=$(echo "$DECRYPTED_YAML" | yq '.r2_state_secret_access_key')
 [ "$R2_KEY_ID" = "null" ] && R2_KEY_ID="${AWS_ACCESS_KEY_ID:-}"
 [ "$R2_KEY_SECRET" = "null" ] && R2_KEY_SECRET="${AWS_SECRET_ACCESS_KEY:-}"
 
+# --- State encryption passphrase (see infra/encryption.tf) ---
+# Injected via the TF_ENCRYPTION config merge so the committed encryption.tf
+# never contains the secret. pbkdf2 requires >= 16 chars.
+TOFU_STATE_PASSPHRASE=$(echo "$DECRYPTED_YAML" | yq '.tofu_state_passphrase')
+[ "$TOFU_STATE_PASSPHRASE" = "null" ] && TOFU_STATE_PASSPHRASE=""
+if [ -z "$TOFU_STATE_PASSPHRASE" ]; then
+  echo -e "${RED}❌ No state-encryption passphrase (infra/encryption.tf is active).${RESET}"
+  echo -e "Generate one and add it to sops:"
+  echo -e "  ${BOLD}openssl rand -base64 32${RESET}"
+  echo -e "  ${BOLD}sops nix-secrets/secrets.yaml${RESET} → tofu_state_passphrase: <value>"
+  exit 1
+fi
+export TF_ENCRYPTION="key_provider \"pbkdf2\" \"state_key\" { passphrase = \"${TOFU_STATE_PASSPHRASE}\" }"
+
 if [ -z "$R2_KEY_ID" ] || [ -z "$R2_KEY_SECRET" ]; then
   echo -e "${RED}❌ No R2 access key for the state backend.${RESET}"
   echo -e "Create one (Cloudflare dashboard → R2 → Manage R2 API Tokens → Object Read & Write,"
