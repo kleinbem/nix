@@ -69,21 +69,21 @@ resource "netbird_policy" "ssh_personal_to_smart_home" {
 # Add it (uncomment + apply) BEFORE closing the default, or CI build-all goes red
 # with a 413 fallback. ci-runners must reach ONLY the cache peer — nothing else.
 #
-# Needs the Attic/cache peer in a known group first (e.g. a `cache` group the
-# host's setup key auto-assigns, or add the peer by id in groups.tf). The CI
-# route target today is the cache peer's NetBird IP (see nix-fleet-setup action).
-#
-# resource "netbird_policy" "ci_to_attic" {
-#   name        = "ci-runners-to-attic"
-#   description = "Allow ephemeral CI runners to push to the Attic cache peer only."
-#   enabled     = true
-#   rule {
-#     name          = "attic-push"
-#     sources       = [netbird_group.ci_runners.id]
-#     destinations  = [netbird_group.cache.id]   # define this group
-#     bidirectional = false
-#     protocol      = "tcp"
-#     ports         = ["443"]                     # Attic/cache listener port
-#     action        = "accept"
-#   }
-# }
+# The `cache` group (groups.tf) holds core-pi — the wt0 DNAT on :443 fronts
+# caddy/attic there. The CI route target is the cache peer's NetBird IP (see
+# nix-fleet-setup action).
+resource "netbird_policy" "ci_to_attic" {
+  name        = "ci-runners-to-attic"
+  description = "Allow ephemeral CI runners to push to the Attic cache peer only."
+  enabled     = true
+
+  rule {
+    name          = "attic-push"
+    sources       = [netbird_group.ci_runners.id]
+    destinations  = [netbird_group.cache.id]
+    bidirectional = false
+    protocol      = "tcp"
+    ports         = ["443"]
+    action        = "accept"
+  }
+}
