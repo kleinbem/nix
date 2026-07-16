@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage: tf-apply.sh [--plan-only | --migrate-tunnel]
+# Usage: tf-apply.sh [--plan-only | --migrate-tunnel | --migrate-state]
 #   --plan-only       Run `tofu plan` and exit without applying.
 #   --migrate-tunnel  One-shot: rebind tunnel state from the deprecated
 #                     `cloudflare_tunnel.nixos_nvme` address to
 #                     `cloudflare_zero_trust_tunnel_cloudflared.nixos_nvme`
 #                     via `tofu state rm` + `tofu import`. Idempotent: skips
 #                     cleanly if state is already at the new address.
+#   --migrate-state   One-shot: copy local terraform.tfstate into the R2
+#                     backend (backend.tf) via `tofu init -migrate-state`.
+#                     The local tfstate files stay behind as a fallback copy.
 MODE="apply"
 PASSTHROUGH=()
 SAW_DDASH=0
@@ -19,12 +22,14 @@ for arg in "$@"; do
   case "$arg" in
   --plan-only | --plan) MODE="plan" ;;
   --migrate-tunnel) MODE="migrate-tunnel" ;;
+  --migrate-state) MODE="migrate-state" ;;
   --) SAW_DDASH=1 ;;
   -h | --help)
-    echo "Usage: $0 [--plan-only | --migrate-tunnel] [-- <tofu-args>...]"
+    echo "Usage: $0 [--plan-only | --migrate-tunnel | --migrate-state] [-- <tofu-args>...]"
     echo "  Default:          decrypt sops, run 'tofu apply -auto-approve', write back tunnel_id."
     echo "  --plan-only:      decrypt sops, run 'tofu plan', exit."
     echo "  --migrate-tunnel: rebind tunnel state to the new resource address."
+    echo "  --migrate-state:  one-shot copy of local terraform.tfstate into the R2 backend."
     echo "  -- <tofu-args>:   pass everything after -- straight to 'tofu apply'."
     echo '                    (default apply: tofu apply -auto-approve $PASSTHROUGH)'
     echo "                    Example: $0 -- -target='github_actions_secret.ci' -auto-approve"
@@ -131,8 +136,47 @@ export TF_VAR_ntfy_deploy_topic="$NTFY_DEPLOY_TOPIC"
 
 # 2. OpenTofu Init & Plan/Apply
 echo -e "\n${BOLD}[2/4] Initializing OpenTofu...${RESET}"
+
+# --- R2 state backend config (see infra/backend.tf) ---
+# Backend blocks can't reference variables, so the endpoint + R2 access key are
+# fed via a generated, gitignored backend-config file. Credentials come from
+# sops (r2_state_access_key_id / r2_state_secret_access_key), falling back to
+# AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY env. They are deliberately NOT
+# exported as env vars: the aws provider (aws-ses.tf) authenticates to real AWS
+# via ambient env and must not pick up R2 keys.
+R2_KEY_ID=$(echo "$DECRYPTED_YAML" | yq '.r2_state_access_key_id')
+R2_KEY_SECRET=$(echo "$DECRYPTED_YAML" | yq '.r2_state_secret_access_key')
+[ "$R2_KEY_ID" = "null" ] && R2_KEY_ID="${AWS_ACCESS_KEY_ID:-}"
+[ "$R2_KEY_SECRET" = "null" ] && R2_KEY_SECRET="${AWS_SECRET_ACCESS_KEY:-}"
+
+if [ -z "$R2_KEY_ID" ] || [ -z "$R2_KEY_SECRET" ]; then
+  echo -e "${RED}❌ No R2 access key for the state backend.${RESET}"
+  echo -e "Create one (Cloudflare dashboard → R2 → Manage R2 API Tokens → Object Read & Write,"
+  echo -e "scoped to the ${BOLD}kleinbem-tofu-state${RESET} bucket), then either:"
+  echo -e "  • add it to sops: ${BOLD}sops nix-secrets/secrets.yaml${RESET} → r2_state_access_key_id / r2_state_secret_access_key"
+  echo -e "  • or export AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY for this run."
+  exit 1
+fi
+
 cd infra
-tofu init
+rm -f .r2-backend.hcl
+touch .r2-backend.hcl
+chmod 600 .r2-backend.hcl
+cat > .r2-backend.hcl <<EOF
+endpoints  = { s3 = "https://${ACCOUNT_ID}.r2.cloudflarestorage.com" }
+access_key = "${R2_KEY_ID}"
+secret_key = "${R2_KEY_SECRET}"
+EOF
+
+if [ "$MODE" = "migrate-state" ]; then
+  echo -e "${YELLOW}Migrating local terraform.tfstate into the R2 backend (kleinbem-tofu-state/infra.tfstate)...${RESET}"
+  echo -e "${YELLOW}Local tfstate files stay behind, gitignored, as a fallback copy.${RESET}"
+  tofu init -backend-config=.r2-backend.hcl -migrate-state -force-copy
+  echo -e "\n${BOLD}${GREEN}✅ State migrated to R2. Verify with: $0 --plan-only (expect no changes).${RESET}"
+  exit 0
+fi
+
+tofu init -input=false -backend-config=.r2-backend.hcl
 
 if [ "$MODE" = "plan" ]; then
   echo -e "\n${BOLD}🔎 Running plan only (no changes will be applied)...${RESET}"

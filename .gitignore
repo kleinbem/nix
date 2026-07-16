@@ -74,3 +74,6 @@ state.vscdb*
 *.tfstate
 *.tfstate.*
 .terraform.lock.hcl
+# Generated R2 backend config (contains the R2 access key)
+.r2-backend.hcl
+.r2-endpoint.hcl

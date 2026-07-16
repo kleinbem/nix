@@ -83,13 +83,20 @@ moved {
   to   = cloudflare_zero_trust_tunnel_cloudflared.core_pi
 }
 
-# R2 bucket that holds the github-config tofu remote state. Provisioned from
-# here (local state) to avoid a chicken-and-egg: a config can't store its own
-# state in a bucket it is also creating. Requires the cloudflare_api_token to
-# have "Workers R2 Storage: Edit" permission.
+# R2 bucket that holds tofu remote state: github-config's AND (since the
+# backend.tf migration) this root's own `infra.tfstate`. Originally provisioned
+# from local state to dodge the chicken-and-egg of a config storing state in a
+# bucket it creates. Requires the cloudflare_api_token to have "Workers R2
+# Storage: Edit" permission.
 resource "cloudflare_r2_bucket" "tofu_state" {
   account_id = var.cloudflare_account_id
   name       = "kleinbem-tofu-state"
+
+  # This bucket now holds the state that manages it. Destroying it would
+  # orphan every root that backs onto it — refuse at plan time.
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 output "tofu_state_bucket" {
