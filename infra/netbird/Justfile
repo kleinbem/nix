@@ -3,40 +3,38 @@ default:
 
 # --- NetBird control plane (declarative, OpenTofu; state in Cloudflare R2) ---
 #
-# Required env (same as github-config's R2 backend):
-#   CLOUDFLARE_ACCOUNT_ID                       — for the R2 S3 endpoint
-#   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY   — an R2 access key (token)
-# The NetBird API token is sourced from sops (nix-secrets/secrets.yaml →
-# netbird_api_token). Run inside a shell with tofu+sops+yq, e.g.
-#   nix shell nixpkgs#opentofu nixpkgs#sops nixpkgs#yq-go
+# Everything sops-sourced (nix-secrets/secrets.yaml): netbird_api_token,
+# cloudflare_account_id, r2_state_access_key_id/secret, tofu_state_passphrase.
+# state-env.sh decrypts ONCE per command (one YubiKey touch) and prepares the
+# R2 backend config + state-encryption env. Run inside a shell with
+# tofu+sops+yq, e.g. nix shell nixpkgs#opentofu nixpkgs#sops nixpkgs#yq-go
 
 secrets := "../../nix-secrets/secrets.yaml"
 
-# Init for LOCAL state (interim — no cloud deps; see backend.tf). plan/apply use this.
+# Init the R2 backend (see backend.tf + encryption.tf; state-env.sh feeds both).
 init:
-    tofu init -input=false
+    @. ./state-env.sh && tofu init -input=false -backend-config=.r2-backend.hcl
 
-# Init the R2 remote backend — only for MIGRATING off local state later (uncomment
-# the backend block in backend.tf first, then `tofu init -migrate-state`).
-# Account id from env or sops; R2 access key via AWS_ACCESS_KEY_ID/SECRET (not in sops).
-init-r2:
-    @account="${CLOUDFLARE_ACCOUNT_ID:-$(sops -d {{secrets}} | yq '.cloudflare_account_id')}"; \
-     [ -n "$account" ] && [ "$account" != "null" ] || { echo "cloudflare_account_id missing in both env and sops"; exit 1; }; \
-     [ -n "${AWS_ACCESS_KEY_ID:-}" ] && [ -n "${AWS_SECRET_ACCESS_KEY:-}" ] || { echo "export AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY (your R2 access key — not stored in sops)"; exit 1; }; \
-     printf 'endpoints = { s3 = "https://%s.r2.cloudflarestorage.com" }\n' "$account" > .r2-endpoint.hcl; \
-     tofu init -input=false -backend-config=.r2-endpoint.hcl -migrate-state
+# One-shot: copy local terraform.tfstate into the R2 backend. The local tfstate
+# files stay behind, gitignored, as a fallback copy. Afterwards: `just plan`
+# (expect no changes), verify the R2 object is ciphertext (a dummy passphrase
+# must fail with "message authentication failed"), then flip enforced=true and
+# drop the fallback in encryption.tf.
+migrate-state:
+    @. ./state-env.sh && tofu init -backend-config=.r2-backend.hcl -migrate-state -force-copy
+    @echo "✅ State migrated to R2 (netbird.tfstate). Verify: just plan"
 
 # Review planned NetBird control-plane changes.
-plan: init
-    TF_VAR_netbird_api_token="$(sops -d {{secrets}} | yq '.netbird_api_token')" tofu plan
+plan:
+    @. ./state-env.sh && tofu init -input=false -backend-config=.r2-backend.hcl >/dev/null && tofu plan
 
 # Apply the NetBird control-plane config.
-apply: init
-    TF_VAR_netbird_api_token="$(sops -d {{secrets}} | yq '.netbird_api_token')" tofu apply
+apply:
+    @. ./state-env.sh && tofu init -input=false -backend-config=.r2-backend.hcl >/dev/null && tofu apply
 
 # Dump the live provider schema to verify resource/attribute names.
-schema: init
-    tofu providers schema -json | yq -P
+schema:
+    @. ./state-env.sh && tofu init -input=false -backend-config=.r2-backend.hcl >/dev/null && tofu providers schema -json | yq -P
 
 # --- First-apply adoption + default-policy closure (NetBird REST API) ---------
 #
