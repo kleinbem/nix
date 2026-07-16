@@ -369,6 +369,9 @@ save-all message="":
             rmsg="chore: update flake lockfiles"
         fi
         gum style --foreground 212 "  📝 $name — describing ($rmsg)..."
+        # Show exactly what's being committed — a fan-out save can otherwise
+        # silently scoop another session's in-flight work.
+        (cd $repo && jj diff --summary 2>/dev/null | sed 's/^/     /')
         if [ -n "$author" ]; then
             (cd $repo && jj describe -m "$rmsg" --author "$author" && jj bookmark move main --to @ && jj new) >/dev/null 2>&1
         else
@@ -380,6 +383,27 @@ save-all message="":
     else
         gum style --foreground 46 --margin "1 0" "✅ Workspace state saved."
     fi
+
+# Describe (commit) ONE repo only — the fan-out-free path for when other
+# repos carry someone else's in-flight work (parallel agent session, open
+# editor). Use "nix" for the meta root.
+#   just jj::save nix-packages "fix(langfuse): bump fetcher"
+[group("Sync")]
+save repo message:
+    #!/usr/bin/env bash
+    set -e
+    repo="{{repo}}"
+    msg="{{message}}"
+    dir=$([ "$repo" = "nix" ] && echo "." || echo "$repo")
+    [ -d "$dir" ] || { gum style --foreground 196 "❌ No such repo dir: $repo"; exit 1; }
+    summary=$(cd "$dir" && jj diff --summary 2>/dev/null) || summary=""
+    if [ -z "$summary" ]; then
+        gum style --foreground 220 "✓ $repo clean — nothing to describe."
+        exit 0
+    fi
+    printf '%s\n' "$summary" | sed 's/^/  /'
+    (cd "$dir" && jj describe -m "$msg" && jj bookmark move main --to @ && jj new) >/dev/null 2>&1
+    gum style --foreground 46 "✅ $repo described: $msg"
 
 # One-shot: describe every dirty repo with the given message, sign anything
 # unsigned ahead of origin, and push. The "commit and ship" muscle-memory
