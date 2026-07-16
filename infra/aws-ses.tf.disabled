@@ -1,3 +1,10 @@
+# DISABLED (renamed off .tf, 2026-07-16): no AWS account credentials exist yet,
+# and an unconfigurable provider blocks every full plan/apply of this root.
+# Nothing here was ever applied — no state entries to orphan. Re-enable when
+# the Stalwart/persona-fleet phase starts: rename back to aws-ses.tf and give
+# tf-apply.sh real AWS credentials (safe alongside the R2 backend — its creds
+# live in .r2-backend.hcl, not AWS_* env).
+#
 # AWS SES — outbound mail relay for Stalwart.
 #
 # Stalwart's host IP doesn't have email-sending reputation; SES does.
