@@ -444,9 +444,30 @@ push-all:
         [ "$before" = "$target" ] && { gum style --foreground 244 "  ✓ $name up to date (${target:0:12})"; continue; }
         # Full refname: a SHA source can't resolve a shortname destination on
         # a remote that doesn't have the branch yet (first push to a new repo).
-        out=$(git -c credential.helper= -c credential.helper='!gh auth git-credential' push "$url" "$target:refs/heads/main" 2>&1 || true)
-        after=$(git -c credential.helper= -c credential.helper='!gh auth git-credential' ls-remote "$url" refs/heads/main 2>/dev/null | cut -f1)
-        if [ "$after" = "$target" ]; then
+        attempt=1
+        while :; do
+            out=$(git -c credential.helper= -c credential.helper='!gh auth git-credential' push "$url" "$target:refs/heads/main" 2>&1 || true)
+            after=$(git -c credential.helper= -c credential.helper='!gh auth git-credential' ls-remote "$url" refs/heads/main 2>/dev/null | cut -f1)
+            [ "$after" = "$target" ] && break
+            # Diverged remote (e.g. autopilot lock commits landed since our last
+            # fetch): recover in place — fetch, import, rebase our work onto
+            # origin, re-advance main — and retry the push ONCE. Anything else
+            # (signature, scope, protection) still fails immediately.
+            if [ "$attempt" -eq 1 ] && printf '%s\n' "$out" | grep -qiE 'fetch first|non-fast-forward|behind'; then
+                attempt=2
+                gum style --foreground 220 "  🔁 $name diverged — fetch + rebase, retrying once..."
+                git -c credential.helper= -c credential.helper='!gh auth git-credential' fetch "$url" main:refs/remotes/origin/main >/dev/null 2>&1 || true
+                jj git import >/dev/null 2>&1 || true
+                jj rebase -d main@origin >/dev/null 2>&1 || true
+                if [ -n "$(jj log -r 'main..@' --no-graph -T 'description' 2>/dev/null)" ]; then
+                    jj bookmark move main --to @ >/dev/null 2>&1 || true
+                fi
+                target=$(jj log -r main --no-graph -T 'commit_id' 2>/dev/null)
+                continue
+            fi
+            break
+        done
+        if [ "$after" = "$target" ] && [ -n "$target" ]; then
             git update-ref refs/remotes/origin/main "$target" 2>/dev/null || true
             jj git import >/dev/null 2>&1 || true
             gum style --foreground 46 "  ✅ $name → ${target:0:12} (verified on origin)"
