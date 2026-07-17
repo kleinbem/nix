@@ -99,10 +99,24 @@
   ],
   "settings": {
     "editor.formatOnSave": true,
+    // The system-dir folders above (containers, /var/log, /nix/*, browser
+    // profiles) must stay out of the watcher and search index: watching them
+    // was a root cause of the 2026-07-15 whole-machine freeze. Explorer
+    // browsing still works — these only stop FS-event watching and grep.
     "files.watcherExclude": {
       "**/result": true,
       "**/result-*": true,
-      "**/.direnv": true
+      "**/.direnv": true,
+      "/var/lib/containers/**": true,
+      "/var/log/**": true,
+      "/nix/**": true,
+      "/home/martin/.mozilla/**": true
+    },
+    "search.exclude": {
+      "/var/lib/containers/**": true,
+      "/var/log/**": true,
+      "/nix/**": true,
+      "/home/martin/.mozilla/**": true
     },
     "files.exclude": {
       "**/.git": true,
@@ -119,10 +133,12 @@
     "[nix]": {
       "editor.defaultFormatter": "jnoortheen.nix-ide"
     },
+    // nil, not nixd: nixd's option providers eval the full system config
+    // (multi-GB workers — 2026-07-15 freeze). nixEnvSelector settings removed:
+    // the meta root has no flake.nix, so they only produced a blocking
+    // execSync error in the extension host at every startup.
     "nix.enableLanguageServer": true,
-    "nix.serverPath": "nixd",
-    "nix.formatterPath": "nixfmt",
-    "nixEnvSelector.nixFile": "${workspaceFolder}/flake.nix",
-    "nixEnvSelector.useFlakes": true
+    "nix.serverPath": "nil",
+    "nix.formatterPath": "nixfmt"
   }
 }

@@ -7,7 +7,7 @@ set working-directory := ".."
 [group("Desktop")]
 sync:
     @echo "🧩 Syncing editor extensions..."
-    @for editor in antigravity cursor windsurf; do \
+    @for editor in cursor windsurf; do \
         echo "  ⚙ Building $editor extensions..."; \
         if bundle=$(nix build --no-link --print-out-paths \
             "git+file://{{ROOT}}/nix-presets#$editor-extensions-bundle" 2>/dev/null); then \

@@ -31,6 +31,7 @@ for arg in "$@"; do
     echo "  --migrate-tunnel: rebind tunnel state to the new resource address."
     echo "  --migrate-state:  one-shot copy of local terraform.tfstate into the R2 backend."
     echo "  -- <tofu-args>:   pass everything after -- straight to 'tofu apply'."
+    # shellcheck disable=SC2016  # literal $PASSTHROUGH is the documented behavior
     echo '                    (default apply: tofu apply -auto-approve $PASSTHROUGH)'
     echo "                    Example: $0 -- -target='github_actions_secret.ci' -auto-approve"
     exit 0
@@ -179,7 +180,7 @@ cd infra
 rm -f .r2-backend.hcl
 touch .r2-backend.hcl
 chmod 600 .r2-backend.hcl
-cat > .r2-backend.hcl <<EOF
+cat >.r2-backend.hcl <<EOF
 endpoints  = { s3 = "https://${ACCOUNT_ID}.r2.cloudflarestorage.com" }
 access_key = "${R2_KEY_ID}"
 secret_key = "${R2_KEY_SECRET}"
