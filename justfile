@@ -75,37 +75,14 @@ tablet *args:
     @cd nix-config && just android::tablet {{args}}
 
 
-# --- Workspace Hub (Premium Interactive Menu) ---
+# --- Workspace Hub (fleet-aware, linutil-style browser) ---
+# A read-only overlay over `just` recipes from BOTH the meta root and
+# nix-config: two-level tree (categories → recipes), ⭐ Common + 🚢 By Host
+# virtual categories. Recipes stay defined in their own repo; the hub only
+# discovers + dispatches (nix-config recipes run via `just in nix-config …`).
+# Implementation lives in tools/workspace-hub.sh.
 
 [group("Main")]
 hub:
-    #!/usr/bin/env bash
-    set -e
-    # Categorize recipes with icons for a premium feel
-    LIST=$(just --summary | tr ' ' '\n' | sort | awk '{
-        icon="🛠️";
-        if ($1 ~ /^android::/) icon="📱";
-        else if ($1 ~ /^jj::/) icon="🔄";
-        else if ($1 ~ /^nixos::/) icon="🏗️";
-        else if ($1 ~ /^ai::/) icon="🤖";
-        else if ($1 ~ /^devshell::/) icon="💻";
-        else if ($1 ~ /^deployment::/) icon="🚀";
-        else if ($1 ~ /^maintenance::/) icon="🧹";
-        else if ($1 ~ /^orin::/) icon="🏎️";
-        else if ($1 ~ /^extensions::/) icon="🧩";
-        else if ($1 ~ /^(status|switch|phone|tablet|apply)/) icon="✨";
-        print icon " " $1
-    }')
-
-    SELECTED=$(echo "$LIST" | fzf \
-        --header "✨ Workspace Hub | [Enter] Run | [Ctrl-E] Edit | [Ctrl-H] Help" \
-        --height 25 --reverse --ansi --info=inline --border --margin=1,2 --padding=1 \
-        --preview "just --show {2}" --preview-window "right:60%:wrap" \
-        --prompt "🔍 Search: " --pointer "➜" --marker "✓" \
-        --color "header:italic:cyan,info:blue,prompt:yellow,pointer:red" \
-        --bind "ctrl-e:execute($EDITOR justfile --line \$(grep -n \"^{2}:\" justfile | cut -d: -f1))+abort" \
-        --bind "ctrl-h:execute(just --list {2} | less)+reload(echo \"$LIST\")"
-    )
-
-    [ -n "$SELECTED" ] && just $(echo "$SELECTED" | awk '{print $2}')
+    @bash {{justfile_directory()}}/tools/workspace-hub.sh
 
