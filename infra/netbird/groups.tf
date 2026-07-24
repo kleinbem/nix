@@ -16,7 +16,7 @@ variable "personal_device_peers" {
 
 variable "smart_home_peers" {
   type        = list(string)
-  default     = ["hass-pi"]
+  default     = ["hass-pi", "orin-nano"]
   description = "Smart-home node peer names."
 }
 
