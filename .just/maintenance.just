@@ -306,6 +306,24 @@ find pattern:
     @grep -rnE "{{pattern}}" . --exclude-dir=.git
 
 [group("Updates")]
+update-cached:
+    @echo "🔄 Backing up current flake.lock..."
+    @cp nix-config/flake.lock nix-config/flake.lock.bak
+    @echo "🔄 Updating lockfile (nix flake update)..."
+    @{{LOCK_CMD}} bash -c "cd nix-config && nix flake update"
+    @just maintenance::update-local
+    @echo "🔍 Checking if new updates require heavy local builds (evaluating checks)..."
+    @output=$({{LOCK_CMD}} nix build --no-link --dry-run ./nix-config#checks.x86_64-linux.host-nixos-nvme {{OVERRIDES}} --impure 2>&1 || true); \
+    if echo "$output" | grep -q "will be built:"; then \
+        echo "❌ Updates require local builds! Reverting flake.lock..."; \
+        mv nix-config/flake.lock.bak nix-config/flake.lock; \
+        just maintenance::update-local; \
+    else \
+        echo "✅ Updates are fully cached! Lockfile updated successfully."; \
+        rm nix-config/flake.lock.bak; \
+    fi
+
+[group("Updates")]
 update-local:
     @{{LOCK_CMD}} python3 ./tools/sync_locks.py
 
