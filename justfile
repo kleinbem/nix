@@ -45,6 +45,10 @@ switch *args="":
 status-all:
     @just jj::status-all
 
+[group("Main")]
+ship message="":
+    @just jj::ship "{{message}}"
+
 # Pass-through to any sub-flake's justfile from the meta root.
 # Usage:
 #   just in nix-config nixos::switch

@@ -76,3 +76,15 @@ variable "mail_host_ip" {
   default     = ""
   description = "Public IPv4 of the host serving Stalwart (referenced by the mail.kleinbem.dev A record). Empty = no A record (the record is gated on this in cloudflare-dns.tf), so the root applies before Stalwart is deployed. Set it when Stalwart goes live. Stalwart's SMTP port can't be Cloudflare-proxied."
 }
+
+variable "r2_state_access_key_id" {
+  type        = string
+  sensitive   = true
+  description = "Cloudflare R2 access key ID for state backend"
+}
+
+variable "r2_state_secret_access_key" {
+  type        = string
+  sensitive   = true
+  description = "Cloudflare R2 secret access key for state backend"
+}

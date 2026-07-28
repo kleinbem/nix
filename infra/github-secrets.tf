@@ -29,6 +29,7 @@ locals {
     "nix-hardware"  = ["APP_ID", "APP_PRIVATE_KEY"]
     "nix-templates" = ["APP_ID", "APP_PRIVATE_KEY"]
     "nix-presets"   = ["APP_ID", "APP_PRIVATE_KEY"]
+    "github-config" = ["APP_ID", "APP_PRIVATE_KEY", "CLOUDFLARE_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]
   }
 
   secret_values = {
@@ -39,6 +40,9 @@ locals {
     "NETBIRD_SETUP_KEY_EPHEMERAL" = var.netbird_setup_key_ephemeral
     "NTFY_DEPLOY_TOPIC"           = var.ntfy_deploy_topic
     "NTFY_ALERT_TOPIC"            = var.ntfy_alert_topic
+    "CLOUDFLARE_ACCOUNT_ID"       = var.cloudflare_account_id
+    "R2_ACCESS_KEY_ID"            = var.r2_state_access_key_id
+    "R2_SECRET_ACCESS_KEY"        = var.r2_state_secret_access_key
   }
 
   ci_secret_pairs = merge([

@@ -153,6 +153,9 @@ R2_KEY_SECRET=$(echo "$DECRYPTED_YAML" | yq '.r2_state_secret_access_key')
 [ "$R2_KEY_ID" = "null" ] && R2_KEY_ID="${AWS_ACCESS_KEY_ID:-}"
 [ "$R2_KEY_SECRET" = "null" ] && R2_KEY_SECRET="${AWS_SECRET_ACCESS_KEY:-}"
 
+export TF_VAR_r2_state_access_key_id="$R2_KEY_ID"
+export TF_VAR_r2_state_secret_access_key="$R2_KEY_SECRET"
+
 # --- State encryption passphrase (see infra/encryption.tf) ---
 # Injected via the TF_ENCRYPTION config merge so the committed encryption.tf
 # never contains the secret. pbkdf2 requires >= 16 chars.
