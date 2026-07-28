@@ -27,7 +27,10 @@ func getOllamaUrl() string {
 	}
 
 	// Try to get from inventory.nix
-	invPath := "/home/martin/Develop/github.com/kleinbem/nix/nix-config/inventory.nix"
+	invPath := "/home/martin/Develop/github.com/kleinbem/nix-config/inventory.nix"
+	if _, err := os.Stat(invPath); os.IsNotExist(err) {
+		invPath = "/home/martin/Develop/github.com/kleinbem/nix/nix-config/inventory.nix"
+	}
 	if _, err := os.Stat(invPath); err == nil {
 		cmd := exec.Command("nix", "eval", "--json", "--file", invPath)
 		var out bytes.Buffer

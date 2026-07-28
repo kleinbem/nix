@@ -252,12 +252,13 @@ sign-unsigned:
     any_done=0
     for repo in {{REPOS}} .; do
         name=$([ "$repo" = "." ] && echo "nix" || echo "$repo")
+        rpath=$([ "$repo" = "." ] && echo "{{ROOT}}/nix" || echo "{{ROOT}}/$repo")
         # Auto-advance: if @ has a description and is ahead of main bookmark,
         # move main to @ so the unsigned commit becomes visible to git.
-        if [ -n "$(cd $repo && jj log -r 'main..@' --no-graph -T 'description' 2>/dev/null)" ]; then
-            (cd $repo && jj bookmark move main --to @ >/dev/null 2>&1 || true)
+        if [ -n "$(cd "$rpath" && jj log -r 'main..@' --no-graph -T 'description' 2>/dev/null)" ]; then
+            (cd "$rpath" && jj bookmark move main --to @ >/dev/null 2>&1 || true)
         fi
-        unsigned=$(git -C $repo log --format='%G?' "origin/main..main" 2>/dev/null \
+        unsigned=$(git -C "$rpath" log --format='%G?' "origin/main..main" 2>/dev/null \
             | awk '$1 != "G" && $1 != ""' | wc -l)
         if [ "$unsigned" -gt 0 ]; then
             gum style --foreground 212 "  🖊  $name — re-signing $unsigned commit(s)..."
@@ -314,9 +315,10 @@ pull-all:
     gum style --border normal --padding "0 2" --border-foreground 212 --foreground 212 "📥 Fetching + rebasing all repositories"
     for repo in {{REPOS}} .; do
         name=$([ "$repo" = "." ] && echo "nix" || echo "$repo")
+        rpath=$([ "$repo" = "." ] && echo "{{ROOT}}/nix" || echo "{{ROOT}}/$repo")
         url="https://github.com/kleinbem/${name}.git"
         gum spin --spinner dot --title "$name..." -- \
-            bash -c "cd $repo && git -c credential.helper= -c credential.helper='!gh auth git-credential' fetch '$url' main:refs/remotes/origin/main >/dev/null 2>&1 && jj git import >/dev/null 2>&1 && jj rebase -d main@origin >/dev/null 2>&1 || true"
+            bash -c "cd '$rpath' && git -c credential.helper= -c credential.helper='!gh auth git-credential' fetch '$url' main:refs/remotes/origin/main >/dev/null 2>&1 && jj git import >/dev/null 2>&1 && jj rebase -d main@origin >/dev/null 2>&1 || true"
     done
     gum style --foreground 46 --margin "1 0" "✅ pull-all complete. Run: just jj::status-all"
 
@@ -352,7 +354,8 @@ save-all message="":
     lockonly=()
     nonlock=0
     for repo in {{REPOS}} .; do
-        summary=$(cd $repo 2>/dev/null && jj diff --summary 2>/dev/null) || summary=""
+        rpath=$([ "$repo" = "." ] && echo "{{ROOT}}/nix" || echo "{{ROOT}}/$repo")
+        summary=$(cd "$rpath" 2>/dev/null && jj diff --summary 2>/dev/null) || summary=""
         if [ -n "$summary" ]; then
             dirty+=("$repo")
             if printf '%s\n' "$summary" | grep -qv 'flake\.lock$'; then
@@ -365,6 +368,7 @@ save-all message="":
     any=0
     for repo in ${dirty[@]+"${dirty[@]}"}; do
         name=$([ "$repo" = "." ] && echo "nix" || echo "$repo")
+        rpath=$([ "$repo" = "." ] && echo "{{ROOT}}/nix" || echo "{{ROOT}}/$repo")
         any=1
         rmsg="$msg"
         if [ "$nonlock" -eq 1 ] && printf '%s\n' ${lockonly[@]+"${lockonly[@]}"} | grep -qxF -- "$repo"; then
@@ -373,11 +377,11 @@ save-all message="":
         gum style --foreground 212 "  📝 $name — describing ($rmsg)..."
         # Show exactly what's being committed — a fan-out save can otherwise
         # silently scoop another session's in-flight work.
-        (cd $repo && jj diff --summary 2>/dev/null | sed 's/^/     /')
+        (cd "$rpath" && jj diff --summary 2>/dev/null | sed 's/^/     /')
         if [ -n "$author" ]; then
-            (cd $repo && jj describe -m "$rmsg" --author "$author" && jj bookmark move main --to @ && jj new) >/dev/null 2>&1
+            (cd "$rpath" && jj describe -m "$rmsg" --author "$author" && jj bookmark move main --to @ && jj new) >/dev/null 2>&1
         else
-            (cd $repo && jj describe -m "$rmsg" && jj bookmark move main --to @ && jj new) >/dev/null 2>&1
+            (cd "$rpath" && jj describe -m "$rmsg" && jj bookmark move main --to @ && jj new) >/dev/null 2>&1
         fi
     done
     if [ "$any" -eq 0 ]; then
@@ -454,12 +458,13 @@ push-all:
     # token to carry the `workflow` scope (gh auth refresh -s workflow) so it can
     # push .github/workflows changes.
     gum style --border normal --padding "0 2" --border-foreground 212 --foreground 212 "📤 Pushing all changes (HTTPS+gh, verified)"
-    root="$PWD"
+    root="{{ROOT}}"
     failed=()
     for repo in {{REPOS}} .; do
         name=$([ "$repo" = "." ] && echo "nix" || echo "$repo")
+        rpath=$([ "$repo" = "." ] && echo "{{ROOT}}/nix" || echo "{{ROOT}}/$repo")
         url="https://github.com/kleinbem/${name}.git"
-        cd "$root/$repo" 2>/dev/null || { gum style --foreground 196 "  ❌ $name (dir missing)"; failed+=("$name"); continue; }
+        cd "$rpath" 2>/dev/null || { gum style --foreground 196 "  ❌ $name (dir missing)"; failed+=("$name"); continue; }
         # Advance main to @ if there are new described commits (describe-then-push flow).
         if [ -n "$(jj log -r 'main..@' --no-graph -T 'description' 2>/dev/null)" ]; then
             jj bookmark move main --to @ >/dev/null 2>&1 || true

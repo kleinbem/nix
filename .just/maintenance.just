@@ -16,7 +16,7 @@ set working-directory := ".."
 format-all:
     @echo "🎨 Formatting all Nix/Shell/Python code (sub-flakes + meta)..."
     @for repo in {{REPOS}}; do \
-        if [ -f "$repo/flake.nix" ]; then echo "  └─ $repo"; ( cd "$repo" && nix fmt ); fi; \
+        if [ "$repo" != "github-config" ] && [ -f "$repo/flake.nix" ]; then echo "  └─ $repo"; ( cd "$repo" && nix fmt ); fi; \
     done
     @echo "  └─ meta files"
     @nix run ./nix-devshells#formatter-meta
@@ -25,7 +25,7 @@ format-all:
 lint-all:
     @echo "🔍 Linting workspace (sub-flakes + meta)..."
     @for repo in {{REPOS}}; do \
-        if [ -f "$repo/flake.nix" ]; then echo "  └─ $repo"; ( cd "$repo" && nix fmt -- --fail-on-change ) || exit 1; fi; \
+        if [ "$repo" != "github-config" ] && [ -f "$repo/flake.nix" ]; then echo "  └─ $repo"; ( cd "$repo" && nix fmt -- --fail-on-change ) || exit 1; fi; \
     done
     @echo "  └─ meta files"
     @nix run ./nix-devshells#formatter-meta -- --fail-on-change
@@ -57,7 +57,7 @@ _check-lints:
     @# `nix fmt` here aborts ("not part of a flake"). Each sub-flake carries the
     @# shared formatter, so format-check them individually instead.
     @for repo in {{REPOS}}; do \
-        if [ -f "$repo/flake.nix" ]; then \
+        if [ "$repo" != "github-config" ] && [ -f "$repo/flake.nix" ]; then \
             echo "    └─ $repo"; \
             ( cd "$repo" && nix fmt -- --fail-on-change ) || exit 1; \
         fi; \
