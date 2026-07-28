@@ -55,8 +55,10 @@ RESET="\033[0m"
 echo -e "${BOLD}${GREEN}🌐 Enterprise Cloudflare OpenTofu Setup${RESET}"
 echo -e "=================================================="
 
-# Check if secrets.yaml exists
-SECRETS_FILE="nix-secrets/secrets.yaml"
+# Check if secrets.yaml exists. nix-secrets is a flat sibling of nix/, not
+# nested under it, so resolve from this script's own location rather than
+# assuming the caller's cwd.
+SECRETS_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/nix-secrets/secrets.yaml"
 if [ ! -f "$SECRETS_FILE" ]; then
   echo -e "${RED}❌ Secrets file not found at $SECRETS_FILE.${RESET}"
   exit 1

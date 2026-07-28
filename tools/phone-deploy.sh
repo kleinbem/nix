@@ -4,22 +4,27 @@
 
 set -e
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+NIX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# nix-config et al are flat siblings of nix/, not nested under it — see repos.nix.
+WORKSPACE_ROOT="$(dirname "$NIX_ROOT")"
 TARBALL="/tmp/nix-full.tar.gz"
 
 echo "🔄 Updating flake lock for nix-config..."
-cd "$REPO_ROOT/nix-config"
+cd "$WORKSPACE_ROOT/nix-config"
 nix flake lock
 
 echo "📦 Packaging meta-repo repositories..."
-cd "$REPO_ROOT"
+# Sources span two real directories (WORKSPACE_ROOT for the sub-repos,
+# NIX_ROOT for tools/) but must land flat in the tarball — same layout
+# tools/phone-activate.sh expects on the phone side.
 tar czf "$TARBALL" \
   --exclude='.git' \
   --exclude='.devenv' \
   --exclude='.tools' \
   --exclude='result' \
   --exclude='nix-config/result' \
-  nix-config/ nix-presets/ nix-devshells/ nix-hardware/ nix-packages/ nix-templates/ nix-secrets/ tools/
+  -C "$WORKSPACE_ROOT" nix-config nix-presets nix-devshells nix-hardware nix-packages nix-templates nix-secrets \
+  -C "$NIX_ROOT" tools
 
 echo "📲 Pushing to phone via ADB..."
 adb push "$TARBALL" /sdcard/Download/

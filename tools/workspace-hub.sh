@@ -21,6 +21,8 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SELF="$ROOT/tools/workspace-hub.sh"
+# nix-config is a flat sibling of nix/, not nested under it — see repos.nix.
+PARENT="$(dirname "$ROOT")"
 cd "$ROOT"
 TAB=$'\t'
 
@@ -36,7 +38,7 @@ build_index() {
     printf 'meta\t%s\t%s\n' "$cat" "$r"
   done
 
-  (cd nix-config && just --summary 2>/dev/null) | tr ' ' '\n' | while read -r r; do
+  (cd "$PARENT/nix-config" && just --summary 2>/dev/null) | tr ' ' '\n' | while read -r r; do
     [ -z "$r" ] && continue
     case "$r" in
     *::*) cat="${r%%::*}" ;;
@@ -107,7 +109,7 @@ dispatch() { # dispatch <source> <recipe>
 
 show_recipe() { # show_recipe <source> <recipe> — used by fzf preview
   local src="$1" rec="$2"
-  { [ "$src" = "nix-config" ] && (cd nix-config && just --show "$rec"); } ||
+  { [ "$src" = "nix-config" ] && (cd "$PARENT/nix-config" && just --show "$rec"); } ||
     just --show "$rec" 2>/dev/null ||
     echo "(no preview)"
 }
@@ -124,7 +126,7 @@ edit_recipe() { # edit_recipe <source> <recipe> — best effort, used by Ctrl-E
   local src="$1" rec="$2" bare dir hit
   bare="${rec##*::}"
   dir="$ROOT"
-  [ "$src" = "nix-config" ] && dir="$ROOT/nix-config"
+  [ "$src" = "nix-config" ] && dir="$PARENT/nix-config"
   # Prefer module files (.just/*) so `foo::bar` opens its module definition,
   # falling back to the top-level justfile for un-prefixed recipes.
   hit="$(grep -rniE "^${bare}( |:)" "$dir/.just" 2>/dev/null | head -1)"

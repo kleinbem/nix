@@ -14,8 +14,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 META_ROOT="$(dirname "$SCRIPT_DIR")"
-PERSONAS_NIX="$META_ROOT/nix-config/personas.nix"
-CONTACT_NIX="$META_ROOT/nix-secrets/personas-contact.nix"
+# nix-config/nix-secrets are flat siblings of nix/, not nested under it.
+WORKSPACE_ROOT="$(dirname "$META_ROOT")"
+PERSONAS_NIX="$WORKSPACE_ROOT/nix-config/personas.nix"
+CONTACT_NIX="$WORKSPACE_ROOT/nix-secrets/personas-contact.nix"
 PERSONAS_JSON="$META_ROOT/infra/personas.json"
 
 if [[ ! -f $PERSONAS_NIX ]]; then

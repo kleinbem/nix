@@ -6,31 +6,31 @@
     },
     {
       "name": "Nix Config",
-      "path": "./nix-config"
+      "path": "../nix-config"
     },
     {
       "name": "Nix Presets",
-      "path": "./nix-presets"
+      "path": "../nix-presets"
     },
     {
       "name": "Nix Hardware",
-      "path": "./nix-hardware"
+      "path": "../nix-hardware"
     },
     {
       "name": "Nix DevShells",
-      "path": "./nix-devshells"
+      "path": "../nix-devshells"
     },
     {
       "name": "Nix Packages",
-      "path": "./nix-packages"
+      "path": "../nix-packages"
     },
     {
       "name": "Nix Templates",
-      "path": "./nix-templates"
+      "path": "../nix-templates"
     },
     {
       "name": "Nix Secrets",
-      "path": "./nix-secrets"
+      "path": "../nix-secrets"
     },
     {
       "name": "Github config",
@@ -38,11 +38,11 @@
     },
     {
       "name": "Router Config (Ansible)",
-      "path": "/home/martin/Develop/github.com/kleinbem/openwrt/openwrt-config"
+      "path": "/home/martin/Develop/github.com/kleinbem/openwrt-config"
     },
     {
       "name": "Router Secrets",
-      "path": "/home/martin/Develop/github.com/kleinbem/openwrt/openwrt-secrets"
+      "path": "/home/martin/Develop/github.com/kleinbem/openwrt-secrets"
     },
     {
       "name": "Antigravity (Memory)",

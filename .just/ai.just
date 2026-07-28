@@ -10,9 +10,10 @@ set working-directory := ".."
 knowledge-sync:
     @echo "🔄 Syncing Agentic Hub documentation..."
     @for repo in {{REPOS}}; do \
-        if [ -d "$repo/.agent/knowledge" ]; then \
+        if [ "$repo" = "{{DOMAIN}}" ]; then continue; fi; \
+        if [ -d "{{ROOT}}/$repo/.agent/knowledge" ]; then \
             echo "Pulling knowledge from $repo..."; \
-            rsync -av --delete $repo/.agent/knowledge/ .agent/knowledge/$repo/ 2>/dev/null || true; \
+            rsync -av --delete {{ROOT}}/$repo/.agent/knowledge/ .agent/knowledge/$repo/ 2>/dev/null || true; \
         fi \
     done
 

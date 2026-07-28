@@ -39,12 +39,12 @@ verify_one() {
 }
 
 for shell in "${META_SHELLS[@]}"; do
-  verify_one "./nix-devshells" "$shell"
+  verify_one "../nix-devshells" "$shell"
 done
 for shell in "${DEVSHELL_SHELLS[@]}"; do
-  verify_one "./nix-devshells" "$shell"
+  verify_one "../nix-devshells" "$shell"
 done
 
 rm -f verify_shell.log
 echo "------------------------------------------------------------"
-echo -e "${YELLOW}Tip: Use 'just devshell::<shell>' or 'nix develop ./nix-devshells#<shell>' to debug.${NC}"
+echo -e "${YELLOW}Tip: Use 'just devshell::<shell>' or 'nix develop ../nix-devshells#<shell>' to debug.${NC}"

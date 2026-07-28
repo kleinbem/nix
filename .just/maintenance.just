@@ -6,29 +6,29 @@ set working-directory := ".."
 # nix-config–specific recipes (check, check-hosts, apply*, sync-agent, impact,
 # lint-conventions, clean-launchers) moved to `nix-config/.just/maintenance.just`.
 # Invoke them from the meta root via root justfile [Main] shortcuts (apply,
-# apply-fast, apply-boot, check) or `cd nix-config && just maintenance::X`.
+# apply-fast, apply-boot, check) or `cd {{ROOT}}/nix-config && just maintenance::X`.
 
 # Formats the whole workspace: each sub-flake via its own `nix fmt`, plus the
-# meta's own files (tools/, repos.nix) via nix-devshells' formatter-meta (the
-# meta root has no flake.nix post-2026-06-22-migration, so a plain `treefmt` /
-# `nix fmt` can't run here).
+# meta's own files (tools/) via nix-devshells' formatter-meta (the meta root
+# has no flake.nix post-2026-06-22-migration, so a plain `treefmt` / `nix fmt`
+# can't run here). repos.nix now lives in kleinbem/, formatted there.
 [group("Formatting")]
 format-all:
     @echo "🎨 Formatting all Nix/Shell/Python code (sub-flakes + meta)..."
     @for repo in {{REPOS}}; do \
-        if [ "$repo" != "github-config" ] && [ -f "$repo/flake.nix" ]; then echo "  └─ $repo"; ( cd "$repo" && nix fmt ); fi; \
+        if [ "$repo" != "github-config" ] && [ -f "{{ROOT}}/$repo/flake.nix" ]; then echo "  └─ $repo"; ( cd "{{ROOT}}/$repo" && nix fmt ); fi; \
     done
     @echo "  └─ meta files"
-    @nix run ./nix-devshells#formatter-meta
+    @nix run {{ROOT}}/nix-devshells#formatter-meta
 
 [group("Linter")]
 lint-all:
     @echo "🔍 Linting workspace (sub-flakes + meta)..."
     @for repo in {{REPOS}}; do \
-        if [ "$repo" != "github-config" ] && [ -f "$repo/flake.nix" ]; then echo "  └─ $repo"; ( cd "$repo" && nix fmt -- --fail-on-change ) || exit 1; fi; \
+        if [ "$repo" != "github-config" ] && [ -f "{{ROOT}}/$repo/flake.nix" ]; then echo "  └─ $repo"; ( cd "{{ROOT}}/$repo" && nix fmt -- --fail-on-change ) || exit 1; fi; \
     done
     @echo "  └─ meta files"
-    @nix run ./nix-devshells#formatter-meta -- --fail-on-change
+    @nix run {{ROOT}}/nix-devshells#formatter-meta -- --fail-on-change
 
 # ============================================================================
 #  COMPREHENSIVE WORKSPACE AUDIT — 7-stage check-all
@@ -57,19 +57,19 @@ _check-lints:
     @# `nix fmt` here aborts ("not part of a flake"). Each sub-flake carries the
     @# shared formatter, so format-check them individually instead.
     @for repo in {{REPOS}}; do \
-        if [ "$repo" != "github-config" ] && [ -f "$repo/flake.nix" ]; then \
+        if [ "$repo" != "github-config" ] && [ -f "{{ROOT}}/$repo/flake.nix" ]; then \
             echo "    └─ $repo"; \
-            ( cd "$repo" && nix fmt -- --fail-on-change ) || exit 1; \
+            ( cd "{{ROOT}}/$repo" && nix fmt -- --fail-on-change ) || exit 1; \
         fi; \
     done
     @echo "  └─ meta files (tools/, repos.nix) via formatter-meta"
-    @nix run ./nix-devshells#formatter-meta -- --fail-on-change
+    @nix run {{ROOT}}/nix-devshells#formatter-meta -- --fail-on-change
     @echo "  └─ lint-python (meta)"
     @just maintenance::lint-python
     @echo "  └─ lint-python + test-python (nix-config)"
-    @cd nix-config && just dev::lint-python && just dev::test-python
+    @cd {{ROOT}}/nix-config && just dev::lint-python && just dev::test-python
     @echo "  └─ lint-conventions (Switchboard pattern)"
-    @cd nix-config && just dev::lint-conventions
+    @cd {{ROOT}}/nix-config && just dev::lint-conventions
     @echo "  └─ check-mirrors"
     @just maintenance::check-mirrors
     @echo "  ✅ Stage 1 OK"
@@ -79,9 +79,9 @@ _check-flakes *args="--impure":
     @echo
     @echo "▶ Stage 2/7: Flake evaluations"
     @for repo in {{REPOS}}; do \
-        if [ -f "$repo/flake.nix" ]; then \
+        if [ -f "{{ROOT}}/$repo/flake.nix" ]; then \
             echo "  └─ $repo"; \
-            {{LOCK_CMD}} nix flake check ./$repo --impure {{OVERRIDES}} {{args}} 2>&1 | grep -v "does not match any input" || true; \
+            {{LOCK_CMD}} nix flake check {{ROOT}}/$repo --impure {{OVERRIDES}} {{args}} 2>&1 | grep -v "does not match any input" || true; \
         fi; \
     done
     @echo "  ✅ Stage 2 OK"
@@ -102,7 +102,7 @@ _check-audits:
 _check-host-builds:
     @echo
     @echo "▶ Stage 4/7: Host closure builds (x86_64 only — discovered dynamically)"
-    @hosts=$(nix flake show ./nix-config --json --impure 2>/dev/null \
+    @hosts=$(nix flake show {{ROOT}}/nix-config --json --impure 2>/dev/null \
         | jq -r '.checks."x86_64-linux" | keys[] | select(startswith("host-"))'); \
     if [ -z "$hosts" ]; then \
         echo "  ⚠  No host-* checks found in nix-config — skipping"; \
@@ -113,7 +113,7 @@ _check-host-builds:
         host_name=${h#host-}; \
         echo "  └─ building $host_name..."; \
         if {{LOCK_CMD}} nix build --no-link --keep-going \
-                ./nix-config#checks.x86_64-linux.$h {{OVERRIDES}} --impure 2>&1 | tail -5; then \
+                {{ROOT}}/nix-config#checks.x86_64-linux.$h {{OVERRIDES}} --impure 2>&1 | tail -5; then \
             echo "     ✅ $host_name"; \
         else \
             echo "     ❌ $host_name"; failed="$failed $host_name"; \
@@ -132,8 +132,8 @@ _check-host-builds:
 _check-package-builds:
     @echo
     @echo "▶ Stage 5/7: Custom-package builds (nix-packages, x86_64)"
-    @pkgs=$(nix flake show ./nix-packages --json --impure 2>/dev/null \
-        | jq -r '.packages."x86_64-linux" // {} | keys[] | "./nix-packages#packages.x86_64-linux." + .'); \
+    @pkgs=$(nix flake show {{ROOT}}/nix-packages --json --impure 2>/dev/null \
+        | jq -r '.packages."x86_64-linux" // {} | keys[] | "{{ROOT}}/nix-packages#packages.x86_64-linux." + .'); \
     if [ -z "$pkgs" ]; then \
         echo "  ⚠  No x86_64-linux packages found — skipping"; \
         exit 0; \
@@ -151,7 +151,7 @@ _check-package-builds:
 _check-vm-tests:
     @echo
     @echo "▶ Stage 6/7: NixOS VM integration tests (discovered dynamically)"
-    @tests=$(nix flake show ./nix-config --json --impure 2>/dev/null \
+    @tests=$(nix flake show {{ROOT}}/nix-config --json --impure 2>/dev/null \
         | jq -r '.checks."x86_64-linux" | keys[] \
                  | select(startswith("host-") | not) \
                  | select(. != "pre-commit-check")'); \
@@ -163,7 +163,7 @@ _check-vm-tests:
     for t in $tests; do \
         echo "  └─ running: $t..."; \
         if {{LOCK_CMD}} nix build --no-link --keep-going \
-                ./nix-config#checks.x86_64-linux.$t {{OVERRIDES}} --impure 2>&1 | tail -5; then \
+                {{ROOT}}/nix-config#checks.x86_64-linux.$t {{OVERRIDES}} --impure 2>&1 | tail -5; then \
             echo "     ✅ $t"; \
         else \
             echo "     ⚠  $t (may need KVM or external state)"; \
@@ -233,7 +233,7 @@ check-quick *args="--impure":
 [group("Linter")]
 check-containers *args="--impure":
     @echo "📦 Verifying all Container Presets (Evaluation Test)..."
-    @{{LOCK_CMD}} {{TIMER}} nix flake check ./nix-presets {{OVERRIDES}} {{args}}
+    @{{LOCK_CMD}} {{TIMER}} nix flake check {{ROOT}}/nix-presets {{OVERRIDES}} {{args}}
 
 [group("Linter")]
 ci:
@@ -272,7 +272,7 @@ clean-all *args="":
     @{{LOCK_CMD}} {{TIMER}} nix-env --delete-generations +{{KEEP}} {{args}}
     @{{LOCK_CMD}} {{TIMER}} nix-collect-garbage -d {{args}}
     @for repo in {{REPOS}}; do \
-        git -C $repo gc --prune=now; \
+        git -C {{ROOT}}/$repo gc --prune=now; \
     done
 
 [group("System")]
@@ -284,9 +284,9 @@ hooks-refresh-all:
             rm -rf "$mod/hooks/*"; \
         done; \
     fi
-    @for repo in {{REPOS}}; do rm -rf "$repo/.git/hooks/*" 2>/dev/null || true; done
+    @for repo in {{REPOS}}; do rm -rf "{{ROOT}}/$repo/.git/hooks/*" 2>/dev/null || true; done
     @direnv allow
-    @nix develop --command bash -c 'prek install && for repo in {{REPOS}}; do if [ -f "$repo/.pre-commit-config.yaml" ]; then echo "Installing hooks in $repo..."; (cd "$repo" && prek install) || true; fi; done'
+    @nix develop --command bash -c 'prek install && for repo in {{REPOS}}; do if [ -f "{{ROOT}}/$repo/.pre-commit-config.yaml" ]; then echo "Installing hooks in $repo..."; (cd "{{ROOT}}/$repo" && prek install) || true; fi; done'
 
 [group("System")]
 check-health:
@@ -308,19 +308,19 @@ find pattern:
 [group("Updates")]
 update-cached:
     @echo "🔄 Backing up current flake.lock..."
-    @cp nix-config/flake.lock nix-config/flake.lock.bak
+    @cp {{ROOT}}/nix-config/flake.lock {{ROOT}}/nix-config/flake.lock.bak
     @echo "🔄 Updating lockfile (nix flake update)..."
-    @{{LOCK_CMD}} bash -c "cd nix-config && nix flake update"
+    @{{LOCK_CMD}} bash -c "cd {{ROOT}}/nix-config && nix flake update"
     @just maintenance::update-local
     @echo "🔍 Checking if new updates require heavy local builds (evaluating checks)..."
-    @output=$({{LOCK_CMD}} nix build --no-link --dry-run ./nix-config#checks.x86_64-linux.host-nixos-nvme {{OVERRIDES}} --impure 2>&1 || true); \
+    @output=$({{LOCK_CMD}} nix build --no-link --dry-run {{ROOT}}/nix-config#checks.x86_64-linux.host-nixos-nvme {{OVERRIDES}} --impure 2>&1 || true); \
     if echo "$output" | grep -q "will be built:"; then \
         echo "❌ Updates require local builds! Reverting flake.lock..."; \
-        mv nix-config/flake.lock.bak nix-config/flake.lock; \
+        mv {{ROOT}}/nix-config/flake.lock.bak {{ROOT}}/nix-config/flake.lock; \
         just maintenance::update-local; \
     else \
         echo "✅ Updates are fully cached! Lockfile updated successfully."; \
-        rm nix-config/flake.lock.bak; \
+        rm {{ROOT}}/nix-config/flake.lock.bak; \
     fi
 
 [group("Updates")]

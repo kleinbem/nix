@@ -23,15 +23,15 @@ default:
 
 [group("Main")]
 apply *args="":
-    @cd nix-config && just dev::apply {{args}}
+    @cd {{ROOT}}/nix-config && just dev::apply {{args}}
 
 [group("Main")]
 check:
-    @cd nix-config && just dev::check
+    @cd {{ROOT}}/nix-config && just dev::check
 
 [group("Main")]
 attic-coverage host="$(hostname)":
-    @cd nix-config && just dev::attic-coverage {{host}}
+    @cd {{ROOT}}/nix-config && just dev::attic-coverage {{host}}
 
 [group("Main")]
 check-shells:
@@ -39,35 +39,43 @@ check-shells:
 
 [group("Main")]
 switch *args="":
-    @cd nix-config && just nixos::switch {{args}}
+    @cd {{ROOT}}/nix-config && just nixos::switch {{args}}
 
 [group("Main")]
-status-all:
-    @just jj::status-all
+status-all filter="":
+    @just jj::status-all {{filter}}
 
 [group("Main")]
-save-all message="":
-    @just jj::save-all "{{message}}"
+save-all message="" filter="":
+    @just jj::save-all "{{message}}" {{filter}}
 
 [group("Main")]
-diff-all *args="":
-    @just jj::diff-all {{args}}
+diff-all filter="" *args="":
+    @just jj::diff-all {{filter}} {{args}}
 
 [group("Main")]
-pull-all:
-    @just jj::pull-all
+pull-all filter="":
+    @just jj::pull-all {{filter}}
 
 [group("Main")]
-push-all:
-    @just jj::push-all
+push-all filter="":
+    @just jj::push-all {{filter}}
 
 [group("Main")]
-sign-unsigned:
-    @just jj::sign-unsigned
+sign-unsigned filter="":
+    @just jj::sign-unsigned {{filter}}
 
 [group("Main")]
-ship message="":
-    @just jj::ship "{{message}}"
+ship-all message="" filter="":
+    @just jj::ship-all "{{message}}" {{filter}}
+
+alias ship := ship-all
+
+# Wrap any jj subcommand to commit as a specific persona (nix-only — reads
+# nix-config/personas.nix). e.g. `just as daniel save-all "fix: ui polish"`
+[group("Main")]
+as persona *args:
+    @KLEINBEM_PERSONA={{persona}} just jj::{{args}}
 
 # Pass-through to any sub-flake's justfile from the meta root.
 # Usage:
@@ -76,7 +84,7 @@ ship message="":
 #   just in nix-secrets edit secrets.yaml
 [group("Main")]
 in repo *args:
-    @cd {{repo}} && just {{args}}
+    @cd {{ROOT}}/{{repo}} && just {{args}}
 
 [group("Main")]
 audit-locks-all:
@@ -84,19 +92,19 @@ audit-locks-all:
 
 [group("Main")]
 phone *args:
-    @cd nix-config && just android::phone {{args}}
+    @cd {{ROOT}}/nix-config && just android::phone {{args}}
 
 [group("Main")]
 phone-push:
-    @cd nix-config && just android::phone-push
+    @cd {{ROOT}}/nix-config && just android::phone-push
 
 [group("Main")]
 phone-backup-fetch:
-    @cd nix-config && just android::phone-backup-fetch
+    @cd {{ROOT}}/nix-config && just android::phone-backup-fetch
 
 [group("Main")]
 tablet *args:
-    @cd nix-config && just android::tablet {{args}}
+    @cd {{ROOT}}/nix-config && just android::tablet {{args}}
 
 
 # --- Workspace Hub (fleet-aware, linutil-style browser) ---

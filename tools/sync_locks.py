@@ -74,7 +74,10 @@ def rev_on_origin(path, rev):
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    root_dir = os.path.dirname(script_dir)
+    # Two levels up from tools/: past nix/ itself, to the workspace root
+    # where every sub-flake actually lives as a flat sibling (not nested
+    # under nix/ — that assumption predates the 2026 flat-layout migration).
+    root_dir = os.path.dirname(os.path.dirname(script_dir))
 
     print(f"{BOLD}{CYAN}🔄 Topological Workspace Lockfile Sync...{RESET}")
     print(

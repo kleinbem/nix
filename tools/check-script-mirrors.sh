@@ -7,7 +7,8 @@
 set -euo pipefail
 
 REPO_ROOT="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
-cd "$REPO_ROOT"
+# nix-presets/nix-devshells are flat siblings of nix/, not nested under it.
+cd "$(dirname "$REPO_ROOT")"
 
 PAIRS=(
   "nix-presets/files/scripts/android/launch-android-desktop.sh|nix-devshells/shells/scripts/launch-android-desktop.sh"

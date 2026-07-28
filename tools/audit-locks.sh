@@ -8,7 +8,10 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+# nix/ is itself a git+jj repo, so `git rev-parse --show-toplevel` from here
+# resolves to nix/ — one level up from the workspace root where the sub-flakes
+# actually live as flat siblings (not nested under nix/).
+REPO_ROOT="$(dirname "$(git rev-parse --show-toplevel)")"
 # nix-config is the root flake — its lock has the canonical pins for every
 # sub-flake. (Meta dir no longer has a flake.nix.)
 LOCKS=$(nix flake metadata --json "$REPO_ROOT/nix-config" 2>/dev/null | jq -c '.locks.nodes')

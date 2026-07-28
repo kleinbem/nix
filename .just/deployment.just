@@ -5,7 +5,7 @@ set working-directory := ".."
 # --- Cross-cutting deployment recipes ---
 # Host-specific deploys (deploy-fleet/deploy-orin/orin-*/pi-*/router-*/core-rebind-tang)
 # moved to `nix-config/.just/deployment.just`. Run them with:
-#   cd nix-config && just deployment::deploy-fleet
+#   cd ../nix-config && just deployment::deploy-fleet
 # or via the [Main] shortcuts in the root justfile.
 
 [group("Status")]

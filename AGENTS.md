@@ -4,7 +4,9 @@ Guidance for AI assistants (Claude Code, Gemini CLI, Codex, Aider, Antigravity, 
 
 ## Overview
 
-This is a **meta-workspace dir** — a tooling-only orchestrator for several independent flakes cloned via `repos.nix`. **There is no `flake.nix` at the meta root.** `nix-config` is the root flake everything builds from; the meta dir holds `just`, `repos.nix`, `.agent/`, the `jj` dashboard, and the `.envrc` that points direnv at `./nix-devshells#workspace`. Bootstrap a fresh checkout with `just jj::bootstrap`.
+This is a **meta-workspace dir** — a tooling-only orchestrator for several independent flakes cloned via `kleinbem/repos.nix` (the fleet-wide manifest — see `kleinbem/AGENTS.md`). **There is no `flake.nix` at the meta root.** `nix-config` is the root flake everything builds from; the meta dir holds `just`, `.agent/`, the `jj` dashboard (symlinked from `kleinbem/.just/`), and the `.envrc` that points direnv at `../nix-devshells#workspace`.
+
+**On a truly fresh clone of just this repo, run `bash tools/bootstrap.sh` first** — `just` itself won't parse until `kleinbem/` exists (the shared `.just/common.just` and `.just/jj.just` are symlinks into it), and `tools/bootstrap.sh` clones `kleinbem/` before handing off to the normal `just jj::bootstrap`. On any machine where `kleinbem/` already exists, `just jj::bootstrap` alone is enough.
 
 ## Key Commands
 
@@ -17,7 +19,7 @@ All common operations go through `just`. Run `just` (no args) to open an fzf-bas
 ```bash
 # Environment
 direnv allow              # Load the workspace shell from nix-devshells
-nix develop ./nix-devshells#workspace   # Pure fallback (no direnv)
+nix develop ../nix-devshells#workspace   # Pure fallback (no direnv)
 
 # System deployment (delegates into nix-config)
 just apply                # Align sub-flakes → sync locks → eval → switch (see `just apply --help`)
@@ -69,19 +71,23 @@ just ai::ai-check                 # Check Ollama / vLLM status
 
 ## Flake Hierarchy
 
+Sub-flakes are **flat siblings of `nix/`** (under the workspace root, `~/Develop/github.com/kleinbem/`) — NOT nested inside `nix/`, and NOT symlinked in (that compat trick was removed; every reference goes through `{{ROOT}}` in justfiles or `../` in shell scripts/`.envrc`):
+
 ```
-nix/ (meta workspace dir — NO flake.nix; tooling only: just, repos.nix, .agent/)
+~/Develop/github.com/kleinbem/  (workspace root)
+├── kleinbem/        ← profile repo; fleet-wide repos.nix + shared .just/ modules live here
+├── nix/             ← meta workspace dir — NO flake.nix; tooling only: just, .agent/
 ├── nix-config       ← ROOT FLAKE; owns hosts/checks/packages; CI runs from here
-│   ├── nix-devshells ← shared dev shells (workspace + ultimate + per-language)
-│   ├── nix-hardware  ← device-specific hardware modules
-│   ├── nix-presets   ← reusable service/desktop bundles
-│   ├── nix-packages  ← custom packages (NUR-style)
-│   ├── nix-templates ← project scaffolding
-│   └── nix-secrets   ← sops-encrypted secrets (flake = false)
-└── (other peer dirs: tools/, .just/, .agent/, infra/)
+├── nix-devshells    ← shared dev shells (workspace + ultimate + per-language)
+├── nix-hardware     ← device-specific hardware modules
+├── nix-presets      ← reusable service/desktop bundles
+├── nix-packages     ← custom packages (NUR-style)
+├── nix-templates    ← project scaffolding
+├── nix-secrets      ← sops-encrypted secrets (flake = false)
+└── github-config    ← GitHub governance (Terraform)
 ```
 
-All sub-flakes are **standalone git+jj repos** cloned under the meta dir (NOT git submodules — see `repos.nix` for the manifest, `just jj::bootstrap` to set up a fresh machine). They are referenced from `nix-config/flake.nix` as local `git+file://` inputs. The `OVERRIDES` variable in `common.just` generates `--override-input` flags so local edits are picked up without pushing.
+All sub-flakes are **standalone git+jj repos** (NOT git submodules — see `kleinbem/repos.nix` for the fleet-wide manifest, `bash tools/bootstrap.sh` on a fresh machine or `just jj::bootstrap` once `kleinbem/` exists). They are referenced from `nix-config/flake.nix` as local `git+file://` inputs. The `OVERRIDES` variable in `common.just` generates `--override-input` flags (pointing at their real `{{ROOT}}/<repo>` paths) so local edits are picked up without pushing.
 
 ## Deploy Model
 
@@ -138,7 +144,7 @@ my = {
 
 ## Devshells
 
-All devshells live in `nix-devshells`. Direnv at the meta dir loads `./nix-devshells#workspace` automatically (see `.envrc`).
+All devshells live in `nix-devshells`. Direnv at the meta dir loads `../nix-devshells#workspace` automatically (see `.envrc`).
 
 | Shell | Purpose |
 |---|---|
@@ -152,7 +158,7 @@ All devshells live in `nix-devshells`. Direnv at the meta dir loads `./nix-devsh
 | `android` | Android tooling |
 | `arm` | ARM cross-build environment |
 
-Enter via `just devshell::<name>` (handles the path for you). Manual equivalent: `nix develop ./nix-devshells#<name>`.
+Enter via `just devshell::<name>` (handles the path for you). Manual equivalent: `nix develop ../nix-devshells#<name>`.
 
 ## Ground Truth & Agent Context
 

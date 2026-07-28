@@ -11,20 +11,27 @@ description: High-level context, goals, and architecture of the workspace
 - **AI-Augmented**: Workspace designed for Agentic AI usage (Antigravity/Gemini), with clear context and rules.
 - **Hybrid Infrastructure**: Manages both Workstations (NixOS) and Network Infrastructure (OpenWrt routers).
 
-## 2. Architecture: "Domain-Driven Namespace"
+## 2. Architecture: Federated Meta-Workspaces
 
-The workspace is NOT a monorepo. It is a collection of independent repositories grouped by domain.
+The workspace is NOT a monorepo. `nix/` and `openwrt/` are each their own colocated
+git+jj repo acting as a tooling-only conductor (own `justfile`, `repos.nix`,
+`.agent/`) for a domain. Their sub-flakes/sub-repos are **flat siblings** under
+the workspace root — not nested inside the conductor dir, not git submodules.
+Each conductor's `just` recipes resolve them via `{{ROOT}}` (justfiles) or
+`../` (shell scripts, `.envrc`).
 
 ```text
-~/Develop/github.com/kleinbem/
-├── kleinbem.code-workspace  # [VSCODE] Unifies all domains
-├── Justfile                 # [ORCHESTRATOR] Delegates commands
-├── .agent/                  # [CONTEXT] Rules and Workflows
-├── nix/                     # [DOMAIN] General Computing
-│   ├── nix-config/          # Main NixOS Flake (flake-parts)
-│   └── nix-secrets/         # Private secrets (Sops)
-└── openwrt/                 # [DOMAIN] Networking
-    └── openwrt-builder/     # Router Image Builder
+~/Develop/github.com/kleinbem/       # workspace root — NOT a git repo itself
+├── kleinbem/                 # profile/meta repo (README, .code-workspace)
+├── nix/                      # [CONDUCTOR] General Computing — own git+jj repo
+├── nix-config/                 Main NixOS Flake (flake-parts)
+├── nix-secrets/                Private secrets (Sops)
+├── nix-presets/ nix-hardware/ nix-devshells/ nix-packages/ nix-templates/
+├── github-config/              GitHub governance (Terraform)
+├── openwrt/                  # [CONDUCTOR] Networking — own git+jj repo
+├── openwrt-builder/            Router Image Builder
+├── openwrt-config/             Ansible runtime config
+└── openwrt-secrets/            Router secrets (Sops)
 ```
 
 ## 3. Tech Stack
@@ -37,5 +44,5 @@ The workspace is NOT a monorepo. It is a collection of independent repositories 
 
 ## 4. Key Constraints
 
-- **Root is NOT a Git Repo**: Never run git commands at the root.
-- **Always use `just`**: Do not run manual `nixos-rebuild` commands; use the Justfile abstraction.
+- **The workspace root (`~/Develop/github.com/kleinbem/`) is NOT a git repo**: each domain dir (`nix/`, `openwrt/`) and each sibling sub-repo is its own independent git+jj repo. Run git/jj commands inside the specific repo you're changing.
+- **Always use `just`**: Do not run manual `nixos-rebuild` commands; use the justfile abstraction.
