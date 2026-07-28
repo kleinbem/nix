@@ -14,4 +14,5 @@
   nix-presets = "git@github.com:kleinbem/nix-presets.git";
   nix-secrets = "git@github.com:kleinbem/nix-secrets.git";
   nix-templates = "git@github.com:kleinbem/nix-templates.git";
+  github-config = "git@github.com:kleinbem/github-config.git";
 }
