@@ -1,6 +1,7 @@
 import 'common.just'
 
-set working-directory := ".."
+set working-directory := "."
+export JJ_PAGER := "cat"
 
 # --- Workspace VCS operations (jj-first) ---
 #
@@ -78,11 +79,12 @@ status-all:
     gum style --border normal --padding "0 2" --border-foreground 212 --foreground 212 "📊 Workspace Status (jj)"
     {
         printf "REPO\tCHANGE\t@ STATE\tAHEAD OF ORIGIN\n"
-        for repo in {{REPOS}} .; do
-            name=$([ "$repo" = "." ] && echo "nix" || echo "$repo")
-            change=$(cd $repo && jj log -r @ --no-graph -T 'change_id.short()' 2>/dev/null)
-            empty=$(cd $repo && jj log -r @ --no-graph -T 'if(empty, "1", "0")' 2>/dev/null)
-            desc=$(cd $repo && jj log -r @ --no-graph -T 'description.first_line()' 2>/dev/null)
+        for repo in {{REPOS}}; do
+            dir=$([ -d "$repo" ] && echo "$repo" || ([ -d "../$repo" ] && echo "../$repo" || echo "."))
+            name="$repo"
+            change=$(cd "$dir" && jj log -r @ --no-graph -T 'change_id.short()' 2>/dev/null)
+            empty=$(cd "$dir" && jj log -r @ --no-graph -T 'if(empty, "1", "0")' 2>/dev/null)
+            desc=$(cd "$dir" && jj log -r @ --no-graph -T 'description.first_line()' 2>/dev/null)
             # Truncate long descriptions so gum table doesn't widen the column to
             # half the terminal. 60 chars is enough to recognise the change.
             desc_short="${desc:0:60}"
@@ -90,15 +92,15 @@ status-all:
             if [ "$empty" = "1" ]; then status_desc="(empty)";
             elif [ -z "$desc" ]; then status_desc="⚠ undescribed";
             else status_desc="📝 $desc_short"; fi
-            described_n=$(cd $repo && jj log -r 'main@origin..@ & ~empty()' --no-graph -T 'if(description, "1\n", "")' 2>/dev/null | grep -c . || true)
-            undescribed_n=$(cd $repo && jj log -r 'main@origin..@ & ~empty()' --no-graph -T 'if(description, "", "1\n")' 2>/dev/null | grep -c . || true)
+            described_n=$(cd "$dir" && jj log -r 'main@origin..@ & ~empty()' --no-graph -T 'if(description, "1\n", "")' 2>/dev/null | grep -c . || true)
+            undescribed_n=$(cd "$dir" && jj log -r 'main@origin..@ & ~empty()' --no-graph -T 'if(description, "", "1\n")' 2>/dev/null | grep -c . || true)
             if [ "$described_n" -eq 0 ] && [ "$undescribed_n" -eq 0 ]; then ahead="(none)";
             elif [ "$undescribed_n" -eq 0 ]; then ahead="📝 $described_n ready";
             elif [ "$described_n" -eq 0 ]; then ahead="⚠ $undescribed_n undescribed";
             else ahead="📝$described_n ⚠$undescribed_n (mixed)"; fi
             printf "%s\t%s\t%s\t%s\n" "$name" "$change" "$status_desc" "$ahead"
         done
-    } | gum table -s "$(printf '\t')" --print
+    } | column -t -s $'\t'
 
 # GitHub remote dashboard — origin/main SHA, latest CI status,
 # open PR count, open issue count per repo. ~6s due to gh API roundtrips.
