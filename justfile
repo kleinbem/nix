@@ -46,6 +46,26 @@ status-all:
     @just jj::status-all
 
 [group("Main")]
+save-all message="":
+    @just jj::save-all "{{message}}"
+
+[group("Main")]
+diff-all *args="":
+    @just jj::diff-all {{args}}
+
+[group("Main")]
+pull-all:
+    @just jj::pull-all
+
+[group("Main")]
+push-all:
+    @just jj::push-all
+
+[group("Main")]
+sign-unsigned:
+    @just jj::sign-unsigned
+
+[group("Main")]
 ship message="":
     @just jj::ship "{{message}}"
 
