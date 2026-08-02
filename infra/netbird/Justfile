@@ -9,7 +9,7 @@ default:
 # R2 backend config + state-encryption env. Run inside a shell with
 # tofu+sops+yq, e.g. nix shell nixpkgs#opentofu nixpkgs#sops nixpkgs#yq-go
 
-secrets := "../../nix-secrets/secrets.yaml"
+secrets := "../../../nix-secrets/secrets.yaml"
 
 # Init the R2 backend (see backend.tf + encryption.tf; state-env.sh feeds both).
 init:

@@ -10,7 +10,7 @@
 # CURRENTLY exist on the mesh (`just list-peers` to check).
 variable "personal_device_peers" {
   type        = list(string)
-  default     = ["nixos-nvme"]
+  default     = ["nixos-nvme", "mac-mini"]
   description = "Trusted-machine peer names (workstation, laptop; add phone once it is enrolled)."
 }
 

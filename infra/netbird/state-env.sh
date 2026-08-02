@@ -9,7 +9,7 @@
 set -euo pipefail
 
 _here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-_yaml="$(sops -d "${_here}/../../nix-secrets/secrets.yaml")"
+_yaml="$(sops -d "${_here}/../../../nix-secrets/secrets.yaml")"
 
 _account="$(echo "$_yaml" | yq '.cloudflare_account_id')"
 _key_id="$(echo "$_yaml" | yq '.r2_state_access_key_id')"
