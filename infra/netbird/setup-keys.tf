@@ -32,24 +32,31 @@ output "ci_ephemeral_setup_key" {
   sensitive = true
 }
 
-# --- Hosts: PERSISTENT key (migration target, not in the first apply) ----------
-# Hosts work fine on the existing hand-made `netbird_setup_key` in nix-secrets,
-# so adopting a TF-managed host key is a SEPARATE, later step — flipping it
-# carelessly orphans the working netbird-autojoin. When ready:
-#   1. uncomment, `just apply`, read `tofu output -raw hosts_setup_key`.
-#   2. write it into nix-secrets/secrets.yaml as `netbird_setup_key` (sops
-#      updatekeys) so autojoin + the NETBIRD_SETUP_KEY Actions secret keep working.
-#   3. retire the hand-made console key.
+# --- Hosts: PERSISTENT key ------------------------------------------------
+# Replaces the hand-made console key previously in nix-secrets. New peers
+# land in unclassified-hosts (groups.tf) — zero access by default, since no
+# policy references that group. Promote a peer into personal_device_peers or
+# smart_home_peers (groups.tf) once you've actually looked at it; it keeps
+# whatever explicit group membership it's given regardless of which group
+# the setup key originally dropped it into.
 #
-# resource "netbird_setup_key" "hosts" {
-#   name           = "infra-hosts"
-#   type           = "reusable"
-#   ephemeral      = false                              # hosts must persist
-#   expiry_seconds = 31536000
-#   auto_groups    = [netbird_group.personal_devices.id]
-# }
-#
-# output "hosts_setup_key" {
-#   value     = netbird_setup_key.hosts.key
-#   sensitive = true
-# }
+# Migration steps when applying this:
+#   1. `just apply`, then `tofu output -raw hosts_setup_key`.
+#   2. Write it into nix-secrets/secrets.yaml as `netbird_setup_key` (sops
+#      updatekeys) so netbird-autojoin + the NETBIRD_SETUP_KEY Actions secret
+#      keep working — existing already-enrolled hosts are unaffected, this
+#      only changes what NEW enrollments use.
+#   3. Retire the old hand-made console key (delete it via the console once
+#      confirmed nothing is still using it).
+resource "netbird_setup_key" "hosts" {
+  name           = "infra-hosts"
+  type           = "reusable"
+  ephemeral      = false # hosts must persist
+  expiry_seconds = 31536000
+  auto_groups    = [netbird_group.unclassified_hosts.id]
+}
+
+output "hosts_setup_key" {
+  value     = netbird_setup_key.hosts.key
+  sensitive = true
+}

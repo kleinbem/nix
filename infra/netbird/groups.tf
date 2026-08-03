@@ -70,3 +70,15 @@ resource "netbird_group" "cache" {
 resource "netbird_group" "ci_runners" {
   name = "ci-runners"
 }
+
+# Landing zone for hosts enrolling via the (planned) TF-managed persistent
+# setup key in setup-keys.tf. Deliberately NOT personal-devices: a newly
+# enrolled, not-yet-reviewed host should start with zero access, not
+# SSH-into-smart-home + cache-pull. No policy references this group, so
+# membership here grants nothing — promote a peer into personal_device_peers
+# or smart_home_peers above once you've actually looked at it. Membership is
+# left unmanaged (no `peers` attribute) same as ci_runners, since it's
+# populated dynamically by the setup key's auto_groups, not a static list.
+resource "netbird_group" "unclassified_hosts" {
+  name = "unclassified-hosts"
+}
