@@ -4,8 +4,9 @@ variable "netbird_api_token" {
   description = <<-EOT
     NetBird Management API personal access token (NOT a setup key). Create it in
     the NetBird console under your user → Personal Access Tokens with permission
-    to manage groups/policies/setup-keys. Store it in nix-secrets/secrets.yaml as
-    `netbird_api_token`; the Justfile sources it via sops into TF_VAR_netbird_api_token.
+    to manage groups/policies/setup-keys. Store it in
+    kleinbem-secrets/infra/terraform.yaml as `netbird_api_token`; the Justfile
+    sources it via sops into TF_VAR_netbird_api_token.
   EOT
 }
 

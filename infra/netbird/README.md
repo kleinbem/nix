@@ -14,7 +14,7 @@ mirroring the `github-config` root. Kept out of the local-state bootstrap
 
 ## Prerequisites
 1. **NetBird API token** (Personal Access Token, not a setup key) → store in
-   `nix-secrets/secrets.yaml` as `netbird_api_token` (`sops updatekeys`).
+   `kleinbem-secrets/infra/terraform.yaml` as `netbird_api_token` (`sops updatekeys`).
 2. R2 backend env: `CLOUDFLARE_ACCOUNT_ID`, `AWS_ACCESS_KEY_ID`,
    `AWS_SECRET_ACCESS_KEY` (an R2 access key) — same as `github-config`.
 3. Tools: `tofu`, `sops`, `yq` (e.g. `nix shell nixpkgs#opentofu nixpkgs#sops nixpkgs#yq-go`).

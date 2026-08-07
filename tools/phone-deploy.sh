@@ -23,7 +23,7 @@ tar czf "$TARBALL" \
   --exclude='.tools' \
   --exclude='result' \
   --exclude='nix-config/result' \
-  -C "$WORKSPACE_ROOT" nix-config nix-presets nix-devshells nix-hardware nix-packages nix-templates nix-secrets \
+  -C "$WORKSPACE_ROOT" nix-config nix-presets nix-devshells nix-hardware nix-packages nix-templates kleinbem-secrets \
   -C "$NIX_ROOT" tools
 
 echo "📲 Pushing to phone via ADB..."

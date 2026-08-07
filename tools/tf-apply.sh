@@ -55,40 +55,53 @@ RESET="\033[0m"
 echo -e "${BOLD}${GREEN}🌐 Enterprise Cloudflare OpenTofu Setup${RESET}"
 echo -e "=================================================="
 
-# Check if secrets.yaml exists. nix-secrets is a flat sibling of nix/, not
-# nested under it, so resolve from this script's own location rather than
-# assuming the caller's cwd.
-SECRETS_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/nix-secrets/secrets.yaml"
-if [ ! -f "$SECRETS_FILE" ]; then
-  echo -e "${RED}❌ Secrets file not found at $SECRETS_FILE.${RESET}"
-  exit 1
-fi
+# kleinbem-secrets (cutover 2026-08-08, replaces nix-secrets) scopes
+# credentials per-consumer, so this script reads from several files rather
+# than one flat secrets.yaml. kleinbem-secrets is a flat sibling of nix/,
+# not nested under it, so resolve from this script's own location rather
+# than assuming the caller's cwd.
+SECRETS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/kleinbem-secrets"
+TERRAFORM_FILE="$SECRETS_ROOT/infra/terraform.yaml"
+SHARED_FILE="$SECRETS_ROOT/nix/shared.yaml"
+COREPI_FILE="$SECRETS_ROOT/nix/per-host/core-pi.yaml"
+ORIN_FILE="$SECRETS_ROOT/nix/per-host/orin-nano.yaml"
+for f in "$TERRAFORM_FILE" "$SHARED_FILE" "$COREPI_FILE" "$ORIN_FILE"; do
+  if [ ! -f "$f" ]; then
+    echo -e "${RED}❌ Secrets file not found at $f.${RESET}"
+    exit 1
+  fi
+done
 
 echo -e "\n${BOLD}[1/4] Decrypting and checking secrets...${RESET}"
-echo -e "${YELLOW}👉 Touch your YubiKey if it flashes to authorize decryption of secrets.yaml...${RESET}"
-DECRYPTED_YAML=$(sops -d "$SECRETS_FILE")
+echo -e "${YELLOW}👉 Touch your YubiKey if it flashes — up to 4 scoped files to decrypt...${RESET}"
+DECRYPTED_YAML=$(sops -d "$TERRAFORM_FILE")
+SHARED_YAML=$(sops -d "$SHARED_FILE")
+COREPI_YAML=$(sops -d "$COREPI_FILE")
+ORIN_YAML=$(sops -d "$ORIN_FILE")
 
 # Check if we have api token and account id
 API_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.cloudflare_api_token')
-ACCOUNT_ID=$(echo "$DECRYPTED_YAML" | yq '.cloudflare_account_id')
+ACCOUNT_ID=$(echo "$COREPI_YAML" | yq '.cloudflare_account_id')
 
 if [ "$API_TOKEN" = "null" ] || [ -z "$API_TOKEN" ] || [ "$ACCOUNT_ID" = "null" ] || [ -z "$ACCOUNT_ID" ]; then
-  echo -e "${RED}❌ Missing cloudflare_api_token or cloudflare_account_id in secrets.yaml.${RESET}"
-  echo -e "Please edit $SECRETS_FILE and add:"
-  echo -e '  • cloudflare_api_token: "your-api-token"'
-  echo -e '  • cloudflare_account_id: "your-account-id"'
+  echo -e "${RED}❌ Missing cloudflare_api_token (infra/terraform.yaml) or cloudflare_account_id (nix/per-host/core-pi.yaml).${RESET}"
+  echo -e "Please add:"
+  echo -e "  • cloudflare_api_token to $TERRAFORM_FILE"
+  echo -e "  • cloudflare_account_id to $COREPI_FILE"
   exit 1
 fi
 
-# Generate tunnel secret if missing
-TUNNEL_SECRET=$(echo "$DECRYPTED_YAML" | yq '.cloudflare_tunnel_secret')
+# Generate tunnel secret if missing. Lives in core-pi's own scope — it's the
+# host that runs the tunnel, same file hosts/core-pi/secrets.nix reads
+# cloudflare_tunnel_secret from.
+TUNNEL_SECRET=$(echo "$COREPI_YAML" | yq '.cloudflare_tunnel_secret')
 if [ "$TUNNEL_SECRET" = "null" ] || [ -z "$TUNNEL_SECRET" ]; then
   echo -e "${YELLOW}Generating new 32-byte base64 tunnel secret...${RESET}"
   TUNNEL_SECRET=$(openssl rand -base64 32)
-  sops --set "[\"cloudflare_tunnel_secret\"] \"$TUNNEL_SECRET\"" "$SECRETS_FILE"
-  echo -e "🟢 Generated and saved cloudflare_tunnel_secret to secrets.yaml"
+  sops --set "[\"cloudflare_tunnel_secret\"] \"$TUNNEL_SECRET\"" "$COREPI_FILE"
+  echo -e "🟢 Generated and saved cloudflare_tunnel_secret to nix/per-host/core-pi.yaml"
   # Refresh decrypted YAML state after write
-  DECRYPTED_YAML=$(sops -d "$SECRETS_FILE")
+  COREPI_YAML=$(sops -d "$COREPI_FILE")
 fi
 
 # Export variables for OpenTofu
@@ -101,16 +114,23 @@ export TF_VAR_cloudflare_tunnel_secret="$TUNNEL_SECRET"
 # `github_app_id` + `github_app_private_key` are the GitHub App credentials
 # distributed to CI repos as APP_ID / APP_PRIVATE_KEY (replaces the retired
 # long-lived GH_PAT — workflows mint short-lived tokens via
-# actions/create-github-app-token at runtime).
-# `attic_push_token` becomes the ATTIC_PUSH_TOKEN secret.
+# actions/create-github-app-token at runtime). Those two live in
+# nix/shared.yaml (every NixOS host's scope), not infra/terraform.yaml.
+# `attic_push_token` becomes the ATTIC_PUSH_TOKEN secret — lives in
+# orin-nano's own per-host scope.
 GH_TF_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.github_tf_token')
-GH_APP_ID=$(echo "$DECRYPTED_YAML" | yq '.github_app_id')
-GH_APP_PRIVATE_KEY=$(echo "$DECRYPTED_YAML" | yq '.github_app_private_key')
-ATTIC_PUSH=$(echo "$DECRYPTED_YAML" | yq '.attic_push_token')
-NETBIRD_KEY=$(echo "$DECRYPTED_YAML" | yq '.netbird_setup_key')
+GH_APP_ID=$(echo "$SHARED_YAML" | yq '.github_app_id')
+GH_APP_PRIVATE_KEY=$(echo "$SHARED_YAML" | yq '.github_app_private_key')
+ATTIC_PUSH=$(echo "$ORIN_YAML" | yq '.attic_push_token')
+NETBIRD_KEY=$(echo "$SHARED_YAML" | yq '.netbird_setup_key')
 NETBIRD_KEY_EPHEMERAL=$(echo "$DECRYPTED_YAML" | yq '.netbird_setup_key_ephemeral')
-NTFY_DEPLOY_TOPIC=$(echo "$DECRYPTED_YAML" | yq '.ntfy_deploy_topic')
+NTFY_DEPLOY_TOPIC=$(echo "$SHARED_YAML" | yq '.ntfy_deploy_topic')
 NTFY_ALERT_TOPIC=$(echo "$DECRYPTED_YAML" | yq '.ntfy_alert_topic')
+
+# --- Google Cloud (infra/google.tf) ---
+# Bootstrap service-account key (base64 JSON), manually created via gcloud —
+# see infra/google.tf's header comment. Not itself Terraform-managed.
+GOOGLE_SA_KEY=$(echo "$DECRYPTED_YAML" | yq '.google_service_account_key')
 
 # Normalise missing keys ("null") to empty strings
 [ "$GH_TF_TOKEN" = "null" ] && GH_TF_TOKEN=""
@@ -121,14 +141,19 @@ NTFY_ALERT_TOPIC=$(echo "$DECRYPTED_YAML" | yq '.ntfy_alert_topic')
 [ "$NETBIRD_KEY_EPHEMERAL" = "null" ] && NETBIRD_KEY_EPHEMERAL=""
 [ "$NTFY_DEPLOY_TOPIC" = "null" ] && NTFY_DEPLOY_TOPIC=""
 [ "$NTFY_ALERT_TOPIC" = "null" ] && NTFY_ALERT_TOPIC=""
+[ "$GOOGLE_SA_KEY" = "null" ] && GOOGLE_SA_KEY=""
 
 if [ -z "$GH_TF_TOKEN" ]; then
-  echo -e "${YELLOW}⚠️  github_tf_token not set in secrets.yaml — GitHub resources will fail to authenticate."
+  echo -e "${YELLOW}⚠️  github_tf_token not set in $TERRAFORM_FILE — GitHub resources will fail to authenticate."
   echo -e "    Add a fine-grained PAT (Administration + Issues + Secrets: R/W on the nix-* repos) under key 'github_tf_token' to manage GitHub via IaC.${RESET}"
 fi
 
 if [ -z "$GH_APP_ID" ] || [ -z "$GH_APP_PRIVATE_KEY" ]; then
-  echo -e "${YELLOW}⚠️  github_app_id or github_app_private_key not set in secrets.yaml — CI workflows that mint App tokens will fail.${RESET}"
+  echo -e "${YELLOW}⚠️  github_app_id or github_app_private_key not set in $SHARED_FILE — CI workflows that mint App tokens will fail.${RESET}"
+fi
+
+if [ -z "$GOOGLE_SA_KEY" ]; then
+  echo -e "${YELLOW}⚠️  google_service_account_key not set in $TERRAFORM_FILE — infra/google.tf resources will fail to authenticate.${RESET}"
 fi
 
 export TF_VAR_github_tf_token="$GH_TF_TOKEN"
@@ -139,6 +164,7 @@ export TF_VAR_netbird_setup_key="$NETBIRD_KEY"
 export TF_VAR_netbird_setup_key_ephemeral="$NETBIRD_KEY_EPHEMERAL"
 export TF_VAR_ntfy_deploy_topic="$NTFY_DEPLOY_TOPIC"
 export TF_VAR_ntfy_alert_topic="$NTFY_ALERT_TOPIC"
+export TF_VAR_google_service_account_key="$GOOGLE_SA_KEY"
 
 # 2. OpenTofu Init & Plan/Apply
 echo -e "\n${BOLD}[2/4] Initializing OpenTofu...${RESET}"
@@ -167,7 +193,7 @@ if [ -z "$TOFU_STATE_PASSPHRASE" ]; then
   echo -e "${RED}❌ No state-encryption passphrase (infra/encryption.tf is active).${RESET}"
   echo -e "Generate one and add it to sops:"
   echo -e "  ${BOLD}openssl rand -base64 32${RESET}"
-  echo -e "  ${BOLD}sops nix-secrets/secrets.yaml${RESET} → tofu_state_passphrase: <value>"
+  echo -e "  ${BOLD}sops $TERRAFORM_FILE${RESET} → tofu_state_passphrase: <value>"
   exit 1
 fi
 export TF_ENCRYPTION="key_provider \"pbkdf2\" \"state_key\" { passphrase = \"${TOFU_STATE_PASSPHRASE}\" }"
@@ -176,7 +202,7 @@ if [ -z "$R2_KEY_ID" ] || [ -z "$R2_KEY_SECRET" ]; then
   echo -e "${RED}❌ No R2 access key for the state backend.${RESET}"
   echo -e "Create one (Cloudflare dashboard → R2 → Manage R2 API Tokens → Object Read & Write,"
   echo -e "scoped to the ${BOLD}kleinbem-tofu-state${RESET} bucket), then either:"
-  echo -e "  • add it to sops: ${BOLD}sops nix-secrets/secrets.yaml${RESET} → r2_state_access_key_id / r2_state_secret_access_key"
+  echo -e "  • add it to sops: ${BOLD}sops $TERRAFORM_FILE${RESET} → r2_state_access_key_id / r2_state_secret_access_key"
   echo -e "  • or export AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY for this run."
   exit 1
 fi
@@ -245,40 +271,73 @@ echo -e "\n${BOLD}Applying OpenTofu plan...${RESET}"
 if [ ${#PASSTHROUGH[@]} -gt 0 ]; then
   echo -e "${YELLOW}Passthrough args: ${PASSTHROUGH[*]}${RESET}"
   tofu apply "${PASSTHROUGH[@]}"
-  # Targeted/passthrough applies skip the tunnel-id capture below: the user
-  # is intentionally narrowing scope and tofu output -raw tunnel_id would
-  # error out if the tunnel wasn't part of the apply set.
-  echo -e "\n${BOLD}${GREEN}✅ Passthrough apply complete. Skipping tunnel-id capture.${RESET}"
-  exit 0
+else
+  tofu apply -auto-approve
 fi
-tofu apply -auto-approve
 
 # 3. Capture Output
+# Both paths fall through to the same capture logic now — a targeted/
+# passthrough apply used to skip this entirely (comment used to live here:
+# "tofu output -raw tunnel_id would error out if the tunnel wasn't part of
+# the apply set"), which meant OTHER outputs from a targeted apply (e.g.
+# juan_gemini_api_key from a Google-only -target run) never got captured
+# either. Fixed by making every capture graceful instead of skipping the
+# whole step — read with `|| echo ""`, only act if non-empty. A first-ever
+# apply narrowly targeted away from the tunnel just silently skips writing
+# tunnel_id back, exactly like the Gemini capture already did for a targeted
+# apply that didn't include it.
 echo -e "\n${BOLD}[3/4] Capturing outputs...${RESET}"
-TUNNEL_ID=$(tofu output -raw tunnel_id)
+TUNNEL_ID=$(tofu output -raw tunnel_id 2>/dev/null || echo "")
+GEMINI_API_KEY_JUAN=$(tofu output -raw juan_gemini_api_key 2>/dev/null || echo "")
 cd ..
 
 if [ -z "$TUNNEL_ID" ]; then
-  echo -e "${RED}❌ Failed to capture tunnel_id from OpenTofu output.${RESET}"
-  exit 1
+  echo -e "${YELLOW}⚠️  tunnel_id not present in state (narrow apply that didn't include it?) — skipping tunnel-id write-back.${RESET}"
+else
+  echo -e "🟢 Tunnel ID: ${BOLD}$TUNNEL_ID${RESET}"
+
+  # Write Tunnel ID to core-pi's own scope (if it changed) — same file
+  # cloudflare_tunnel_secret above lives in, and what hosts/core-pi/secrets.nix
+  # reads cloudflare_tunnel_id from.
+  CURRENT_TUNNEL_ID=$(echo "$COREPI_YAML" | yq '.cloudflare_tunnel_id')
+  if [ "$CURRENT_TUNNEL_ID" != "$TUNNEL_ID" ]; then
+    echo -e "Updating cloudflare_tunnel_id in nix/per-host/core-pi.yaml..."
+    sops --set "[\"cloudflare_tunnel_id\"] \"$TUNNEL_ID\"" "$COREPI_FILE"
+    echo -e "🟢 Updated cloudflare_tunnel_id in nix/per-host/core-pi.yaml"
+  fi
 fi
 
-echo -e "🟢 Tunnel ID: ${BOLD}$TUNNEL_ID${RESET}"
-
-# Write Tunnel ID to secrets.yaml (if it changed)
-CURRENT_TUNNEL_ID=$(echo "$DECRYPTED_YAML" | yq '.cloudflare_tunnel_id')
-if [ "$CURRENT_TUNNEL_ID" != "$TUNNEL_ID" ]; then
-  echo -e "Updating cloudflare_tunnel_id in secrets.yaml..."
-  sops --set "[\"cloudflare_tunnel_id\"] \"$TUNNEL_ID\"" "$SECRETS_FILE"
-  echo -e "🟢 Updated cloudflare_tunnel_id in secrets.yaml"
+# Write juan's Gemini API key as a keyed value in kleinbem-secrets'
+# one-YAML-per-persona file (cutover 2026-08-08 — was its own binary-mode
+# sopsFile under the old nix-secrets/personas/<name>/<key> layout; matches
+# how hosts/mac-mini/secrets.nix's juan_gemini_api_key sopsFile+key already
+# expects it). If more personas get their own google_apikeys_key in
+# infra/google.tf, repeat this block per persona — don't try to generalize
+# into a loop until there's a 3rd one.
+if [ -n "$GEMINI_API_KEY_JUAN" ]; then
+  JUAN_YAML="$SECRETS_ROOT/personas/juan.yaml"
+  GEMINI_WORK="$(mktemp -d /dev/shm/tf-apply-gemini-XXXXXX)"
+  trap 'find "$GEMINI_WORK" -type f -exec shred -u {} \; 2>/dev/null; rm -rf "$GEMINI_WORK"' EXIT
+  sops -d "$JUAN_YAML" >"$GEMINI_WORK/juan.yaml"
+  printf '%s' "$GEMINI_API_KEY_JUAN" >"$GEMINI_WORK/gemini_api_key.txt"
+  GEMINI_KEY_PATH="$GEMINI_WORK/gemini_api_key.txt" yq -i \
+    '.gemini_api_key = load_str(strenv(GEMINI_KEY_PATH))' "$GEMINI_WORK/juan.yaml"
+  sops --config "$SECRETS_ROOT/.sops.yaml" --filename-override "$JUAN_YAML" \
+    -e "$GEMINI_WORK/juan.yaml" >"$GEMINI_WORK/juan-enc.yaml"
+  mv "$GEMINI_WORK/juan-enc.yaml" "$JUAN_YAML"
+  echo -e "🟢 Wrote juan's Gemini API key to kleinbem-secrets/personas/juan.yaml"
 fi
 
 # 4. Success
-echo -e "\n${BOLD}[4/4] OpenTofu Cloudflare Setup Complete!${RESET}"
+echo -e "\n${BOLD}[4/4] OpenTofu Apply Complete!${RESET}"
 echo -e "--------------------------------------------------"
-echo -e "Your Cloudflare Tunnel and CNAME wildcard DNS records have been deployed."
-echo -e "NixOS is now ready to build and run the tunnel service."
-echo -e "\nTo deploy to NixOS, run:"
-echo -e "  • ${BOLD}just git::save \"feat: add cloudflare IaC config\"${RESET}"
-echo -e "  • ${BOLD}just maintenance::apply${RESET}"
+if [ ${#PASSTHROUGH[@]} -gt 0 ]; then
+  echo -e "Targeted apply finished (${PASSTHROUGH[*]})."
+else
+  echo -e "Your Cloudflare Tunnel and CNAME wildcard DNS records have been deployed."
+  echo -e "NixOS is now ready to build and run the tunnel service."
+  echo -e "\nTo deploy to NixOS, run:"
+  echo -e "  • ${BOLD}just git::save \"feat: add cloudflare IaC config\"${RESET}"
+  echo -e "  • ${BOLD}just maintenance::apply${RESET}"
+fi
 echo -e "--------------------------------------------------"

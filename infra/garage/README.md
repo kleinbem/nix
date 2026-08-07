@@ -18,8 +18,8 @@ the control plane.
    sudo garage layout assign -z dc1 -c 1T "$(sudo garage node id -q | cut -d@ -f1)"
    sudo garage layout apply --version 1
    ```
-2. **Admin token in sops** — `nix-secrets/secrets.yaml` → `garage_admin_token`
-   (the same GARAGE_ADMIN_TOKEN the service uses). Already present.
+2. **Admin token in sops** — `kleinbem-secrets/infra/terraform.yaml` →
+   `garage_admin_token` (the same GARAGE_ADMIN_TOKEN the service uses). Already present.
 3. Run on the host that runs garage (admin API is on loopback `:3903`), or set
    `TF_VAR_garage_endpoint` to reach it over NetBird. Tools: `tofu`, `sops`, `yq`.
 

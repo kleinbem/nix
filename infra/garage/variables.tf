@@ -3,7 +3,7 @@ variable "garage_admin_token" {
   sensitive   = true
   description = <<-EOT
     Garage Admin API bearer token — the same GARAGE_ADMIN_TOKEN injected into the
-    garage service via sops. Stored in nix-secrets/secrets.yaml as
+    garage service via sops. Stored in kleinbem-secrets/infra/terraform.yaml as
     `garage_admin_token`; the Justfile sources it into TF_VAR_garage_admin_token.
   EOT
 }

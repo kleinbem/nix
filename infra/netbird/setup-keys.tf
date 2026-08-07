@@ -24,7 +24,7 @@ resource "netbird_setup_key" "ci_ephemeral" {
 }
 
 # Read with `tofu output -raw ci_ephemeral_setup_key`, then fan it out:
-#   1. nix-secrets/secrets.yaml -> `netbird_setup_key_ephemeral` (sops updatekeys)
+#   1. kleinbem-secrets/infra/terraform.yaml -> `netbird_setup_key_ephemeral` (sops updatekeys)
 #   2. that flows to the NETBIRD_SETUP_KEY_EPHEMERAL Actions secret via infra/
 #      (github-secrets.tf), which the CI workflows now prefer over the old key.
 output "ci_ephemeral_setup_key" {
@@ -42,8 +42,8 @@ output "ci_ephemeral_setup_key" {
 #
 # Migration steps when applying this:
 #   1. `just apply`, then `tofu output -raw hosts_setup_key`.
-#   2. Write it into nix-secrets/secrets.yaml as `netbird_setup_key` (sops
-#      updatekeys) so netbird-autojoin + the NETBIRD_SETUP_KEY Actions secret
+#   2. Write it into kleinbem-secrets/nix/shared.yaml as `netbird_setup_key`
+#      (sops updatekeys) so netbird-autojoin + the NETBIRD_SETUP_KEY Actions secret
 #      keep working — existing already-enrolled hosts are unaffected, this
 #      only changes what NEW enrollments use.
 #   3. Retire the old hand-made console key (delete it via the console once

@@ -77,6 +77,14 @@ variable "mail_host_ip" {
   description = "Public IPv4 of the host serving Stalwart (referenced by the mail.kleinbem.dev A record). Empty = no A record (the record is gated on this in cloudflare-dns.tf), so the root applies before Stalwart is deployed. Set it when Stalwart goes live. Stalwart's SMTP port can't be Cloudflare-proxied."
 }
 
+# --- Google Cloud (currently: Gemini API keys for AI personas only) ---
+
+variable "google_service_account_key" {
+  type        = string
+  sensitive   = true
+  description = "Base64-encoded JSON key for the terraform-google service account (project kleinbem-ai, roles/serviceusage.apiKeysAdmin). Bootstrap credential — created manually via gcloud (2026-08-07), not itself Terraform-managed, same as cloudflare_api_token."
+}
+
 variable "r2_state_access_key_id" {
   type        = string
   sensitive   = true

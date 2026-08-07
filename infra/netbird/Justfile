@@ -3,13 +3,15 @@ default:
 
 # --- NetBird control plane (declarative, OpenTofu; state in Cloudflare R2) ---
 #
-# Everything sops-sourced (nix-secrets/secrets.yaml): netbird_api_token,
-# cloudflare_account_id, r2_state_access_key_id/secret, tofu_state_passphrase.
-# state-env.sh decrypts ONCE per command (one YubiKey touch) and prepares the
-# R2 backend config + state-encryption env. Run inside a shell with
-# tofu+sops+yq, e.g. nix shell nixpkgs#opentofu nixpkgs#sops nixpkgs#yq-go
+# Everything sops-sourced from kleinbem-secrets (cutover 2026-08-08, scoped
+# across files, not one flat secrets.yaml): netbird_api_token,
+# r2_state_access_key_id/secret, tofu_state_passphrase (infra/terraform.yaml);
+# cloudflare_account_id (nix/per-host/core-pi.yaml). state-env.sh decrypts
+# both files ONCE per command (two YubiKey touches) and prepares the R2
+# backend config + state-encryption env. Run inside a shell with tofu+sops+yq,
+# e.g. nix shell nixpkgs#opentofu nixpkgs#sops nixpkgs#yq-go
 
-secrets := "../../../nix-secrets/secrets.yaml"
+secrets := "../../../kleinbem-secrets/infra/terraform.yaml"
 
 # Init the R2 backend (see backend.tf + encryption.tf; state-env.sh feeds both).
 init:
