@@ -1,15 +1,38 @@
+import json
 import os
+import subprocess
 from datetime import datetime, timedelta
+
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+
 from .core import (
-    mcp,
+    GOOGLE_OAUTH_SOPS_FILE,
+    GOOGLE_OAUTH_SOPS_KEY,
     GOOGLE_SCOPES,
     GOOGLE_TOKEN_PATH,
-    GOOGLE_CREDS_PATH,
+    mcp,
 )
+
+
+def _load_google_client_config():
+    """Decrypt the OAuth client secret from kleinbem-secrets in-memory (never written to disk)."""
+    if not os.path.exists(GOOGLE_OAUTH_SOPS_FILE):
+        raise Exception(f"kleinbem-secrets not checked out at {GOOGLE_OAUTH_SOPS_FILE}.")
+    try:
+        result = subprocess.run(
+            ["sops", "--decrypt", "--extract", f'["{GOOGLE_OAUTH_SOPS_KEY}"]', GOOGLE_OAUTH_SOPS_FILE],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError as e:
+        raise Exception(
+            f"Failed to decrypt {GOOGLE_OAUTH_SOPS_KEY} from {GOOGLE_OAUTH_SOPS_FILE} (touch your YubiKey if prompted): {e.stderr}"
+        )
+    return json.loads(result.stdout)
 
 
 def _get_google_creds():
@@ -22,15 +45,12 @@ def _get_google_creds():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            if not os.path.exists(GOOGLE_CREDS_PATH):
-                raise Exception(
-                    f"Google credentials not found at {GOOGLE_CREDS_PATH}. Please download credentials.json from Google Cloud Console."
-                )
-            flow = InstalledAppFlow.from_client_secrets_file(
-                GOOGLE_CREDS_PATH, GOOGLE_SCOPES
+            flow = InstalledAppFlow.from_client_config(
+                _load_google_client_config(), GOOGLE_SCOPES
             )
             creds = flow.run_local_server(port=0)
 
+        os.makedirs(os.path.dirname(GOOGLE_TOKEN_PATH), exist_ok=True)
         with open(GOOGLE_TOKEN_PATH, "w") as token:
             token.write(creds.to_json())
     return creds

@@ -1,6 +1,8 @@
 import os
+
 import requests
-from .core import mcp, PAPERLESS_TOKEN_PATH
+
+from .core import PAPERLESS_TOKEN_PATH, mcp
 from .inventory import _get_inventory_cached
 
 
@@ -32,7 +34,7 @@ def search_paperless(query: str):
     """Search for documents in Paperless-ngx matching a query."""
     headers = _get_paperless_headers()
     if not headers:
-        return "Error: Paperless token not found. Add it to nix-secrets/paperless_token.txt"
+        return f"Error: Paperless token not found. Add it to {PAPERLESS_TOKEN_PATH}"
 
     try:
         paperless_url = _get_paperless_url()

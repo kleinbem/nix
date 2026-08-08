@@ -13,7 +13,7 @@ default:
 #   sudo garage layout apply --version 1
 # A node with no layout can't store objects, so `apply` here would fail.
 
-secrets := "../../kleinbem-secrets/infra/terraform.yaml"
+secrets := "../../../kleinbem-secrets/infra/terraform.yaml"
 
 # Init (local state — no remote backend; see backend.tf).
 init:
