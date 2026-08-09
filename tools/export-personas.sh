@@ -3,11 +3,13 @@
 # same source of truth as Nix.
 #
 # Merges the PUBLIC layer (nix-config/personas.nix — roles/auth) with
-# the PRIVATE contact layer (kleinbem-secrets/personas/contact.nix — PII,
-# sops-encrypted) into a single per-persona attrset. Decrypts to a tmpfs
-# temp file first (sops ciphertext can't be `import`ed directly) and
-# shreds it on exit. If kleinbem-secrets isn't on disk (e.g. running from
-# a public clone), public-only data is exported and PII fields are absent.
+# the PRIVATE contact layer (kleinbem-secrets/personas/contact.nix — PII)
+# into a single per-persona attrset. contact.nix is plain Nix (reverted
+# from sops 2026-08-09 — full-name/email become public the moment a
+# persona commits anything, so encrypting it at rest never bought real
+# confidentiality), imported directly, no decrypt step. If
+# kleinbem-secrets isn't on disk (e.g. running from a public clone),
+# public-only data is exported and PII fields are absent.
 #
 # Idempotent — overwrites the JSON each run.
 
@@ -18,7 +20,7 @@ META_ROOT="$(dirname "$SCRIPT_DIR")"
 # nix-config/kleinbem-secrets are flat siblings of nix/, not nested under it.
 WORKSPACE_ROOT="$(dirname "$META_ROOT")"
 PERSONAS_NIX="$WORKSPACE_ROOT/nix-config/personas.nix"
-CONTACT_ENCRYPTED="$WORKSPACE_ROOT/kleinbem-secrets/personas/contact.nix"
+CONTACT_FILE="$WORKSPACE_ROOT/kleinbem-secrets/personas/contact.nix"
 PERSONAS_JSON="$META_ROOT/infra/personas.json"
 
 if [[ ! -f $PERSONAS_NIX ]]; then
@@ -26,15 +28,12 @@ if [[ ! -f $PERSONAS_NIX ]]; then
   exit 1
 fi
 
-if [[ -f $CONTACT_ENCRYPTED ]]; then
-  WORK="$(mktemp -d /dev/shm/export-personas-XXXXXX)"
-  trap 'find "$WORK" -type f -exec shred -u {} \; 2>/dev/null; rm -rf "$WORK"' EXIT
-  sops -d --input-type binary --output-type binary "$CONTACT_ENCRYPTED" >"$WORK/contact.nix"
+if [[ -f $CONTACT_FILE ]]; then
   echo "📤 Exporting personas.nix ⊕ personas/contact.nix → $(basename "$PERSONAS_JSON")..."
   nix eval --json --impure --expr "
     let
       pub = import $PERSONAS_NIX;
-      contact = import $WORK/contact.nix;
+      contact = import $CONTACT_FILE;
     in
     builtins.mapAttrs (name: p: p // (contact.\${name} or {})) pub
   " >"$PERSONAS_JSON"
