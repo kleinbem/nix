@@ -5,7 +5,7 @@
 #     netbird-autojoin oneshot in modules/nixos/networking.nix). This root does
 #     NOT manage peers — they self-register.
 #   - This root owns the CONTROL PLANE: groups, access policies, setup keys,
-#     (later) nameservers / routes / posture checks.
+#     routes (routes.tf, added 2026-08-10). (later) nameservers / posture checks.
 #
 # Resource/attribute names below were reconciled against the netbirdio/netbird
 # provider schema (v0.0.9, `tofu providers schema -json`). Note: this provider
