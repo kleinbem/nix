@@ -4,22 +4,24 @@
 # no external IdP setup is needed.
 #
 # Scope decisions (see also cloudflare-tunnel.nix for the ingress):
-#   * code.kleinbem.dev  — Code Server (no prior auth)  -> gated
-#   * home.kleinbem.dev  — Dashboard (has Authelia)      -> gated (edge layer;
-#                          retire Authelia later in nix-config if you want)
+#   * home.kleinbem.dev  — Dashboard  -> gated (stays on the public tunnel;
+#                          Access is its auth)
 #   * cache.kleinbem.dev — Attic Nix cache  -> NOT gated (SSO breaks Nix pulls)
 #   * n8n / chat         — use mTLS (webhooks/API)  -> NOT gated (SSO breaks them)
+#   * code.kleinbem.dev  — moved to mesh-only (nix-config#mesh-only-web-services);
+#                          off the tunnel, so Access can't gate it — Authelia
+#                          (auth = true on the inventory node) is its auth now.
+#   * frigate.kleinbem.dev — mesh-only, Authelia. Never on the tunnel.
 #
 # Requires: the cloudflare_api_token to have "Access: Apps and Policies: Edit",
 # and the account's Zero Trust org to exist (it does — you run a tunnel).
 # ---------------------------------------------------------------------------
 
 locals {
+  # `code` removed — it moved to mesh-only; Access only ever sees the tunnel's
+  # 404 for it now. `home` stays: it's still on the public tunnel and Access is
+  # its gate.
   access_apps = {
-    "code" = {
-      name   = "Code Server"
-      domain = "code.kleinbem.dev"
-    }
     "home" = {
       name   = "Homelab Dashboard"
       domain = "home.kleinbem.dev"

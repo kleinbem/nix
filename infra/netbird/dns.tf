@@ -39,3 +39,35 @@ resource "netbird_dns_record" "cache" {
   content = data.netbird_peer.no_expiry["core-pi"].ip
   ttl     = 300
 }
+
+# ---------------------------------------------------------------------------
+# Mesh-only browser tools. These names are OFF the public Cloudflare tunnel
+# (see nix-config modules/nixos/services/cloudflare-tunnel.nix) — mesh peers
+# must resolve them to core-pi's mesh IP, which DNATs :443 -> the caddy
+# container. Same single-FQDN zone pattern as `cache` above: NetBird only
+# shadows these exact names, the rest of kleinbem.dev stays public.
+# ---------------------------------------------------------------------------
+locals {
+  mesh_only_fqdns = [
+    "code.kleinbem.dev",
+    "frigate.kleinbem.dev",
+  ]
+}
+
+resource "netbird_dns_zone" "mesh_only" {
+  for_each             = toset(local.mesh_only_fqdns)
+  name                 = "mesh-${replace(each.value, ".", "-")}"
+  domain               = each.value
+  enabled              = true
+  enable_search_domain = false
+  distribution_groups  = [data.netbird_group.all.id]
+}
+
+resource "netbird_dns_record" "mesh_only" {
+  for_each = netbird_dns_zone.mesh_only
+  zone_id  = each.value.id
+  name     = each.key
+  type     = "A"
+  content  = data.netbird_peer.no_expiry["core-pi"].ip
+  ttl      = 300
+}
