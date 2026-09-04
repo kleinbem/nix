@@ -6,6 +6,14 @@
 # Scope decisions (see also cloudflare-tunnel.nix for the ingress):
 #   * home.kleinbem.dev  — Dashboard  -> gated (stays on the public tunnel;
 #                          Access is its auth)
+#   * vault.kleinbem.dev/admin — Vaultwarden admin panel  -> gated (PATH-scoped:
+#                          only `/admin`, not the app root). The Bitwarden apps,
+#                          CLI and browser extensions only ever hit /api,
+#                          /identity, /notifications, /icons — all outside the
+#                          Access scope — so they keep working unauthenticated
+#                          at the edge (Vaultwarden's own master password + 2FA
+#                          is their gate). /admin is the historically worst
+#                          surface, so it gets edge SSO on top of ADMIN_TOKEN.
 #   * cache.kleinbem.dev — Attic Nix cache  -> NOT gated (SSO breaks Nix pulls)
 #   * n8n / chat         — use mTLS (webhooks/API)  -> NOT gated (SSO breaks them)
 #   * code.kleinbem.dev  — moved to mesh-only (nix-config#mesh-only-web-services);
@@ -25,6 +33,12 @@ locals {
     "home" = {
       name   = "Homelab Dashboard"
       domain = "home.kleinbem.dev"
+    }
+    # Path-scoped: this app matches ONLY vault.kleinbem.dev/admin. Everything
+    # else under vault.kleinbem.dev stays un-gated so Bitwarden clients work.
+    "vault-admin" = {
+      name   = "Vaultwarden Admin"
+      domain = "vault.kleinbem.dev/admin"
     }
   }
 

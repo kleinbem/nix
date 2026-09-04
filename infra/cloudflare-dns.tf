@@ -100,3 +100,19 @@ resource "cloudflare_record" "stalwart_dkim" {
   type    = "TXT"
   content = "v=DKIM1; k=rsa; p=${var.stalwart_dkim_pubkey_b64}"
 }
+
+# --- Google Search Console: domain-property ownership verification ---
+# Verifies the `sc-domain:kleinbem.dev` property (covers every subdomain,
+# incl. vault.kleinbem.dev). Needed to see the Security Issues report and to
+# request faster Safe Browsing reviews when Google false-flags a subdomain.
+# Apex TXT; coexists with the SPF TXT above (Cloudflare allows multiple TXT
+# at the same name). Value is issued per-property by Search Console — if the
+# property is ever removed and re-added, Google mints a new token and this
+# must be updated.
+resource "cloudflare_record" "google_search_console" {
+  zone_id = data.cloudflare_zone.main.id
+  name    = "@"
+  type    = "TXT"
+  content = "google-site-verification=iDaMsHoHqNYGf1kciCOV-ZwKs7CkQkFY4RtzetTZVuU"
+  comment = "Google Search Console domain-property verification (kleinbem.dev)"
+}

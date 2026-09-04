@@ -315,7 +315,7 @@ fi
 # infra/google.tf, repeat this block per persona — don't try to generalize
 # into a loop until there's a 3rd one.
 if [ -n "$GEMINI_API_KEY_JUAN" ]; then
-  JUAN_YAML="$SECRETS_ROOT/personas/juan.yaml"
+  JUAN_YAML="$SECRETS_ROOT/personas/juan-gonzalez.yaml"
   GEMINI_WORK="$(mktemp -d /dev/shm/tf-apply-gemini-XXXXXX)"
   trap 'find "$GEMINI_WORK" -type f -exec shred -u {} \; 2>/dev/null; rm -rf "$GEMINI_WORK"' EXIT
   sops -d "$JUAN_YAML" >"$GEMINI_WORK/juan.yaml"
@@ -325,7 +325,7 @@ if [ -n "$GEMINI_API_KEY_JUAN" ]; then
   sops --config "$SECRETS_ROOT/.sops.yaml" --filename-override "$JUAN_YAML" \
     -e "$GEMINI_WORK/juan.yaml" >"$GEMINI_WORK/juan-enc.yaml"
   mv "$GEMINI_WORK/juan-enc.yaml" "$JUAN_YAML"
-  echo -e "🟢 Wrote juan's Gemini API key to kleinbem-secrets/personas/juan.yaml"
+  echo -e "🟢 Wrote juan's Gemini API key to kleinbem-secrets/personas/juan-gonzalez.yaml"
 fi
 
 # 4. Success
