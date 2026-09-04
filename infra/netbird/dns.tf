@@ -51,6 +51,7 @@ locals {
   mesh_only_fqdns = [
     "code.kleinbem.dev",
     "frigate.kleinbem.dev",
+    "authelia.kleinbem.dev",
   ]
 }
 
