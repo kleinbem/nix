@@ -34,9 +34,11 @@ resource "netbird_dns_record" "cache" {
   # Root of the single-FQDN zone.
   name = "cache.kleinbem.dev"
   type = "A"
-  # Track the cache entrypoint peer (caddy + attic host) instead of
-  # hardcoding — the data source already exists for the no-expiry flags.
-  content = data.netbird_peer.no_expiry["core-pi"].ip
+  # The cache/caddy entrypoint peer, from nix-config/inventory.nix
+  # (`meshGroups.cache`, the single `central` host) via inventory.tf.
+  # Reuses the no_expiry data source (that peer must also be in
+  # var.no_expiry_peers — it is: infra peers never expire).
+  content = data.netbird_peer.no_expiry[local.cache_entrypoint].ip
   ttl     = 300
 }
 
@@ -69,6 +71,6 @@ resource "netbird_dns_record" "mesh_only" {
   zone_id  = each.value.id
   name     = each.key
   type     = "A"
-  content  = data.netbird_peer.no_expiry["core-pi"].ip
+  content  = data.netbird_peer.no_expiry[local.cache_entrypoint].ip
   ttl      = 300
 }

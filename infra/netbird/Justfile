@@ -13,8 +13,17 @@ default:
 
 secrets := "../../../kleinbem-secrets/infra/terraform.yaml"
 
+# Refresh ../inventory.json from nix-config/inventory.nix (meshGroups) so the
+# group membership in groups.tf tracks the fleet. Idempotent; cheap.
+# Soft-fail: a missing/dirty nix-config checkout must not block a plan — the
+# committed ../inventory.json is enough for `tofu plan` to run.
+[private]
+_gen:
+    @../../tools/gen-iac-data.sh >/dev/null || \
+      echo "⚠️  gen-iac-data.sh failed — using the committed infra/*.json (may be stale)"
+
 # Init the R2 backend (see backend.tf + encryption.tf; state-env.sh feeds both).
-init:
+init: _gen
     @. ./state-env.sh && tofu init -input=false -backend-config=.r2-backend.hcl
 
 # One-shot: copy local terraform.tfstate into the R2 backend. The local tfstate
@@ -31,11 +40,11 @@ migrate-state:
 # decrypt (two YubiKey ceremonies, and the second prompt going stale aborts
 # the apply). `just apply` alone shows the same plan inline and asks for
 # confirmation: one command, one touch.
-plan:
+plan: _gen
     @. ./state-env.sh && tofu init -input=false -backend-config=.r2-backend.hcl >/dev/null && tofu plan
 
 # Apply the NetBird control-plane config.
-apply:
+apply: _gen
     @. ./state-env.sh && tofu init -input=false -backend-config=.r2-backend.hcl >/dev/null && tofu apply
 
 # Dump the live provider schema to verify resource/attribute names.

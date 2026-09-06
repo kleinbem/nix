@@ -260,6 +260,12 @@ format-python *args="":
 check-mirrors:
     @bash ./tools/check-script-mirrors.sh
 
+# Verify infra/{personas,inventory}.json still match nix-config's canonical
+# Nix sources (personas.nix ⊕ contact.nix, inventory.nix). Fix: gen-iac-data.sh.
+[group("Linter")]
+check-iac-data:
+    @bash ./tools/check-iac-data.sh
+
 [group("Security")]
 audit-security *args="":
     @echo "🕵️ Running security audit..."

@@ -1,7 +1,8 @@
-# Personas manifest — loaded from nix-config/personas.nix via the export
-# script (`scripts/export-personas.sh`). Re-run the script before
-# `tofu apply` if personas.nix changes; the JSON is the bridge between
-# Nix-the-config-language and Terraform-the-config-language.
+# Personas manifest — the Nix ⇄ OpenTofu bridge. personas.json is generated
+# from nix-config/personas.nix ⊕ kleinbem-secrets/personas/contact.nix by
+# `../tools/gen-iac-data.sh` (projection logic: nix-config/iac/data.nix).
+# Re-run that script after editing personas.nix; `../tools/check-iac-data.sh`
+# (and the `iac-data` flake check in nix-config) fail on drift.
 #
 # Used by cloudflare-dns.tf (per-persona DKIM CNAMEs) and aws-ses.tf
 # (per-persona SES identity if you want isolated reputation tracking).

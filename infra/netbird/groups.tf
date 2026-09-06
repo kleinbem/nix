@@ -5,39 +5,25 @@
 # Schema reconciled against provider v0.0.9: group = name (required) + optional
 # peers (list of peer ids).
 
-# Peer NAMES per group. Same contract as no_expiry_peers in peers.tf: the
-# lookup FAILS on an absent or ambiguous name, so only list peers that
-# CURRENTLY exist on the mesh (`just list-peers` to check).
-variable "personal_device_peers" {
-  type        = list(string)
-  default     = ["nixos-nvme", "mac-mini"]
-  description = "Trusted-machine peer names (workstation, laptop; add phone once it is enrolled)."
-}
-
-variable "smart_home_peers" {
-  type        = list(string)
-  default     = ["hass-pi", "orin-nano"]
-  description = "Smart-home node peer names."
-}
-
-variable "cache_peers" {
-  type        = list(string)
-  default     = ["core-pi"]
-  description = "Attic-cache entrypoint peer names — the only destination CI runners may reach."
-}
+# Peer NAMES per group come from nix-config/inventory.nix (`meshGroups`),
+# via local.{personal_device_peers,smart_home_peers,cache_peers} in
+# inventory.tf — set a `*_peers` var there to override for one apply. Same
+# contract as no_expiry_peers in peers.tf: the lookup FAILS on an absent or
+# ambiguous name, so a name must match a peer that CURRENTLY exists on the
+# mesh (`just list-peers` to check).
 
 data "netbird_peer" "personal_devices" {
-  for_each = toset(var.personal_device_peers)
+  for_each = toset(local.personal_device_peers)
   name     = each.value
 }
 
 data "netbird_peer" "smart_home" {
-  for_each = toset(var.smart_home_peers)
+  for_each = toset(local.smart_home_peers)
   name     = each.value
 }
 
 data "netbird_peer" "cache" {
-  for_each = toset(var.cache_peers)
+  for_each = toset(local.cache_peers)
   name     = each.value
 }
 
@@ -75,9 +61,10 @@ resource "netbird_group" "ci_runners" {
 # setup key in setup-keys.tf. Deliberately NOT personal-devices: a newly
 # enrolled, not-yet-reviewed host should start with zero access, not
 # SSH-into-smart-home + cache-pull. No policy references this group, so
-# membership here grants nothing — promote a peer into personal_device_peers
-# or smart_home_peers above once you've actually looked at it. Membership is
-# left unmanaged (no `peers` attribute) same as ci_runners, since it's
+# membership here grants nothing — promote a peer by adding it to
+# nix-config/inventory.nix `meshGroups.personal-devices` / `.smart-home`
+# once you've actually looked at it. Membership is left unmanaged (no
+# `peers` attribute) same as ci_runners, since it's
 # populated dynamically by the setup key's auto_groups, not a static list.
 resource "netbird_group" "unclassified_hosts" {
   name = "unclassified-hosts"

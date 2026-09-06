@@ -27,6 +27,11 @@ variable "no_expiry_peers" {
     lookup fails on absent names). hass-pi enrolls via setup key and is not
     subject to login expiration — leave it out. orin-nano / nasbook: currently
     off the mesh; re-enroll them first, then add them here.
+
+    Hand-maintained on purpose (NOT inventory-derived): SSO- vs
+    setup-key-enrollment is operational state, not fleet inventory. Must
+    contain the inventory.meshGroups.cache host — dns.tf reads the cache
+    entrypoint peer's IP through this data source.
   EOT
 }
 

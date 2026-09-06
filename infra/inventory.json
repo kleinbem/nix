@@ -1,0 +1,111 @@
+{
+  "hosts": {
+    "ap-upstairs": {
+      "ip": "10.0.0.2",
+      "netbirdIp": null,
+      "system": null,
+      "tags": [
+        "physical",
+        "ap"
+      ],
+      "type": "openwrt"
+    },
+    "core-gateway": {
+      "ip": "10.0.0.1",
+      "netbirdIp": null,
+      "system": null,
+      "tags": [
+        "physical",
+        "gateway",
+        "core"
+      ],
+      "type": "openwrt"
+    },
+    "core-pi": {
+      "ip": "10.0.0.22",
+      "netbirdIp": "100.117.146.201",
+      "system": "aarch64-linux",
+      "tags": [
+        "raspberry-pi",
+        "central"
+      ],
+      "type": null
+    },
+    "hass-pi": {
+      "ip": "10.0.0.21",
+      "netbirdIp": "100.117.163.227",
+      "system": "aarch64-linux",
+      "tags": [
+        "raspberry-pi",
+        "home-assistant"
+      ],
+      "type": null
+    },
+    "mac-mini": {
+      "ip": "10.0.0.16",
+      "netbirdIp": "100.117.247.175",
+      "system": "x86_64-linux",
+      "tags": [
+        "desktop",
+        "legacy-hardware"
+      ],
+      "type": null
+    },
+    "nasbook": {
+      "ip": "10.0.0.30",
+      "netbirdIp": null,
+      "system": "x86_64-linux",
+      "tags": [
+        "nas",
+        "storage",
+        "hub"
+      ],
+      "type": null
+    },
+    "nixos-nvme": {
+      "ip": "10.85.46.1",
+      "netbirdIp": "100.117.212.232",
+      "system": "x86_64-linux",
+      "tags": [
+        "workstation",
+        "desktop"
+      ],
+      "type": null
+    },
+    "orin-nano": {
+      "ip": "10.0.0.15",
+      "netbirdIp": null,
+      "system": "aarch64-linux",
+      "tags": [
+        "edge",
+        "ai",
+        "jetson"
+      ],
+      "type": null
+    },
+    "phone": {
+      "ip": null,
+      "netbirdIp": null,
+      "system": "aarch64-linux",
+      "tags": [
+        "mobile",
+        "android"
+      ],
+      "type": null
+    }
+  },
+  "mesh": {
+    "cache": [
+      "core-pi"
+    ],
+    "cache_entrypoint": "core-pi",
+    "personal-devices": [
+      "nixos-nvme",
+      "mac-mini"
+    ],
+    "smart-home": [
+      "hass-pi",
+      "orin-nano"
+    ]
+  }
+}
