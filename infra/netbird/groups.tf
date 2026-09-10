@@ -27,24 +27,29 @@ data "netbird_peer" "cache" {
   name     = each.value
 }
 
+# sort(): the netbird provider returns `peers` sorted by peer id, but the
+# `for … : p.id` comprehension runs over a toset() (name-sorted), so without
+# sort() every `tofu plan` shows a spurious reorder and this root can never
+# report clean. Membership is a set semantically — order carries no meaning.
+
 # Your trusted machines (workstation, laptop, phone) — the only peers allowed to
 # SSH into infrastructure.
 resource "netbird_group" "personal_devices" {
   name  = "personal-devices"
-  peers = [for p in data.netbird_peer.personal_devices : p.id]
+  peers = sort([for p in data.netbird_peer.personal_devices : p.id])
 }
 
 # Smart-home / automation nodes (hass-pi, future HA satellites).
 resource "netbird_group" "smart_home" {
   name  = "smart-home"
-  peers = [for p in data.netbird_peer.smart_home : p.id]
+  peers = sort([for p in data.netbird_peer.smart_home : p.id])
 }
 
 # The Attic cache entrypoint (core-pi fronts caddy/attic on :443 via the wt0
 # DNAT). Destination group for the ci_to_attic policy in policies.tf.
 resource "netbird_group" "cache" {
   name  = "cache"
-  peers = [for p in data.netbird_peer.cache : p.id]
+  peers = sort([for p in data.netbird_peer.cache : p.id])
 }
 
 # Hosted CI runners (GitHub Actions). They enroll per-run via the EPHEMERAL
