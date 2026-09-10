@@ -55,6 +55,12 @@ RESET="\033[0m"
 echo -e "${BOLD}${GREEN}🌐 Enterprise Cloudflare OpenTofu Setup${RESET}"
 echo -e "=================================================="
 
+# Refresh the Nix→JSON bridge (infra/personas.json + infra/inventory.json)
+# from nix-config so this apply can't run against a stale projection.
+# Soft-fail: a missing nix-config checkout shouldn't block a creds-only apply.
+"$(dirname "${BASH_SOURCE[0]}")/gen-iac-data.sh" || \
+  echo -e "${YELLOW}⚠️  gen-iac-data.sh failed — proceeding with the committed infra/*.json${RESET}"
+
 # kleinbem-secrets (cutover 2026-08-08, replaces nix-secrets) scopes
 # credentials per-consumer, so this script reads from several files rather
 # than one flat secrets.yaml. kleinbem-secrets is a flat sibling of nix/,
@@ -111,15 +117,19 @@ export TF_VAR_cloudflare_tunnel_secret="$TUNNEL_SECRET"
 
 # --- GitHub provider inputs (sourced from sops) ---
 # `github_tf_token` is the admin PAT the provider authenticates with.
-# `github_app_id` + `github_app_private_key` are the GitHub App credentials
-# distributed to CI repos as APP_ID / APP_PRIVATE_KEY (replaces the retired
-# long-lived GH_PAT — workflows mint short-lived tokens via
-# actions/create-github-app-token at runtime). Those two live in
-# nix/shared.yaml (every NixOS host's scope), not infra/terraform.yaml.
+# `github_app_id` + `github_app_installation_id` + `github_app_private_key` are
+# the GitHub App credentials distributed to CI repos as APP_ID /
+# APP_INSTALLATION_ID / APP_PRIVATE_KEY (replaces the retired long-lived GH_PAT).
+# Most repos mint short-lived tokens via actions/create-github-app-token at
+# runtime (installation ID auto-derived from owner); github-config's tofu
+# provider uses `app_auth {}` directly and needs APP_INSTALLATION_ID too. All
+# three live in nix/shared.yaml (every NixOS host's scope), not
+# infra/terraform.yaml.
 # `attic_push_token` becomes the ATTIC_PUSH_TOKEN secret — lives in
 # orin-nano's own per-host scope.
 GH_TF_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.github_tf_token')
 GH_APP_ID=$(echo "$SHARED_YAML" | yq '.github_app_id')
+GH_APP_INSTALLATION_ID=$(echo "$SHARED_YAML" | yq '.github_app_installation_id')
 GH_APP_PRIVATE_KEY=$(echo "$SHARED_YAML" | yq '.github_app_private_key')
 ATTIC_PUSH=$(echo "$ORIN_YAML" | yq '.attic_push_token')
 NETBIRD_KEY=$(echo "$SHARED_YAML" | yq '.netbird_setup_key')
@@ -135,6 +145,7 @@ GOOGLE_SA_KEY=$(echo "$DECRYPTED_YAML" | yq '.google_service_account_key')
 # Normalise missing keys ("null") to empty strings
 [ "$GH_TF_TOKEN" = "null" ] && GH_TF_TOKEN=""
 [ "$GH_APP_ID" = "null" ] && GH_APP_ID=""
+[ "$GH_APP_INSTALLATION_ID" = "null" ] && GH_APP_INSTALLATION_ID=""
 [ "$GH_APP_PRIVATE_KEY" = "null" ] && GH_APP_PRIVATE_KEY=""
 [ "$ATTIC_PUSH" = "null" ] && ATTIC_PUSH=""
 [ "$NETBIRD_KEY" = "null" ] && NETBIRD_KEY=""
@@ -152,12 +163,17 @@ if [ -z "$GH_APP_ID" ] || [ -z "$GH_APP_PRIVATE_KEY" ]; then
   echo -e "${YELLOW}⚠️  github_app_id or github_app_private_key not set in $SHARED_FILE — CI workflows that mint App tokens will fail.${RESET}"
 fi
 
+if [ -z "$GH_APP_INSTALLATION_ID" ]; then
+  echo -e "${YELLOW}⚠️  github_app_installation_id not set in $SHARED_FILE — github-config's tofu provider (app_auth) will fail to authenticate.${RESET}"
+fi
+
 if [ -z "$GOOGLE_SA_KEY" ]; then
   echo -e "${YELLOW}⚠️  google_service_account_key not set in $TERRAFORM_FILE — infra/google.tf resources will fail to authenticate.${RESET}"
 fi
 
 export TF_VAR_github_tf_token="$GH_TF_TOKEN"
 export TF_VAR_github_app_id="$GH_APP_ID"
+export TF_VAR_github_app_installation_id="$GH_APP_INSTALLATION_ID"
 export TF_VAR_github_app_private_key="$GH_APP_PRIVATE_KEY"
 export TF_VAR_attic_push_token="$ATTIC_PUSH"
 export TF_VAR_netbird_setup_key="$NETBIRD_KEY"

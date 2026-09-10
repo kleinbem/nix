@@ -36,6 +36,12 @@ variable "github_app_private_key" {
   description = "GitHub App private key (PEM), distributed as the APP_PRIVATE_KEY Actions secret. Used by actions/create-github-app-token to mint installation tokens at workflow runtime."
 }
 
+variable "github_app_installation_id" {
+  type        = string
+  sensitive   = true
+  description = "Installation ID of the GitHub App on the kleinbem account, distributed as the APP_INSTALLATION_ID Actions secret. github-config's tofu provider authenticates with `app_auth {}` (env: GITHUB_APP_ID / GITHUB_APP_INSTALLATION_ID / GITHUB_APP_PEM_FILE) instead of a PAT, and that path needs the installation ID explicitly."
+}
+
 variable "attic_push_token" {
   type        = string
   sensitive   = true

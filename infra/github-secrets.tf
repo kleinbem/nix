@@ -10,6 +10,9 @@
 # API pushes, auto-merge) mint a short-lived installation token via
 # actions/create-github-app-token using APP_ID + APP_PRIVATE_KEY. The long-lived
 # GH_PAT has been retired — see git history if you need to resurrect it.
+# github-config additionally gets APP_INSTALLATION_ID: its tofu provider uses
+# `app_auth {}` directly (no create-github-app-token step) and that needs the
+# installation ID explicitly.
 # ---------------------------------------------------------------------------
 
 locals {
@@ -29,13 +32,14 @@ locals {
     "nix-hardware"  = ["APP_ID", "APP_PRIVATE_KEY"]
     "nix-templates" = ["APP_ID", "APP_PRIVATE_KEY"]
     "nix-presets"   = ["APP_ID", "APP_PRIVATE_KEY"]
-    "github-config" = ["APP_ID", "APP_PRIVATE_KEY", "CLOUDFLARE_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]
+    "github-config" = ["APP_ID", "APP_PRIVATE_KEY", "APP_INSTALLATION_ID", "CLOUDFLARE_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]
   }
 
   secret_values = {
     "ATTIC_PUSH_TOKEN"            = var.attic_push_token
     "APP_ID"                      = var.github_app_id
     "APP_PRIVATE_KEY"             = var.github_app_private_key
+    "APP_INSTALLATION_ID"         = var.github_app_installation_id
     "NETBIRD_SETUP_KEY"           = var.netbird_setup_key
     "NETBIRD_SETUP_KEY_EPHEMERAL" = var.netbird_setup_key_ephemeral
     "NTFY_DEPLOY_TOPIC"           = var.ntfy_deploy_topic
