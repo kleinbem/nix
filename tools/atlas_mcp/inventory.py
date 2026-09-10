@@ -1,8 +1,9 @@
-import os
 import json
-import subprocess
+import os
 import shutil
-from .core import mcp, DEFAULT_FLAKE_PATH
+import subprocess
+
+from .core import DEFAULT_FLAKE_PATH, mcp
 from .network import netbird_status
 
 _INVENTORY_CACHE = None

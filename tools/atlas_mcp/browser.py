@@ -1,7 +1,8 @@
 import os
-import sqlite3
 import shutil
-from .core import mcp, FIREFOX_PATH
+import sqlite3
+
+from .core import FIREFOX_PATH, mcp
 
 
 @mcp.tool()

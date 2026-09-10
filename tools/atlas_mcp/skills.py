@@ -1,7 +1,8 @@
-import os
 import json
+import os
 from datetime import datetime
-from .core import mcp, DEFAULT_FLAKE_PATH
+
+from .core import DEFAULT_FLAKE_PATH, mcp
 
 
 @mcp.tool()
@@ -54,7 +55,7 @@ def is_task_running():
         with open(lock_file, "w") as f:
             fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
             return False  # We got the lock, so no one else was holding it
-    except (IOError, OSError):
+    except OSError:
         return True  # Someone else has it
     except Exception as e:
         return {"error": str(e)}

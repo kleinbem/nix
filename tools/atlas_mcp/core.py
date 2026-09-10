@@ -29,7 +29,9 @@ GOOGLE_SCOPES = [
 # secret now lives sops-encrypted in kleinbem-secrets as
 # infra/terraform.yaml's google_oauth_client_json key, decrypted in-memory
 # via sops (see google.py) rather than ever touching disk.
-GOOGLE_OAUTH_SOPS_FILE = os.path.join(WORKSPACE_ROOT, "kleinbem-secrets/infra/terraform.yaml")
+GOOGLE_OAUTH_SOPS_FILE = os.path.join(
+    WORKSPACE_ROOT, "kleinbem-secrets/infra/terraform.yaml"
+)
 GOOGLE_OAUTH_SOPS_KEY = "google_oauth_client_json"
 # Self-generated OAuth token cache and the (never sops-managed, drop-in-manually)
 # Paperless API token both live under nix/scratch/ — the existing convention

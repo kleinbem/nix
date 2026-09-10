@@ -1,8 +1,10 @@
-import os
 import json
-import requests
+import os
 import subprocess
-from .core import mcp, DEFAULT_FLAKE_PATH, SYSTEMCTL
+
+import requests
+
+from .core import DEFAULT_FLAKE_PATH, SYSTEMCTL, mcp
 from .inventory import _get_inventory_cached
 
 

@@ -1,5 +1,6 @@
 import subprocess
-from .core import mcp, DEFAULT_FLAKE_PATH
+
+from .core import DEFAULT_FLAKE_PATH, mcp
 
 
 @mcp.tool()

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-import os
-import json
+import base64
 import glob
-import sys
+import json
+import os
 import re
 import shutil
 import sqlite3
-import base64
 import subprocess
+import sys
 from datetime import datetime, timezone
 
 BRAIN_DIR = os.path.expanduser("~/.gemini/antigravity/brain")
@@ -164,8 +164,9 @@ def get_conversation_data():
                             conv_data["summaries"].append(summary)
                         if updated:
                             dt = datetime.fromisoformat(updated.replace("Z", "+00:00"))
-                            if dt > conv_data["last_updated"]:
-                                conv_data["last_updated"] = dt
+                            conv_data["last_updated"] = max(
+                                conv_data["last_updated"], dt
+                            )
                 except Exception:
                     continue
 
@@ -178,8 +179,7 @@ def get_conversation_data():
                 mtime = datetime.fromtimestamp(
                     os.path.getmtime(overview_path), tz=timezone.utc
                 )
-                if mtime > conv_data["last_updated"]:
-                    conv_data["last_updated"] = mtime
+                conv_data["last_updated"] = max(conv_data["last_updated"], mtime)
 
                 first_line = None
                 last_line = None
@@ -247,8 +247,9 @@ def get_conversation_data():
 
                     if conv_id in convs:
                         convs[conv_id]["sources"].append(label)
-                        if pb_mtime > convs[conv_id]["last_updated"]:
-                            convs[conv_id]["last_updated"] = pb_mtime
+                        convs[conv_id]["last_updated"] = max(
+                            convs[conv_id]["last_updated"], pb_mtime
+                        )
                     else:
                         convs[conv_id] = {
                             "id": conv_id,

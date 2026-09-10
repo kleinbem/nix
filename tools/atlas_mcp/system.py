@@ -1,8 +1,9 @@
-import os
-import subprocess
 import json
+import os
 import shutil
-from .core import mcp, DEFAULT_FLAKE_PATH
+import subprocess
+
+from .core import DEFAULT_FLAKE_PATH, mcp
 from .knowledge import semantic_search
 
 

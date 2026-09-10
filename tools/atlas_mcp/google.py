@@ -20,10 +20,18 @@ from .core import (
 def _load_google_client_config():
     """Decrypt the OAuth client secret from kleinbem-secrets in-memory (never written to disk)."""
     if not os.path.exists(GOOGLE_OAUTH_SOPS_FILE):
-        raise Exception(f"kleinbem-secrets not checked out at {GOOGLE_OAUTH_SOPS_FILE}.")
+        raise Exception(
+            f"kleinbem-secrets not checked out at {GOOGLE_OAUTH_SOPS_FILE}."
+        )
     try:
         result = subprocess.run(
-            ["sops", "--decrypt", "--extract", f'["{GOOGLE_OAUTH_SOPS_KEY}"]', GOOGLE_OAUTH_SOPS_FILE],
+            [
+                "sops",
+                "--decrypt",
+                "--extract",
+                f'["{GOOGLE_OAUTH_SOPS_KEY}"]',
+                GOOGLE_OAUTH_SOPS_FILE,
+            ],
             capture_output=True,
             text=True,
             check=True,
