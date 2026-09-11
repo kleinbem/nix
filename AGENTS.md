@@ -4,7 +4,9 @@ Guidance for AI assistants (Claude Code, Gemini CLI, Codex, Aider, Antigravity, 
 
 ## Overview
 
-This is a **meta-workspace dir** — a tooling-only orchestrator for several independent flakes cloned via `kleinbem/repos.nix` (the fleet-wide manifest — see `kleinbem/AGENTS.md`). **There is no `flake.nix` at the meta root.** `nix-config` is the root flake everything builds from; the meta dir holds `just`, `.agent/`, the `jj` dashboard (symlinked from `kleinbem/.just/`), and the `.envrc` that points direnv at `../nix-devshells#workspace`.
+This is a **meta-workspace dir** — a tooling orchestrator for several independent flakes cloned via `kleinbem/repos.nix` (the fleet-wide manifest — see `kleinbem/AGENTS.md`). **There is no `flake.nix` at the meta root.** `nix-config` is the root flake everything builds from; the meta dir holds `just`, `.agent/`, the `jj` dashboard (symlinked from `kleinbem/.just/`), and the `.envrc` that points direnv at `../nix-devshells#workspace`.
+
+**`infra/` is a deliberate exception** — live OpenTofu/Terraform for Cloudflare (DNS/WAF/Access/R2/Analytics), GitHub secrets, Google, netbird, and garage. It lives here rather than in its own repo (contrast `github-config`, which *is* standalone) because it isn't self-contained: `nix-config/iac/data.nix` generates `infra/personas.json` + `infra/inventory.json` from the canonical `inventory.nix`/`personas.nix` (`nix/tools/gen-iac-data.sh`), and several `.tf` roots consume those files directly by path. Splitting `infra/` into its own repo would turn that in-repo file bridge into a cross-repo one — see `kleinbem/docs/` for the fleet's IaC-placement rule. Keep new self-contained Terraform (no generated-data dependency) in its own repo instead of growing `infra/`.
 
 **On a truly fresh clone of just this repo, run `bash tools/bootstrap.sh` first** — `just` itself won't parse until `kleinbem/` exists (the shared `.just/common.just` and `.just/jj.just` are symlinks into it), and `tools/bootstrap.sh` clones `kleinbem/` before handing off to the normal `just jj::bootstrap`. On any machine where `kleinbem/` already exists, `just jj::bootstrap` alone is enough.
 
