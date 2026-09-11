@@ -32,7 +32,9 @@ locals {
     "nix-hardware"  = ["APP_ID", "APP_PRIVATE_KEY"]
     "nix-templates" = ["APP_ID", "APP_PRIVATE_KEY"]
     "nix-presets"   = ["APP_ID", "APP_PRIVATE_KEY"]
-    "github-config" = ["APP_ID", "APP_PRIVATE_KEY", "APP_INSTALLATION_ID", "CLOUDFLARE_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]
+    # NTFY_ALERT_TOPIC: the scheduled drift-detection plan (terraform-plan.yaml)
+    # pings this human topic when GitHub config no longer matches Terraform.
+    "github-config" = ["APP_ID", "APP_PRIVATE_KEY", "APP_INSTALLATION_ID", "NTFY_ALERT_TOPIC", "CLOUDFLARE_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]
   }
 
   secret_values = {
