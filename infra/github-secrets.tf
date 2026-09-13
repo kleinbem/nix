@@ -35,20 +35,25 @@ locals {
     # NTFY_ALERT_TOPIC: the scheduled drift-detection plan (terraform-plan.yaml)
     # pings this human topic when GitHub config no longer matches Terraform.
     "github-config" = ["APP_ID", "APP_PRIVATE_KEY", "APP_INSTALLATION_ID", "NTFY_ALERT_TOPIC", "CLOUDFLARE_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]
+    # wrangler pages deploy — see cloudflare-pages.tf for the project/domain
+    # resources and why this token is deliberately narrower than the one
+    # this whole Terraform root itself uses.
+    "kleinbem-site" = ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_PAGES_DEPLOY_TOKEN"]
   }
 
   secret_values = {
-    "ATTIC_PUSH_TOKEN"            = var.attic_push_token
-    "APP_ID"                      = var.github_app_id
-    "APP_PRIVATE_KEY"             = var.github_app_private_key
-    "APP_INSTALLATION_ID"         = var.github_app_installation_id
-    "NETBIRD_SETUP_KEY"           = var.netbird_setup_key
-    "NETBIRD_SETUP_KEY_EPHEMERAL" = var.netbird_setup_key_ephemeral
-    "NTFY_DEPLOY_TOPIC"           = var.ntfy_deploy_topic
-    "NTFY_ALERT_TOPIC"            = var.ntfy_alert_topic
-    "CLOUDFLARE_ACCOUNT_ID"       = var.cloudflare_account_id
-    "R2_ACCESS_KEY_ID"            = var.r2_state_access_key_id
-    "R2_SECRET_ACCESS_KEY"        = var.r2_state_secret_access_key
+    "ATTIC_PUSH_TOKEN"              = var.attic_push_token
+    "APP_ID"                        = var.github_app_id
+    "APP_PRIVATE_KEY"               = var.github_app_private_key
+    "APP_INSTALLATION_ID"           = var.github_app_installation_id
+    "NETBIRD_SETUP_KEY"             = var.netbird_setup_key
+    "NETBIRD_SETUP_KEY_EPHEMERAL"   = var.netbird_setup_key_ephemeral
+    "NTFY_DEPLOY_TOPIC"             = var.ntfy_deploy_topic
+    "NTFY_ALERT_TOPIC"              = var.ntfy_alert_topic
+    "CLOUDFLARE_ACCOUNT_ID"         = var.cloudflare_account_id
+    "CLOUDFLARE_PAGES_DEPLOY_TOKEN" = var.cloudflare_pages_deploy_token
+    "R2_ACCESS_KEY_ID"              = var.r2_state_access_key_id
+    "R2_SECRET_ACCESS_KEY"          = var.r2_state_secret_access_key
   }
 
   ci_secret_pairs = merge([

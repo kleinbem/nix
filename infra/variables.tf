@@ -10,6 +10,12 @@ variable "cloudflare_account_id" {
   sensitive   = true
 }
 
+variable "cloudflare_pages_deploy_token" {
+  type        = string
+  sensitive   = true
+  description = "Narrowly-scoped (Cloudflare Pages: Edit only) API token for kleinbem-site's CI to run `wrangler pages deploy`. Deliberately separate from cloudflare_api_token — a leaked CI secret shouldn't be able to touch DNS/WAF/Zero Trust. Distributed as the CLOUDFLARE_PAGES_DEPLOY_TOKEN Actions secret via github-secrets.tf."
+}
+
 variable "cloudflare_tunnel_secret" {
   type        = string
   description = "A 32-byte base64-encoded secret key for the tunnel"
