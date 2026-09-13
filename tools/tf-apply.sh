@@ -88,12 +88,24 @@ ORIN_YAML=$(sops -d "$ORIN_FILE")
 # Check if we have api token and account id
 API_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.cloudflare_api_token')
 ACCOUNT_ID=$(echo "$COREPI_YAML" | yq '.cloudflare_account_id')
+# Narrowly-scoped (Cloudflare Pages: Edit only) token for kleinbem-site's own
+# CI to run `wrangler pages deploy` — see nix/infra/cloudflare-pages.tf.
+# Deliberately not the same value as cloudflare_api_token above.
+PAGES_DEPLOY_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.cloudflare_pages_deploy_token')
 
 if [ "$API_TOKEN" = "null" ] || [ -z "$API_TOKEN" ] || [ "$ACCOUNT_ID" = "null" ] || [ -z "$ACCOUNT_ID" ]; then
   echo -e "${RED}❌ Missing cloudflare_api_token (infra/terraform.yaml) or cloudflare_account_id (nix/per-host/core-pi.yaml).${RESET}"
   echo -e "Please add:"
   echo -e "  • cloudflare_api_token to $TERRAFORM_FILE"
   echo -e "  • cloudflare_account_id to $COREPI_FILE"
+  exit 1
+fi
+
+if [ "$PAGES_DEPLOY_TOKEN" = "null" ] || [ -z "$PAGES_DEPLOY_TOKEN" ]; then
+  echo -e "${RED}❌ Missing cloudflare_pages_deploy_token ($TERRAFORM_FILE).${RESET}"
+  echo -e "This is a separate, narrower token from cloudflare_api_token — Cloudflare Pages: Edit only,"
+  echo -e "for kleinbem-site's CI to deploy with. Add it with:"
+  echo -e "  sops --set '[\"cloudflare_pages_deploy_token\"] \"<token value>\"' $TERRAFORM_FILE"
   exit 1
 fi
 
@@ -114,6 +126,7 @@ fi
 export TF_VAR_cloudflare_api_token="$API_TOKEN"
 export TF_VAR_cloudflare_account_id="$ACCOUNT_ID"
 export TF_VAR_cloudflare_tunnel_secret="$TUNNEL_SECRET"
+export TF_VAR_cloudflare_pages_deploy_token="$PAGES_DEPLOY_TOKEN"
 
 # --- GitHub provider inputs (sourced from sops) ---
 # `github_tf_token` is the admin PAT the provider authenticates with.
