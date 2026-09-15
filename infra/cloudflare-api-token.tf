@@ -1,82 +1,87 @@
-# Self-management of this root's own cloudflare_api_token ("nix-worksace-tofu"
-# — yes, that's a typo in the real token name, kept verbatim so Terraform
-# doesn't try to rename it on import) — bringing the manual
+# Terraform-managed replacement for the manually-created "nix-worksace-tofu"
+# API token — this root's own operator token. Brings the manual
 # dashboard-permission-edit ritual (see the "Requires:" comments in nearly
 # every other .tf file here) under Terraform, so adding a permission for a
 # new resource type is a config change + apply instead of a click.
 #
-# This grants the token "Account API Tokens: Edit" on itself, which it did
-# NOT have before (see cloudflare-r2.tf's comment on why that was withheld —
-# a leaked token with this permission can mint new tokens with arbitrary
-# scope, a real escalation beyond whatever this token itself can already
-# do). That tradeoff was discussed and accepted explicitly in favor of full
-# IaC coverage — see git history for that conversation.
+# This grants "Account API Tokens: Edit" on itself, which the original token
+# did NOT have (see cloudflare-r2.tf's comment on why that was withheld — a
+# leaked token with this permission can mint new tokens with arbitrary
+# scope). Discussed and accepted explicitly in favor of full IaC coverage.
 #
-# Token inventory / why this one: this account actually has 4 API tokens.
-# `nix-worksace-tofu` (this one) is the real one nix/infra's Terraform root
-# authenticates as — its permission set matches every resource in this
-# root's .tf files exactly. `homelab-infra` is an older, User-scoped token
-# (Cloudflare recommends Account tokens) with a strict subset of these
-# permissions — superseded, to be retired once this is confirmed working.
-# `kleinbem-site-pages-deploy` (Pages only, GitHub Actions) and the R2
-# state-backend/backup credentials are deliberately separate tokens for
-# separate trust boundaries (narrower blast radius for CI-exposed and
-# host-materialized secrets) — not folded into this one.
+# NOT an import of the existing token — the cloudflare_api_token resource in
+# this provider doesn't support import at all (Cloudflare never returns a
+# token's secret after creation, so there's no way to fully read an existing
+# token's state). This CREATES A NEW, SEPARATE token instead. Cutover after
+# first apply, all manual (nothing here does it for you):
+#   1. `tofu output -raw infra_root_token_secret` (sensitive — read it, don't
+#      commit it) and sops --set it as cloudflare_api_token in
+#      kleinbem-secrets/infra/terraform.yaml.
+#   2. Re-run whatever you were doing (tofu plan/apply for something else)
+#      using the NEW value, confirm it actually works.
+#   3. Only once confirmed: delete "nix-worksace-tofu" by hand in the
+#      dashboard. Terraform never owned it, so it won't clean it up for you.
 #
-# Every permission-group name and resource scope below was copied verbatim
-# from the token's own dashboard summary (2026-09-15), not reconstructed
-# from guesses — this file's first two drafts got that wrong in both
-# directions and this version replaces them.
-#
-# SAFETY PROCEDURE — read before running anything:
-#   1. terraform import cloudflare_api_token.infra_root <token_id>
-#      (the ID, not the secret — Cloudflare dashboard -> My Profile ->
-#      API Tokens -> nix-worksace-tofu -> the ID is on its detail page/URL)
-#   2. Run `tofu plan` and READ THE DIFF before applying anything. It
-#      should show NO changes at all — every permission below already
-#      exists on the live token (you added Turnstile + API Tokens manually
-#      already). A clean no-diff plan is exactly the goal: it proves this
-#      file is an accurate mirror of reality, safe to manage going forward.
-
-data "cloudflare_api_token_permission_groups" "all" {}
+# permission_groups are hardcoded IDs, not the
+# `data.cloudflare_api_token_permission_groups` data source — that data
+# source calls Cloudflare's user-level endpoint (`/user/tokens/
+# permission_groups`), which an Account-scoped token can never authenticate
+# against (error 9109, "Valid user-level authentication not found") no
+# matter what permissions it holds. IDs below were read directly from the
+# account-scoped endpoint instead: `GET /accounts/{account_id}/tokens/
+# permission_groups`, called with nix-worksace-tofu's own token (2026-09-15)
+# — these are stable, global Cloudflare constants, not account-specific, so
+# they don't need re-verifying if this file is copied elsewhere. One name
+# collision worth noting: "Access: Apps and Policies Read/Write" each exist
+# as two different IDs — an account-scoped variant ("Can read/edit
+# Cloudflare Access applications and policies") and a zone-scoped one
+# ("...zone resources", for the older per-zone Access product). This repo's
+# cloudflare_zero_trust_access_application/policy resources are account-
+# level, so the account-scoped IDs are used below.
 
 resource "cloudflare_api_token" "infra_root" {
-  name = "nix-worksace-tofu"
+  name = "nix-infra-tofu"
 
   # kleinbem.dev zone
   policy {
     permission_groups = [
-      data.cloudflare_api_token_permission_groups.all.zone["Dynamic URL Redirects Write"],
-      data.cloudflare_api_token_permission_groups.all.zone["Dynamic URL Redirects Read"],
-      data.cloudflare_api_token_permission_groups.all.zone["Zone WAF Write"],
-      data.cloudflare_api_token_permission_groups.all.zone["Zone Read"],
-      data.cloudflare_api_token_permission_groups.all.zone["DNS Read"],
-      data.cloudflare_api_token_permission_groups.all.zone["DNS Write"],
+      "74e1036f577a48528b78d2413b40538d", # Dynamic URL Redirects Write
+      "d8e12db741544d1586ec1d6f5d3c7786", # Dynamic URL Redirects Read
+      "fb6778dc191143babbfaa57993f1d275", # Zone WAF Write
+      "c8fed203ed3043cba015a93ad1616f1f", # Zone Read
+      "82e64a83756745bbbb1c9c2701bf816b", # DNS Read
+      "4755a26eedb94da69e1066d98aa820be", # DNS Write
     ]
     resources = {
       "com.cloudflare.api.account.zone.${data.cloudflare_zone.main.id}" = "*"
     }
   }
 
-  # Entire account (kleinbem's Cloudflare account)
+  # Entire account
   policy {
     permission_groups = [
-      data.cloudflare_api_token_permission_groups.all.account["Cloudflare One Connector: cloudflared Write"],
-      data.cloudflare_api_token_permission_groups.all.account["Cloudflare One Connector: cloudflared Read"],
-      data.cloudflare_api_token_permission_groups.all.account["Pages Write"],
-      data.cloudflare_api_token_permission_groups.all.account["Pages Read"],
-      data.cloudflare_api_token_permission_groups.all.account["Workers R2 Storage Write"],
-      data.cloudflare_api_token_permission_groups.all.account["Workers R2 Storage Read"],
-      data.cloudflare_api_token_permission_groups.all.account["Account Analytics Read"],
-      data.cloudflare_api_token_permission_groups.all.account["Access: Apps and Policies Write"],
-      data.cloudflare_api_token_permission_groups.all.account["Access: Apps and Policies Read"],
-      data.cloudflare_api_token_permission_groups.all.account["Turnstile Sites Write"],
-      data.cloudflare_api_token_permission_groups.all.account["Turnstile Sites Read"],
-      data.cloudflare_api_token_permission_groups.all.account["Account API Tokens Write"], # self-management, new
-      data.cloudflare_api_token_permission_groups.all.account["Account API Tokens Read"],  # self-management, new
+      "037b9e348b3b42d4b46ea2fcb1cfb3e7", # Cloudflare One Connector: cloudflared Write
+      "c1968d31028d4239976ec3bc4750bbf6", # Cloudflare One Connector: cloudflared Read
+      "8d28297797f24fb8a0c332fe0866ec89", # Pages Write
+      "e247aedd66bd41cc9193af0213416666", # Pages Read
+      "bf7481a1826f439697cb59a20b22293e", # Workers R2 Storage Write
+      "b4992e1108244f5d8bfbd5744320c2e1", # Workers R2 Storage Read
+      "b89a480218d04ceb98b4fe57ca29dc1f", # Account Analytics Read
+      "1e13c5124ca64b72b1969a67e8829049", # Access: Apps and Policies Write (account-scoped)
+      "7ea222f6d5064cfa89ea366d7c1fee89", # Access: Apps and Policies Read (account-scoped)
+      "755c05aa014b4f9ab263aa80b8167bd8", # Turnstile Sites Write
+      "5d78fd7895974fd0bdbbbb079482721b", # Turnstile Sites Read
+      "5bc3f8b21c554832afc660159ab75fa4", # Account API Tokens Write — self-management, new
+      "eb56a6953c034b9d97dd838155666f06", # Account API Tokens Read — self-management, new
     ]
     resources = {
       "com.cloudflare.api.account.${var.cloudflare_account_id}" = "*"
     }
   }
+}
+
+output "infra_root_token_secret" {
+  description = "New token's secret — sensitive. `tofu output -raw infra_root_token_secret`, then sops --set it, never paste it into chat or commit it."
+  value       = cloudflare_api_token.infra_root.value
+  sensitive   = true
 }
