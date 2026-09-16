@@ -12,7 +12,9 @@ CYAN = "\033[1;36m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
-# Topological order of updates based on submodule dependencies
+# Topological order of updates based on submodule dependencies.
+# Entries are flake INPUT names (as they appear in flake.lock), which don't
+# always match the on-disk repo directory — see REPO_DIR_OVERRIDES below.
 TOPOLOGICAL_ORDER = [
     "nix-secrets",  # No dependencies
     "nix-devshells",  # No local dependencies
@@ -22,6 +24,19 @@ TOPOLOGICAL_ORDER = [
     "nix-presets",  # Depends on nix-devshells, nix-packages
     "nix-config",  # Depends on presets, packages, hardware, devshells, secrets
 ]
+
+# The "nix-secrets" flake input is kept under its historical name (renaming
+# every `inputs.nix-secrets` reference across the tree wasn't worth it), but
+# the underlying repo was consolidated into kleinbem-secrets on 2026-08-07.
+# Map input name -> actual on-disk/GitHub repo name wherever this script
+# touches the filesystem or constructs a github: ref.
+REPO_DIR_OVERRIDES = {
+    "nix-secrets": "kleinbem-secrets",
+}
+
+
+def repo_dir(name):
+    return REPO_DIR_OVERRIDES.get(name, name)
 
 
 def run_cmd(args, cwd=None, capture=False):
@@ -92,7 +107,7 @@ def main():
     # 1. Pre-check: Ensure no sub-flake has other uncommitted changes
     dirty_repos = []
     for sub in TOPOLOGICAL_ORDER:
-        sub_path = os.path.join(root_dir, sub)
+        sub_path = os.path.join(root_dir, repo_dir(sub))
         if os.path.exists(sub_path) and is_repo_dirty(sub_path):
             dirty_repos.append(sub)
 
@@ -111,7 +126,7 @@ def main():
 
     # 2. Update sub-flakes in topological order
     for sub in TOPOLOGICAL_ORDER:
-        sub_path = os.path.join(root_dir, sub)
+        sub_path = os.path.join(root_dir, repo_dir(sub))
         if not os.path.exists(sub_path) or not os.path.exists(
             os.path.join(sub_path, "flake.nix")
         ):
@@ -155,10 +170,10 @@ def main():
         # the lock only needs to be the canonical github form. We require the
         # dep's HEAD to be pushed (else a github:<rev> ref wouldn't resolve in
         # a clean eval) — if it isn't, skip the re-pin and tell the user.
-        cmd = ["nix", "flake", "update"] + local_deps + ["--flake", f"./{sub}"]
+        cmd = ["nix", "flake", "update"] + local_deps + ["--flake", f"./{repo_dir(sub)}"]
         skip = False
         for dep in local_deps:
-            dep_path = os.path.join(root_dir, dep)
+            dep_path = os.path.join(root_dir, repo_dir(dep))
             rev = get_git_rev_full(dep_path)
             if rev is None:
                 print(f"  {RED}❌ Cannot resolve {dep} HEAD — skipping {sub}{RESET}")
@@ -172,7 +187,7 @@ def main():
                 )
                 skip = True
                 break
-            cmd += ["--override-input", dep, f"github:kleinbem/{dep}/{rev}"]
+            cmd += ["--override-input", dep, f"github:kleinbem/{repo_dir(dep)}/{rev}"]
         if skip:
             continue
 

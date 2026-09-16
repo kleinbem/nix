@@ -77,3 +77,6 @@ state.vscdb*
 # Generated R2 backend config (contains the R2 access key)
 .r2-backend.hcl
 .r2-endpoint.hcl
+
+# Wrangler CLI local cache (account id, OAuth state)
+.wrangler/
