@@ -105,7 +105,8 @@
     ],
     "smart-home": [
       "hass-pi",
-      "orin-nano"
+      "orin-nano",
+      "nasbook"
     ]
   }
 }
