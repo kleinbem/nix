@@ -51,38 +51,162 @@ data "authentik_property_mapping_provider_scope" "profile" {
   scope_name = "profile"
 }
 
-data "authentik_flow" "default_enrollment_flow" {
-  slug = "default-source-enrollment"
+# --- Self-registration for kleinbem.dev visitors ---
+#
+# First attempt at this pointed enrollment_flow (below) at Authentik's
+# built-in default-source-enrollment flow, on the assumption that it was
+# a general-purpose "create a local account" flow. Wrong: it carries a
+# policy (default-source-enrollment-if-sso, expression `return
+# ak_is_sso_flow`) that only lets it run when arriving via an external
+# Source (Google/GitHub sign-in creating a matching local account) — used
+# directly, every attempt hits "Request has been denied" (confirmed live
+# 2026-09-21). Its own prompt stage only asks for a username, since an
+# SSO login already supplies email/name — not reusable for real email
+# +password registration either. This instance genuinely doesn't ship a
+# general-purpose enrollment flow out of the box, so one is built here
+# instead of adopted.
+#
+# user_write/user_login stages are dedicated, Terraform-owned copies
+# rather than reusing default-source-enrollment's — its user_write config
+# happened to already be generic enough to share (checked live), but
+# owning independent copies means a future change to the SSO flow can
+# never silently affect this one, and vice versa.
+#
+# No email-verification stage: that needs a working EmailStage + SMTP
+# transport, which isn't configured on this instance (the same gap
+# already noted above for the missing recovery/forgot-password flow) — a
+# self-registered address is trusted as entered for now.
+resource "authentik_flow" "kleinbem_site_enrollment" {
+  name        = "kleinbem-site-enrollment"
+  slug        = "kleinbem-site-enrollment"
+  title       = "Create your kleinbem.dev account"
+  designation = "enrollment"
+}
+
+resource "authentik_stage_prompt_field" "enrollment_username" {
+  name      = "kleinbem-site-enrollment-field-username"
+  field_key = "username"
+  label     = "Username"
+  type      = "username"
+  required  = true
+  order     = 100
+}
+
+resource "authentik_stage_prompt_field" "enrollment_name" {
+  name      = "kleinbem-site-enrollment-field-name"
+  field_key = "name"
+  label     = "Name"
+  type      = "text"
+  required  = true
+  order     = 110
+}
+
+resource "authentik_stage_prompt_field" "enrollment_email" {
+  name      = "kleinbem-site-enrollment-field-email"
+  field_key = "email"
+  label     = "Email"
+  type      = "email"
+  required  = true
+  order     = 120
+}
+
+# field_key/type/order here match default-password-change's own password
+# fields exactly (checked live) — that's the pairing Authentik's prompt
+# stage actually knows how to cross-validate as "these two must match",
+# not something configurable elsewhere.
+resource "authentik_stage_prompt_field" "enrollment_password" {
+  name      = "kleinbem-site-enrollment-field-password"
+  field_key = "password"
+  label     = "Password"
+  type      = "password"
+  required  = true
+  order     = 300
+}
+
+resource "authentik_stage_prompt_field" "enrollment_password_repeat" {
+  name      = "kleinbem-site-enrollment-field-password-repeat"
+  field_key = "password_repeat"
+  label     = "Password (repeat)"
+  type      = "password"
+  required  = true
+  order     = 301
+}
+
+# Same thresholds as default-password-change-password-policy (checked
+# live) — not stricter, not looser, just consistent with what this
+# instance already enforces everywhere else a password gets set.
+resource "authentik_policy_password" "enrollment_password_policy" {
+  name           = "kleinbem-site-enrollment-password-policy"
+  password_field = "password"
+  length_min     = 8
+  check_zxcvbn   = true
+  error_message  = "Password needs to be 8 characters or longer."
+}
+
+resource "authentik_stage_prompt" "kleinbem_site_enrollment_prompt" {
+  name = "kleinbem-site-enrollment-prompt"
+  fields = [
+    authentik_stage_prompt_field.enrollment_username.id,
+    authentik_stage_prompt_field.enrollment_name.id,
+    authentik_stage_prompt_field.enrollment_email.id,
+    authentik_stage_prompt_field.enrollment_password.id,
+    authentik_stage_prompt_field.enrollment_password_repeat.id,
+  ]
+  validation_policies = [authentik_policy_password.enrollment_password_policy.id]
+}
+
+resource "authentik_stage_user_write" "kleinbem_site_enrollment_write" {
+  name                     = "kleinbem-site-enrollment-write"
+  user_creation_mode       = "always_create"
+  create_users_as_inactive = false
+  user_type                = "external"
+}
+
+resource "authentik_stage_user_login" "kleinbem_site_enrollment_login" {
+  name = "kleinbem-site-enrollment-login"
+}
+
+resource "authentik_flow_stage_binding" "enrollment_prompt" {
+  target = authentik_flow.kleinbem_site_enrollment.id
+  stage  = authentik_stage_prompt.kleinbem_site_enrollment_prompt.id
+  order  = 10
+}
+
+resource "authentik_flow_stage_binding" "enrollment_write" {
+  target = authentik_flow.kleinbem_site_enrollment.id
+  stage  = authentik_stage_user_write.kleinbem_site_enrollment_write.id
+  order  = 20
+}
+
+resource "authentik_flow_stage_binding" "enrollment_login" {
+  target = authentik_flow.kleinbem_site_enrollment.id
+  stage  = authentik_stage_user_login.kleinbem_site_enrollment_login.id
+  order  = 30
 }
 
 # Adopts Authentik's own built-in identification stage (the "Email or
 # Username" screen on the login page) rather than creating a duplicate —
-# see the import block below. Only enrollment_flow is a real change; every
-# other field here matches its current live value (checked via GET
-# /api/v3/stages/identification/<pk>/ before writing this) so adopting it
-# doesn't reset anything else. None of this resource's fields are marked
-# `computed` in the provider schema (unlike grant_types on the OAuth2
-# provider above) — an omitted field here really does mean "false/null/
-# empty", not "leave whatever's live alone", so every non-default current
-# value has to be listed explicitly or this apply would silently disable
-# it (e.g. dropping `user_fields` back to empty would stop matching
-# visitors by email/username at all).
+# see the import block below. Every field here matches its current live
+# value (checked via GET /api/v3/stages/identification/<pk>/ before
+# writing this) except enrollment_flow, so adopting it doesn't reset
+# anything else. None of this resource's fields are marked `computed` in
+# the provider schema (unlike grant_types on the OAuth2 provider above)
+# — an omitted field here really does mean "false/null/empty", not
+# "leave whatever's live alone", so every non-default current value has
+# to be listed explicitly or this apply would silently disable it (e.g.
+# dropping `user_fields` back to empty would stop matching visitors by
+# email/username at all).
 resource "authentik_stage_identification" "default_authentication_identification" {
-  name                       = "default-authentication-identification"
-  user_fields                = ["email", "username"]
-  case_insensitive_matching  = true
-  show_matched_user          = true
-  pretend_user_exists        = true
-  # Wires up the "Sign up" link kleinbem.dev visitors need — the migration
-  # from kleinbem-auth this whole file exists for was never actually
-  # complete without it (that service let any visitor self-register; this
-  # stage's enrollment_flow was null until now, so this login page had no
-  # way to create a new account at all). "Forgot password" stays
-  # unavailable for a different reason: Authentik has no recovery-
-  # designation flow at all yet (confirmed live — GET .../flows/instances/
-  # ?designation=recovery returns zero results), because that needs
-  # working outbound email, which isn't configured on this instance.
-  enrollment_flow = data.authentik_flow.default_enrollment_flow.id
+  name                      = "default-authentication-identification"
+  user_fields               = ["email", "username"]
+  case_insensitive_matching = true
+  show_matched_user         = true
+  pretend_user_exists       = true
+  # "Forgot password" stays unavailable for a different reason: Authentik
+  # has no recovery-designation flow at all yet (confirmed live — GET
+  # .../flows/instances/?designation=recovery returns zero results),
+  # because that needs working outbound email, which isn't configured.
+  enrollment_flow = authentik_flow.kleinbem_site_enrollment.id
 }
 
 import {
