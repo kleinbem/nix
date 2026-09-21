@@ -16,6 +16,10 @@ terraform {
       source  = "hashicorp/google"
       version = "~> 6.0"
     }
+    authentik = {
+      source  = "goauthentik/authentik"
+      version = "~> 2026.0"
+    }
   }
 }
 

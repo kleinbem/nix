@@ -71,7 +71,11 @@ TERRAFORM_FILE="$SECRETS_ROOT/infra/terraform.yaml"
 SHARED_FILE="$SECRETS_ROOT/nix/shared.yaml"
 COREPI_FILE="$SECRETS_ROOT/nix/per-host/core-pi.yaml"
 ORIN_FILE="$SECRETS_ROOT/nix/per-host/orin-nano.yaml"
-for f in "$TERRAFORM_FILE" "$SHARED_FILE" "$COREPI_FILE" "$ORIN_FILE"; do
+# Same bootstrap API token the NixOS deployment uses (authentik.nix,
+# AUTHENTIK_BOOTSTRAP_TOKEN) — read directly from its one source of truth
+# rather than duplicating the value into infra/terraform.yaml.
+AUTHENTIK_FILE="$SECRETS_ROOT/nix/per-container/authentik.yaml"
+for f in "$TERRAFORM_FILE" "$SHARED_FILE" "$COREPI_FILE" "$ORIN_FILE" "$AUTHENTIK_FILE"; do
   if [ ! -f "$f" ]; then
     echo -e "${RED}❌ Secrets file not found at $f.${RESET}"
     exit 1
@@ -79,11 +83,13 @@ for f in "$TERRAFORM_FILE" "$SHARED_FILE" "$COREPI_FILE" "$ORIN_FILE"; do
 done
 
 echo -e "\n${BOLD}[1/4] Decrypting and checking secrets...${RESET}"
-echo -e "${YELLOW}👉 Touch your YubiKey if it flashes — up to 4 scoped files to decrypt...${RESET}"
+echo -e "${YELLOW}👉 Touch your YubiKey if it flashes — up to 5 scoped files to decrypt...${RESET}"
 DECRYPTED_YAML=$(sops -d "$TERRAFORM_FILE")
 SHARED_YAML=$(sops -d "$SHARED_FILE")
 COREPI_YAML=$(sops -d "$COREPI_FILE")
 ORIN_YAML=$(sops -d "$ORIN_FILE")
+AUTHENTIK_YAML=$(sops -d "$AUTHENTIK_FILE")
+AUTHENTIK_API_TOKEN=$(echo "$AUTHENTIK_YAML" | yq '.authentik_bootstrap_api_token')
 
 # Check if we have api token and account id
 API_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.cloudflare_api_token')
@@ -212,6 +218,7 @@ R2_KEY_SECRET=$(echo "$DECRYPTED_YAML" | yq '.r2_state_secret_access_key')
 
 export TF_VAR_r2_state_access_key_id="$R2_KEY_ID"
 export TF_VAR_r2_state_secret_access_key="$R2_KEY_SECRET"
+export TF_VAR_authentik_api_token="$AUTHENTIK_API_TOKEN"
 
 # --- State encryption passphrase (see infra/encryption.tf) ---
 # Injected via the TF_ENCRYPTION config merge so the committed encryption.tf

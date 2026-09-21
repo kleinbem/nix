@@ -108,3 +108,9 @@ variable "r2_state_secret_access_key" {
   sensitive   = true
   description = "Cloudflare R2 secret access key for state backend"
 }
+
+variable "authentik_api_token" {
+  type        = string
+  sensitive   = true
+  description = "Authentik bootstrap API token (akadmin) — same value NixOS's authentik.nix uses to bootstrap the instance (kleinbem-secrets/nix/per-container/authentik.yaml, AUTHENTIK_BOOTSTRAP_TOKEN). Bootstrap credential, not itself Terraform-managed."
+}
