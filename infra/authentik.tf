@@ -55,6 +55,16 @@ resource "authentik_provider_oauth2" "kleinbem_site" {
   name        = "kleinbem-site"
   client_id   = "kleinbem-site"
   client_type = "confidential"
+  # Explicit, not left to the provider's computed default: switching
+  # client_type from public to confidential (above) silently reset this
+  # to [] server-side — confirmed live 2026-09-21 via the API (GET
+  # /api/v3/providers/oauth2/1/), which is why every authorize request
+  # started failing with Authentik's generic "invalid_request / the
+  # request is otherwise malformed" regardless of what else was in it.
+  # grant_types is `Optional + Computed` in the provider schema, so
+  # `tofu plan` never flagged this as a pending change — leaving it
+  # unset let Authentik's own reset silently stick.
+  grant_types = ["authorization_code"]
 
   authorization_flow = data.authentik_flow.default_authorization_flow.id
   invalidation_flow  = data.authentik_flow.default_invalidation_flow.id
