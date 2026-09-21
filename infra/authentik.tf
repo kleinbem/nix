@@ -167,19 +167,19 @@ resource "authentik_stage_user_login" "kleinbem_site_enrollment_login" {
 }
 
 resource "authentik_flow_stage_binding" "enrollment_prompt" {
-  target = authentik_flow.kleinbem_site_enrollment.id
+  target = authentik_flow.kleinbem_site_enrollment.uuid
   stage  = authentik_stage_prompt.kleinbem_site_enrollment_prompt.id
   order  = 10
 }
 
 resource "authentik_flow_stage_binding" "enrollment_write" {
-  target = authentik_flow.kleinbem_site_enrollment.id
+  target = authentik_flow.kleinbem_site_enrollment.uuid
   stage  = authentik_stage_user_write.kleinbem_site_enrollment_write.id
   order  = 20
 }
 
 resource "authentik_flow_stage_binding" "enrollment_login" {
-  target = authentik_flow.kleinbem_site_enrollment.id
+  target = authentik_flow.kleinbem_site_enrollment.uuid
   stage  = authentik_stage_user_login.kleinbem_site_enrollment_login.id
   order  = 30
 }
@@ -206,7 +206,7 @@ resource "authentik_stage_identification" "default_authentication_identification
   # has no recovery-designation flow at all yet (confirmed live — GET
   # .../flows/instances/?designation=recovery returns zero results),
   # because that needs working outbound email, which isn't configured.
-  enrollment_flow = authentik_flow.kleinbem_site_enrollment.id
+  enrollment_flow = authentik_flow.kleinbem_site_enrollment.uuid
 }
 
 import {
