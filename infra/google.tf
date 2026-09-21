@@ -1,6 +1,9 @@
 # Google Cloud — one project, `kleinbem-ai`, holding: (1) per-persona Gemini
-# API keys, (2) the "Sign in with Google" OAuth client for login.kleinbem.dev
-# (kleinbem-auth). The project was created manually via gcloud (2026-08-07,
+# API keys, (2) the "Sign in with Google" OAuth client, originally created
+# for kleinbem-auth's login.kleinbem.dev (that service decommissioned
+# 2026-09-21) and now reused by Authentik's Google Source for kleinbem.dev
+# visitor login instead — see authentik.tf. The project was created
+# manually via gcloud (2026-08-07,
 # no org/Cloud Identity on this personal account) — Terraform can't create
 # its own first credential, so the terraform-google service account + its key
 # are a one-time manual bootstrap, same category as cloudflare_api_token. See
@@ -58,24 +61,36 @@ resource "google_project" "kleinbem_ai" {
   }
 }
 
-# --- kleinbem-auth "Sign in with Google" client (MANUAL — no IaC path) ----
+# --- "Sign in with Google" client (MANUAL — no IaC path) ------------------
 # NOT managed here, and cannot be: Google shut down the IAP OAuth Admin API
 # (permanently, 2026-03-19) — it was the only programmatic route, and
 # google_iap_brand / google_iap_client were removed from the provider
 # (magic-modules #18679, 2026-08). There is no `google_oauth_client`
-# resource. Created by hand in the Cloud console under this project:
-#   - OAuth consent screen: External; app name "kleinbem.dev"; authorized
-#     domain kleinbem.dev
-#   - Credentials -> Create OAuth client ID -> Web application
-#   - Authorized JavaScript origins: https://kleinbem.dev, https://login.kleinbem.dev
-#   - Authorized redirect URI:  https://login.kleinbem.dev/api/auth/callback/google
-#   - Created 2026-09 (fill in the client-id suffix here for traceability: ...)
-# client_id / client_secret live in
+# resource. Created by hand in the Cloud console under this project,
+# originally for kleinbem-auth (its own OAuth consent screen / client, app
+# name "kleinbem.dev", authorized domain kleinbem.dev — created 2026-09).
+#
+# Reused as-is for Authentik's Google Source (authentik.tf) rather than
+# minting a new client when kleinbem-auth was decommissioned 2026-09-21 —
+# same client_id/secret, just an ADDITIONAL "Authorized redirect URI" added
+# by hand alongside the original:
+#   https://auth.kleinbem.dev/source/oauth/callback/google/
+# The original https://login.kleinbem.dev/api/auth/callback/google entry
+# was later removed by hand too (kleinbem-auth no longer runs, nothing
+# uses it) — Authentik's is the only live redirect URI now.
+#
+# client_id / client_secret still live in
 #   kleinbem-secrets/nix/per-container/kleinbem-auth.yaml
 #     keys: google_client_id / google_client_secret
-# and are consumed by the kleinbem-auth nspawn container on core-pi. The
-# Facebook client is the analogous manual step on developers.facebook.com
-# (keys: facebook_client_id / facebook_client_secret) — also no IaC path.
+# (filename is a misnomer post-decommission — kept as-is rather than
+# renamed, since renaming would also mean updating kleinbem-secrets/
+# .sops.yaml's path-scoped rule and nix/tools/tf-apply.sh's decrypt list
+# for a purely cosmetic gain). Read directly by tf-apply.sh (not through
+# any NixOS host anymore) and exported as TF_VAR_kleinbem_auth_google_*
+# for authentik.tf's authentik_source_oauth resource. The Facebook client
+# mentioned in earlier versions of this comment was never actually set up
+# (kleinbem-auth's own facebook_client_id/secret were always empty) — no
+# Facebook Source exists in Authentik either.
 
 # Both already enabled manually via gcloud during bootstrap (2026-08-07) —
 # declared here so a from-scratch apply (new project) reproduces that state,
