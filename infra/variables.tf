@@ -114,3 +114,10 @@ variable "authentik_api_token" {
   sensitive   = true
   description = "Authentik bootstrap API token (akadmin) — same value NixOS's authentik.nix uses to bootstrap the instance (kleinbem-secrets/nix/per-container/authentik.yaml, AUTHENTIK_BOOTSTRAP_TOKEN). Bootstrap credential, not itself Terraform-managed."
 }
+
+variable "kleinbem_site_session_secret" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "Symmetric key kleinbem-site's own Pages Functions use to sign its session cookie after the OIDC exchange completes (kleinbem-secrets/infra/terraform.yaml). Generated with `openssl rand -hex 32` — unrelated to Authentik's own client_secret; kept separate so rotating one never invalidates the other. Empty default keeps apply working before the key is minted."
+}

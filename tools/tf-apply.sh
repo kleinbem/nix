@@ -128,10 +128,24 @@ if [ "$TUNNEL_SECRET" = "null" ] || [ -z "$TUNNEL_SECRET" ]; then
   COREPI_YAML=$(sops -d "$COREPI_FILE")
 fi
 
+# Generate kleinbem-site's session-signing secret if missing — same
+# lives-in-the-shared-terraform-file scope as cloudflare_pages_deploy_token
+# above, not per-host like the tunnel secret (nothing host-specific about
+# it; kleinbem-site's Pages Functions are the only consumer).
+SESSION_SECRET=$(echo "$DECRYPTED_YAML" | yq '.kleinbem_site_session_secret')
+if [ "$SESSION_SECRET" = "null" ] || [ -z "$SESSION_SECRET" ]; then
+  echo -e "${YELLOW}Generating new kleinbem-site session-signing secret...${RESET}"
+  SESSION_SECRET=$(openssl rand -hex 32)
+  sops --set "[\"kleinbem_site_session_secret\"] \"$SESSION_SECRET\"" "$TERRAFORM_FILE"
+  echo -e "🟢 Generated and saved kleinbem_site_session_secret to infra/terraform.yaml"
+  DECRYPTED_YAML=$(sops -d "$TERRAFORM_FILE")
+fi
+
 # Export variables for OpenTofu
 export TF_VAR_cloudflare_api_token="$API_TOKEN"
 export TF_VAR_cloudflare_account_id="$ACCOUNT_ID"
 export TF_VAR_cloudflare_tunnel_secret="$TUNNEL_SECRET"
+export TF_VAR_kleinbem_site_session_secret="$SESSION_SECRET"
 export TF_VAR_cloudflare_pages_deploy_token="$PAGES_DEPLOY_TOKEN"
 
 # --- GitHub provider inputs (sourced from sops) ---

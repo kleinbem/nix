@@ -24,6 +24,24 @@ resource "cloudflare_pages_project" "kleinbem_site" {
   account_id        = var.cloudflare_account_id
   name              = "kleinbem-site"
   production_branch = "main"
+
+  # Consumed by functions/auth/*.ts (the OIDC/PKCE login flow, Phase 3 of
+  # the kleinbem-auth -> Authentik migration) — see authentik.tf for where
+  # the client id/secret come from. RESEND_API_KEY/TURNSTILE_SECRET_KEY
+  # (functions/api/contact.ts) predate this and are still set by hand via
+  # the Cloudflare dashboard, not adopted here — a pre-existing gap, not
+  # something this change fixes.
+  deployment_configs {
+    production {
+      environment_variables = {
+        AUTHENTIK_CLIENT_ID = authentik_provider_oauth2.kleinbem_site.client_id
+      }
+      secrets = {
+        AUTHENTIK_CLIENT_SECRET = authentik_provider_oauth2.kleinbem_site.client_secret
+        AUTH_SESSION_SECRET     = var.kleinbem_site_session_secret
+      }
+    }
+  }
 }
 
 resource "cloudflare_pages_domain" "kleinbem_site_www" {
