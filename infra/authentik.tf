@@ -51,6 +51,45 @@ data "authentik_property_mapping_provider_scope" "profile" {
   scope_name = "profile"
 }
 
+data "authentik_flow" "default_enrollment_flow" {
+  slug = "default-source-enrollment"
+}
+
+# Adopts Authentik's own built-in identification stage (the "Email or
+# Username" screen on the login page) rather than creating a duplicate —
+# see the import block below. Only enrollment_flow is a real change; every
+# other field here matches its current live value (checked via GET
+# /api/v3/stages/identification/<pk>/ before writing this) so adopting it
+# doesn't reset anything else. None of this resource's fields are marked
+# `computed` in the provider schema (unlike grant_types on the OAuth2
+# provider above) — an omitted field here really does mean "false/null/
+# empty", not "leave whatever's live alone", so every non-default current
+# value has to be listed explicitly or this apply would silently disable
+# it (e.g. dropping `user_fields` back to empty would stop matching
+# visitors by email/username at all).
+resource "authentik_stage_identification" "default_authentication_identification" {
+  name                       = "default-authentication-identification"
+  user_fields                = ["email", "username"]
+  case_insensitive_matching  = true
+  show_matched_user          = true
+  pretend_user_exists        = true
+  # Wires up the "Sign up" link kleinbem.dev visitors need — the migration
+  # from kleinbem-auth this whole file exists for was never actually
+  # complete without it (that service let any visitor self-register; this
+  # stage's enrollment_flow was null until now, so this login page had no
+  # way to create a new account at all). "Forgot password" stays
+  # unavailable for a different reason: Authentik has no recovery-
+  # designation flow at all yet (confirmed live — GET .../flows/instances/
+  # ?designation=recovery returns zero results), because that needs
+  # working outbound email, which isn't configured on this instance.
+  enrollment_flow = data.authentik_flow.default_enrollment_flow.id
+}
+
+import {
+  to = authentik_stage_identification.default_authentication_identification
+  id = "382698eb-4661-46b5-9c29-a9437788e70e"
+}
+
 resource "authentik_provider_oauth2" "kleinbem_site" {
   name        = "kleinbem-site"
   client_id   = "kleinbem-site"
