@@ -207,11 +207,66 @@ resource "authentik_stage_identification" "default_authentication_identification
   # .../flows/instances/?designation=recovery returns zero results),
   # because that needs working outbound email, which isn't configured.
   enrollment_flow = authentik_flow.kleinbem_site_enrollment.uuid
+  # Shows the "Sign in with Google" button on the login page — same
+  # `.uuid`-not-`.id` gotcha as authentik_flow above (source_oauth also
+  # has a `slug` field, so its `id` is the slug too, not the real UUID
+  # foreign-key references need).
+  sources = [authentik_source_oauth.google.uuid]
 }
 
 import {
   to = authentik_stage_identification.default_authentication_identification
   id = "382698eb-4661-46b5-9c29-a9437788e70e"
+}
+
+# --- Google sign-in ("cannot see that" — user noticed it was missing,
+# confirmed 2026-09-21 it worked on kleinbem-auth before) ---
+#
+# Reuses kleinbem-auth's own Google OAuth 2.0 Web Client (still a real,
+# populated credential on core-pi, confirmed live — not a new one, since
+# no fresh Google Cloud Console access was needed for this). That client's
+# "Authorized redirect URIs" list in Google Cloud Console needs a SECOND
+# entry added by hand (can't be done via this Terraform — Google Cloud
+# Console, not something with an API token available here): Authentik's
+# own callback path, output below as google_source_callback_uri once
+# applied. The existing entry (kleinbem-auth's
+# https://login.kleinbem.dev/api/auth/callback/google) stays — it's
+# additive, not a replacement, so kleinbem-auth's own Google login keeps
+# working until Phase 4 decommissions it.
+#
+# authentication_flow/enrollment_flow: default-source-authentication and
+# default-source-enrollment are EXACTLY what these two are for — unlike
+# the identification stage's own enrollment_flow (built standalone above
+# because default-source-enrollment's own if-sso policy blocks direct
+# use), a Source is precisely the "arriving via SSO" context that policy
+# is checking for.
+#
+# No property_mappings: this instance has zero source-oauth property
+# mappings at all (confirmed live — GET .../propertymappings/source/
+# oauth/ returns zero results), so there's nothing to attach; Authentik's
+# built-in provider_type="google" handling still maps name/email itself.
+data "authentik_flow" "default_source_authentication" {
+  slug = "default-source-authentication"
+}
+
+data "authentik_flow" "default_source_enrollment" {
+  slug = "default-source-enrollment"
+}
+
+resource "authentik_source_oauth" "google" {
+  name                = "Google"
+  slug                = "google"
+  provider_type       = "google"
+  consumer_key        = var.kleinbem_auth_google_client_id
+  consumer_secret     = var.kleinbem_auth_google_client_secret
+  authentication_flow = data.authentik_flow.default_source_authentication.id
+  enrollment_flow     = data.authentik_flow.default_source_enrollment.id
+  enabled             = true
+}
+
+output "google_source_callback_uri" {
+  value       = authentik_source_oauth.google.callback_uri
+  description = "Add this as a SECOND 'Authorized redirect URI' on kleinbem-auth's existing Google OAuth client in Google Cloud Console — don't remove the existing login.kleinbem.dev one."
 }
 
 resource "authentik_provider_oauth2" "kleinbem_site" {

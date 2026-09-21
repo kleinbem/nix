@@ -75,7 +75,11 @@ ORIN_FILE="$SECRETS_ROOT/nix/per-host/orin-nano.yaml"
 # AUTHENTIK_BOOTSTRAP_TOKEN) — read directly from its one source of truth
 # rather than duplicating the value into infra/terraform.yaml.
 AUTHENTIK_FILE="$SECRETS_ROOT/nix/per-container/authentik.yaml"
-for f in "$TERRAFORM_FILE" "$SHARED_FILE" "$COREPI_FILE" "$ORIN_FILE" "$AUTHENTIK_FILE"; do
+# kleinbem-auth's own Google OAuth client is reused for Authentik's Google
+# Source (authentik.tf) rather than minting a new one — same reasoning as
+# AUTHENTIK_FILE above, read from its one source of truth.
+KLEINBEM_AUTH_FILE="$SECRETS_ROOT/nix/per-container/kleinbem-auth.yaml"
+for f in "$TERRAFORM_FILE" "$SHARED_FILE" "$COREPI_FILE" "$ORIN_FILE" "$AUTHENTIK_FILE" "$KLEINBEM_AUTH_FILE"; do
   if [ ! -f "$f" ]; then
     echo -e "${RED}❌ Secrets file not found at $f.${RESET}"
     exit 1
@@ -83,13 +87,16 @@ for f in "$TERRAFORM_FILE" "$SHARED_FILE" "$COREPI_FILE" "$ORIN_FILE" "$AUTHENTI
 done
 
 echo -e "\n${BOLD}[1/4] Decrypting and checking secrets...${RESET}"
-echo -e "${YELLOW}👉 Touch your YubiKey if it flashes — up to 5 scoped files to decrypt...${RESET}"
+echo -e "${YELLOW}👉 Touch your YubiKey if it flashes — up to 6 scoped files to decrypt...${RESET}"
 DECRYPTED_YAML=$(sops -d "$TERRAFORM_FILE")
 SHARED_YAML=$(sops -d "$SHARED_FILE")
 COREPI_YAML=$(sops -d "$COREPI_FILE")
 ORIN_YAML=$(sops -d "$ORIN_FILE")
 AUTHENTIK_YAML=$(sops -d "$AUTHENTIK_FILE")
+KLEINBEM_AUTH_YAML=$(sops -d "$KLEINBEM_AUTH_FILE")
 AUTHENTIK_API_TOKEN=$(echo "$AUTHENTIK_YAML" | yq '.authentik_bootstrap_api_token')
+GOOGLE_CLIENT_ID=$(echo "$KLEINBEM_AUTH_YAML" | yq '.google_client_id')
+GOOGLE_CLIENT_SECRET=$(echo "$KLEINBEM_AUTH_YAML" | yq '.google_client_secret')
 
 # Check if we have api token and account id
 API_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.cloudflare_api_token')
@@ -233,6 +240,8 @@ R2_KEY_SECRET=$(echo "$DECRYPTED_YAML" | yq '.r2_state_secret_access_key')
 export TF_VAR_r2_state_access_key_id="$R2_KEY_ID"
 export TF_VAR_r2_state_secret_access_key="$R2_KEY_SECRET"
 export TF_VAR_authentik_api_token="$AUTHENTIK_API_TOKEN"
+export TF_VAR_kleinbem_auth_google_client_id="$GOOGLE_CLIENT_ID"
+export TF_VAR_kleinbem_auth_google_client_secret="$GOOGLE_CLIENT_SECRET"
 
 # --- State encryption passphrase (see infra/encryption.tf) ---
 # Injected via the TF_ENCRYPTION config merge so the committed encryption.tf

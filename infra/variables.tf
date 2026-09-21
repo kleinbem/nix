@@ -121,3 +121,17 @@ variable "kleinbem_site_session_secret" {
   default     = ""
   description = "Symmetric key kleinbem-site's own Pages Functions use to sign its session cookie after the OIDC exchange completes (kleinbem-secrets/infra/terraform.yaml). Generated with `openssl rand -hex 32` — unrelated to Authentik's own client_secret; kept separate so rotating one never invalidates the other. Empty default keeps apply working before the key is minted."
 }
+
+variable "kleinbem_auth_google_client_id" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "Reused, not new: the same Google OAuth 2.0 Web Client that kleinbem-auth's own Google sign-in used (kleinbem-secrets/nix/per-container/kleinbem-auth.yaml, google_client_id), confirmed live 2026-09-21 to still be a real, populated credential on core-pi. Wiring it into Authentik as a Source needs its own additional 'Authorized redirect URI' added on the SAME Google Cloud OAuth client (Authentik's callback path differs from better-auth's) — see authentik_source_oauth.google's callback_uri output for the exact value to add. Empty default keeps apply working before this variable's first real wiring."
+}
+
+variable "kleinbem_auth_google_client_secret" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "Paired with kleinbem_auth_google_client_id above — same reused Google OAuth client, same source file/key (google_client_secret)."
+}
