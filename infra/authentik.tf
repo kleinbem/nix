@@ -490,6 +490,27 @@ resource "authentik_application" "fleet_forward_auth" {
   meta_description  = "Shared forward-auth gate for code-server, Alertmanager, Syncthing, Frigate, and Paperless — replaces Authelia."
 }
 
+# Creating a Provider does NOT attach it to anything — outposts have their
+# OWN explicit provider list, and this instance's embedded outpost had zero
+# providers before this (confirmed live via GET /api/v3/outposts/instances/
+# 2026-09-22: "providers": []). Without this, Caddy's calls to
+# /outpost.goauthentik.io/auth/caddy 404 unconditionally — the outpost has
+# no idea what it's supposed to be protecting. Adopts the existing
+# "authentik Embedded Outpost" (real UUID, not the container.nix-scoped
+# one — checked live) rather than creating a competing outpost, same
+# import-block pattern as default_authentication_identification above.
+resource "authentik_outpost" "embedded" {
+  name = "authentik Embedded Outpost"
+  protocol_providers = [
+    authentik_provider_proxy.fleet_forward_auth.id
+  ]
+}
+
+import {
+  to = authentik_outpost.embedded
+  id = "1bf3fce7-cdc2-49ac-983b-beab8401f24e"
+}
+
 # --- Grafana: native OIDC, not forward-auth ---
 #
 # Same authentik_provider_oauth2 pattern as kleinbem_site above (not

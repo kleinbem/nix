@@ -54,6 +54,16 @@ locals {
     "code.kleinbem.dev",
     "frigate.kleinbem.dev",
     "authelia.kleinbem.dev",
+    # Added 2026-09-22: previously bare IP:port-only (no domain at all),
+    # which meant authentik's forward_domain Proxy Provider couldn't ever
+    # match them (its cookie_domain scoping needs a real *.kleinbem.dev
+    # hostname on the request) — confirmed live via a working code-server
+    # (has a domain) vs. a 404'ing syncthing (didn't) through the exact
+    # same Caddy forward_auth config. Mesh-only like code/frigate, not
+    # public — same access posture as before, just addressable now.
+    "syncthing.kleinbem.dev",
+    "alertmanager.kleinbem.dev",
+    "paperless.kleinbem.dev",
   ]
 }
 
