@@ -503,32 +503,77 @@ resource "authentik_brand" "kleinbem_site" {
 # interactive Authentik login). NOT Grafana — it gets native OIDC below
 # instead of forward-auth, since it has first-class support for that and
 # shouldn't sit behind a second auth layer on top of its own login.
-resource "authentik_provider_proxy" "fleet_forward_auth" {
-  name          = "fleet-forward-auth"
-  mode          = "forward_domain"
-  external_host = "https://kleinbem.dev"
-  cookie_domain = "kleinbem.dev"
+#
+# One Provider+Application PER service (forward_single), not one shared
+# forward_domain Provider — a deliberate switch 2026-09-22 after the
+# shared version shipped: martin wanted distinct tiles in /if/user/ ("My
+# Applications") instead of one generic "Fleet internal services" tile
+# covering all 6 with no way to tell them apart or launch a specific one.
+# Side benefit, not the original motivation: independent per-service
+# cookies and policy bindings instead of one shared cookie_domain session
+# — a compromised cookie for one service no longer implies the others,
+# and different services could get different access policies later if
+# ever needed (all bound to the same "staff" group for now, unchanged).
+# Caddy's config needs ZERO changes for this — every `auth = true` node
+# already calls the same generic outpost endpoint
+# (10.85.48.142:9000/outpost.goauthentik.io/auth/caddy); the outpost
+# itself routes by Host header to whichever of these Providers matches,
+# same as it already did with one Provider matching a wider domain set.
+locals {
+  fleet_services = {
+    code-server = {
+      name   = "code-server"
+      domain = "code.kleinbem.dev"
+      desc   = "Browser-based VS Code IDE"
+    }
+    syncthing = {
+      name   = "Syncthing"
+      domain = "syncthing.kleinbem.dev"
+      desc   = "File sync"
+    }
+    alertmanager = {
+      name   = "Alertmanager"
+      domain = "alertmanager.kleinbem.dev"
+      desc   = "Prometheus alert routing"
+    }
+    frigate = {
+      name   = "Frigate"
+      domain = "frigate.kleinbem.dev"
+      desc   = "Camera NVR"
+    }
+    paperless = {
+      name   = "Paperless"
+      domain = "paperless.kleinbem.dev"
+      desc   = "Document management"
+    }
+    n8n = {
+      name   = "n8n"
+      domain = "n8n.kleinbem.dev"
+      desc   = "Workflow automation (UI only — /webhook* stays unauthenticated at the Caddy layer, see caddy/helpers.nix)"
+    }
+  }
+}
+
+resource "authentik_provider_proxy" "fleet" {
+  for_each      = local.fleet_services
+  name          = "fleet-${each.key}"
+  mode          = "forward_single"
+  external_host = "https://${each.value.domain}"
 
   authorization_flow = data.authentik_flow.default_authorization_flow.id
   invalidation_flow  = data.authentik_flow.default_invalidation_flow.id
 }
 
-resource "authentik_application" "fleet_forward_auth" {
-  name              = "Fleet internal services"
-  slug              = "fleet-forward-auth"
-  protocol_provider = authentik_provider_proxy.fleet_forward_auth.id
-  meta_description  = "Shared forward-auth gate for code-server, Alertmanager, Syncthing, Frigate, Paperless, and n8n's UI — replaces Authelia. n8n's own /webhook* paths are carved out at the Caddy layer (nix-presets' caddy/helpers.nix), not covered by this gate at all."
-  # meta_launch_url is a separate, purely cosmetic field on the
-  # Application, distinct from the Provider's external_host above (which
-  # is security-relevant — it's where the outpost's own auth callback
-  # lives, https://<external_host>/outpost.goauthentik.io/callback, for
-  # every one of the 5 protected services). Deliberately NOT reusing
-  # home.kleinbem.dev for external_host itself — that host is gated by
-  # Cloudflare Access (cloudflare-access.tf), a different auth layer that
-  # could plausibly intercept the outpost callback path and break the
-  # already-working forward-auth for all 5 services. meta_launch_url only
-  # affects what the "My Applications" tile links to, nothing else.
-  meta_launch_url = "https://home.kleinbem.dev"
+resource "authentik_application" "fleet" {
+  for_each          = local.fleet_services
+  name              = each.value.name
+  slug              = "fleet-${each.key}"
+  protocol_provider = authentik_provider_proxy.fleet[each.key].id
+  meta_description  = each.value.desc
+  # Each tile now launches its own real service directly — the previous
+  # shared Application had no single sensible target (it covered 6
+  # different domains) and pointed at the fleet dashboard instead.
+  meta_launch_url = "https://${each.value.domain}"
 }
 
 # Creating a Provider does NOT attach it to anything — outposts have their
@@ -541,10 +586,8 @@ resource "authentik_application" "fleet_forward_auth" {
 # one — checked live) rather than creating a competing outpost, same
 # import-block pattern as default_authentication_identification above.
 resource "authentik_outpost" "embedded" {
-  name = "authentik Embedded Outpost"
-  protocol_providers = [
-    authentik_provider_proxy.fleet_forward_auth.id
-  ]
+  name               = "authentik Embedded Outpost"
+  protocol_providers = [for p in authentik_provider_proxy.fleet : p.id]
 }
 
 import {
@@ -649,10 +692,11 @@ resource "authentik_group" "staff" {
   users = [authentik_user.martin.id]
 }
 
-resource "authentik_policy_binding" "fleet_forward_auth_staff_only" {
-  target = authentik_application.fleet_forward_auth.uuid
-  group  = authentik_group.staff.id
-  order  = 0
+resource "authentik_policy_binding" "fleet_staff_only" {
+  for_each = authentik_application.fleet
+  target   = each.value.uuid
+  group    = authentik_group.staff.id
+  order    = 0
 }
 
 resource "authentik_policy_binding" "grafana_staff_only" {
