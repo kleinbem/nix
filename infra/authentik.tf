@@ -588,6 +588,44 @@ resource "authentik_application" "fleet" {
 resource "authentik_outpost" "embedded" {
   name               = "authentik Embedded Outpost"
   protocol_providers = [for p in authentik_provider_proxy.fleet : p.id]
+
+  # Real bug, found live 2026-09-22: authentik_host/authentik_host_browser
+  # were both "" (confirmed via GET .../outposts/instances/<uuid>/), so the
+  # outpost fell back to constructing http://localhost/... for the
+  # internal authorize-continuation redirect during forward-auth — a real
+  # browser hitting that gets ERR_CONNECTION_REFUSED trying to reach its
+  # own machine. Invisible for 5 of the 6 fleet services (mesh-only,
+  # 404 at the Cloudflare edge before ever reaching the outpost) but broke
+  # n8n's completion (public tunnel, so it got far enough to hit this).
+  # Every other key below is `config`'s own existing default — listed
+  # explicitly because this field is Generated/Computed, same reasoning as
+  # every other adopted-object field in this file: an omitted key here
+  # means "reset to schema default", not "leave whatever's live alone".
+  config = jsonencode({
+    log_level                        = "info"
+    docker_labels                    = null
+    authentik_host                   = "https://auth.kleinbem.dev"
+    docker_network                   = null
+    container_image                  = null
+    docker_map_ports                 = true
+    refresh_interval                 = "minutes=5"
+    kubernetes_replicas              = 1
+    kubernetes_namespace             = "default"
+    authentik_host_browser           = "https://auth.kleinbem.dev"
+    object_naming_template           = "ak-outpost-%(name)s"
+    authentik_host_insecure          = false
+    kubernetes_json_patches          = null
+    kubernetes_service_type          = "ClusterIP"
+    kubernetes_ingress_path_type     = null
+    kubernetes_image_pull_secrets    = []
+    kubernetes_ingress_class_name    = null
+    kubernetes_disable_x509_strict   = false
+    kubernetes_disabled_components   = []
+    kubernetes_ingress_annotations   = {}
+    kubernetes_ingress_secret_name   = "authentik-outpost-tls"
+    kubernetes_httproute_annotations = {}
+    kubernetes_httproute_parent_refs = []
+  })
 }
 
 import {
