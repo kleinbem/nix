@@ -39,6 +39,20 @@ data "authentik_flow" "default_invalidation_flow" {
   slug = "default-provider-invalidation-flow"
 }
 
+# Brand-level flows — distinct slugs from the two provider-level ones above
+# (no "provider" in the name), used by authentik_brand.kleinbem_site below.
+data "authentik_flow" "default_authentication_flow" {
+  slug = "default-authentication-flow"
+}
+
+data "authentik_flow" "default_invalidation_flow_brand" {
+  slug = "default-invalidation-flow"
+}
+
+data "authentik_flow" "default_user_settings_flow" {
+  slug = "default-user-settings-flow"
+}
+
 data "authentik_property_mapping_provider_scope" "openid" {
   scope_name = "openid"
 }
@@ -380,6 +394,23 @@ resource "authentik_brand" "kleinbem_site" {
   domain         = "auth.kleinbem.dev"
   default        = false
   branding_title = "kleinbem.dev"
+
+  # Real bug, found live 2026-09-22: authentik matches Brands by exact
+  # request domain, so once this Brand existed, EVERY request to
+  # auth.kleinbem.dev started resolving its flow_* fields from here instead
+  # of falling back to authentik-default's (which has real flows
+  # configured) — and this Brand only ever set branding_*/attributes,
+  # leaving flow_authentication/flow_invalidation/flow_user_settings all
+  # null. Login itself kept working (the flow executor resolves slugs
+  # straight from the URL, not the Brand), but the "My Applications"
+  # launcher (/if/user/) needs flow_user_settings specifically and
+  # 403'd — reproduced live, confirmed via GET .../core/brands/: this
+  # Brand's flow_user_settings was None while authentik-default's wasn't.
+  # Mirroring authentik-default's own values exactly, not inventing new
+  # flows — this Brand exists for branding, not to diverge behavior.
+  flow_authentication = data.authentik_flow.default_authentication_flow.id
+  flow_invalidation   = data.authentik_flow.default_invalidation_flow_brand.id
+  flow_user_settings  = data.authentik_flow.default_user_settings_flow.id
   # kleinbem-site's own mark (public/favicon.svg — a plain 32x32 "K"
   # monogram, already served at kleinbem.dev/favicon.svg) instead of the
   # stock authentik wordmark. branding_favicon reuses the same asset — no
