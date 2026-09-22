@@ -38,7 +38,23 @@ locals {
     # wrangler pages deploy — see cloudflare-pages.tf for the project/domain
     # resources and why this token is deliberately narrower than the one
     # this whole Terraform root itself uses.
-    "kleinbem-site" = ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_PAGES_DEPLOY_TOKEN"]
+    #
+    # AUTHENTIK_CLIENT_SECRET/AUTH_SESSION_SECRET/TURNSTILE_SECRET_KEY: NOT
+    # injected via cloudflare_pages_project's deployment_configs (see
+    # cloudflare-pages.tf's header comment for why that stopped working once
+    # kleinbem-site started shipping a wrangler.jsonc). Consumed instead by
+    # a `wrangler pages secret put` step in kleinbem-site's own ci.yaml, run
+    # every deploy, right before `wrangler pages deploy` — that's the only
+    # reliable delivery path for a Wrangler-config-managed Pages project.
+    #
+    # RESEND_API_KEY deliberately NOT included — the contact form's email
+    # send is going out unconfigured for now (fails gracefully, returns a
+    # JSON error, doesn't break anything else); add it here + to ci.yaml's
+    # secret-put step if/when a Resend (or replacement) key exists.
+    "kleinbem-site" = [
+      "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_PAGES_DEPLOY_TOKEN",
+      "AUTHENTIK_CLIENT_SECRET", "AUTH_SESSION_SECRET", "TURNSTILE_SECRET_KEY",
+    ]
   }
 
   secret_values = {
@@ -54,6 +70,10 @@ locals {
     "CLOUDFLARE_PAGES_DEPLOY_TOKEN" = var.cloudflare_pages_deploy_token
     "R2_ACCESS_KEY_ID"              = var.r2_state_access_key_id
     "R2_SECRET_ACCESS_KEY"          = var.r2_state_secret_access_key
+    # kleinbem-site's Pages secrets (see ci_secrets comment above).
+    "AUTHENTIK_CLIENT_SECRET" = authentik_provider_oauth2.kleinbem_site.client_secret
+    "AUTH_SESSION_SECRET"     = var.kleinbem_site_session_secret
+    "TURNSTILE_SECRET_KEY"    = cloudflare_turnstile_widget.kleinbem_site.secret
   }
 
   ci_secret_pairs = merge([
