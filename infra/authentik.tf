@@ -465,14 +465,13 @@ resource "authentik_brand" "kleinbem_site" {
 # provider's own resource docs, not one Provider per protected service.
 #
 # Scope: code-server, monitoring's alertmanager, syncthing, frigate,
-# paperless (5 of the 6 currently-Authelia'd services). NOT n8n — its
-# public exposure is tied to receiving external webhooks
-# (cloudflare-tunnel.nix's own comment), and how that coexists with a
-# domain-wrapping forward_auth wasn't traced to the bottom this session;
-# left on Authelia as a deliberate follow-up, not blocking this migration.
-# NOT Grafana either — it gets native OIDC below instead of forward-auth,
-# since it has first-class support for that and shouldn't sit behind a
-# second auth layer on top of its own login.
+# paperless, and n8n's UI (n8n's own /webhook*/webhook-test* paths are
+# carved out at the Caddy layer instead — see
+# nix-presets/containers/caddy/helpers.nix's authExcludePaths and
+# inventory.nix's n8n node — external webhook callers can't complete an
+# interactive Authentik login). NOT Grafana — it gets native OIDC below
+# instead of forward-auth, since it has first-class support for that and
+# shouldn't sit behind a second auth layer on top of its own login.
 resource "authentik_provider_proxy" "fleet_forward_auth" {
   name          = "fleet-forward-auth"
   mode          = "forward_domain"
@@ -487,7 +486,7 @@ resource "authentik_application" "fleet_forward_auth" {
   name              = "Fleet internal services"
   slug              = "fleet-forward-auth"
   protocol_provider = authentik_provider_proxy.fleet_forward_auth.id
-  meta_description  = "Shared forward-auth gate for code-server, Alertmanager, Syncthing, Frigate, and Paperless — replaces Authelia."
+  meta_description  = "Shared forward-auth gate for code-server, Alertmanager, Syncthing, Frigate, Paperless, and n8n's UI — replaces Authelia. n8n's own /webhook* paths are carved out at the Caddy layer (nix-presets' caddy/helpers.nix), not covered by this gate at all."
 }
 
 # Creating a Provider does NOT attach it to anything — outposts have their
