@@ -601,20 +601,41 @@ output "grafana_oidc_client_secret" {
 # the two authentik_application resources above have no access
 # restriction of their own.
 #
-# `data.authentik_user` looks up martin's existing account (created via
-# the ordinary login flow, not Terraform-managed) rather than adopting it
-# as a full resource — Terraform only needs to reference it here, not own
-# it. Username is the real login email, not "martin" — confirmed live via
-# GET /api/v3/core/users/ (2026-09-22): this account was created via
-# Google sign-in, which defaults an authentik user's `username` to their
-# email address rather than a short handle.
-data "authentik_user" "martin" {
-  username = "martin.kleinberger@gmail.com"
+# Adopted (import block below) rather than left as a data source — a real
+# bug needed a real field changed. Google-source sign-in creates accounts
+# as type="external" by default (confirmed live via GET
+# /api/v3/core/users/7/), and authentik restricts /if/user/ ("My
+# Applications") to type="internal" only: "Request has been denied.
+# Interface can only be accessed by internal users." — reproduced live
+# 2026-09-22, martin's own account, in both a normal and an incognito
+# session (ruling out cookies/cache). Every other field below matches the
+# live account exactly — same discipline as the identification-stage
+# adoption above, so this apply only changes `type`, nothing else.
+resource "authentik_user" "martin" {
+  username  = "martin.kleinberger@gmail.com"
+  name      = "Martin Kleinberger"
+  email     = "martin.kleinberger@gmail.com"
+  is_active = true
+  path      = "goauthentik.io/sources/google"
+  type      = "internal"
+  # Group membership stays owned by authentik_group.staff's `users` field
+  # below, not mirrored here too — both sides are the same underlying M2M
+  # relationship (each schema doc marks its own field "Generated"), and
+  # setting it on both would make these two resources depend on each
+  # other circularly.
+  attributes = jsonencode({
+    "goauthentik.io/user/sources" = ["Google"]
+  })
+}
+
+import {
+  to = authentik_user.martin
+  id = "7"
 }
 
 resource "authentik_group" "staff" {
   name  = "staff"
-  users = [data.authentik_user.martin.id]
+  users = [authentik_user.martin.id]
 }
 
 resource "authentik_policy_binding" "fleet_forward_auth_staff_only" {
