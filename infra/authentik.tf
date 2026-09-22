@@ -320,3 +320,257 @@ output "kleinbem_site_oidc_client_secret" {
   value     = authentik_provider_oauth2.kleinbem_site.client_secret
   sensitive = true
 }
+
+# --- Branding: make auth.kleinbem.dev look like part of kleinbem.dev ---
+#
+# User feedback 2026-09-21: the hosted login/signup page "looks like a
+# different website" (stock authentik title, mountain-photo flow
+# background). Considered embedding the flow executor as native Svelte
+# components on kleinbem-site itself, but authentik sends no CORS headers
+# on the flow-executor API (confirmed live) — the only way to make that
+# same-origin would be a session-cookie-translating reverse proxy in front
+# of the IdP, which is a lot of new attack surface for what is fundamentally
+# a cosmetic ask. This — a scoped Brand with custom CSS — gets the same
+# visual outcome (matches kleinbem-site's palette, no more stock imagery)
+# with zero new runtime code and zero risk to the login flow itself.
+#
+# A NEW Brand scoped to the real hostname, not an import/edit of the
+# existing default (`domain = "authentik-default", default = true`) —
+# authentik matches brands by exact request domain first, falling back to
+# the default one, so this one taking effect for auth.kleinbem.dev needs no
+# import block and can't affect any other domain/tenant on this instance.
+#
+# First pass used authentik's documented semantic --ak-color-* variables
+# (website/docs/customize/branding/custom-css.mdx) — applied cleanly
+# (confirmed live: the brand's custom CSS IS adopted into every managed
+# shadow root, e.g. ak-flow-executor, ak-message-container, ak-flow-card —
+# checked via el.shadowRoot.adoptedStyleSheets from the browser console),
+# but had ZERO visual effect. Root cause, found by inspecting the actual
+# rendered DOM live: this version's login page (v2026.8.0) renders classic
+# PatternFly 4 markup (.pf-c-login, .pf-c-button.pf-m-primary, …), which
+# doesn't consume the --ak-color-* bridge at all — that variable set
+# appears to be for authentik's newer/other UI surfaces, not this one. A
+# second bug compounded it: the CSS used `:root { ... }` selectors, which
+# adopted-into-a-shadow-root stylesheets can never match (no element
+# inside a shadow tree is ever the document root) — so even a variable
+# this page DOES read would never have been set. Confirmed by testing
+# direct PatternFly class overrides live (script-injected adoptedStyleSheets
+# via the browser console before writing this) — that's what actually
+# moves pixels, hence the plain selectors below instead of the CSS-variable
+# approach the docs recommend as the primary path.
+#
+# --ak-global--background-image is the one variable that DOES work here —
+# unrelated to the shadow-root adoption above, it's set by a plain
+# (non-shadow) <style> tag in authentik's own flow.html
+# (authentik/flows/templates/if/flow.html), so a :root override at the
+# top-level document genuinely reaches it.
+#
+# Known minor gap: the "Continue with Google" button's "G" icon is
+# authentik's static asset (/static/authentik/sources/google.svg, an
+# actual image, not an inline SVG using fill:currentColor) — white-on-
+# transparent by design for a dark button. Gave the button an accent-blue
+# pill background so it stays visible against the new light page; a
+# perfect-contrast fix would need a different icon asset, not reachable
+# via this provider — not worth chasing further for one small icon.
+#
+# Values pulled straight from kleinbem-site/src/styles/global.css's
+# --color-* tokens, so a future palette change there should be mirrored
+# here too.
+resource "authentik_brand" "kleinbem_site" {
+  domain         = "auth.kleinbem.dev"
+  default        = false
+  branding_title = "kleinbem.dev"
+  # kleinbem-site's own mark (public/favicon.svg — a plain 32x32 "K"
+  # monogram, already served at kleinbem.dev/favicon.svg) instead of the
+  # stock authentik wordmark. branding_favicon reuses the same asset — no
+  # separate favicon exists for this narrower purpose, and reusing it here
+  # means one source of truth if the mark ever changes.
+  branding_logo    = "https://kleinbem.dev/favicon.svg"
+  branding_favicon = "https://kleinbem.dev/favicon.svg"
+
+  # Forces the actual theme, rather than fighting authentik's automatic
+  # (system-preference-driven) dark mode purely with CSS !important —
+  # matches kleinbem-site's own explicit design (src/styles/global.css:
+  # "This is a LIGHT site by design — no dark scheme"). Confirmed live
+  # 2026-09-22 that a visitor's dark OS preference otherwise DOES flip
+  # authentik into its real dark theme (populated --ak-dark-background
+  # etc., not a placeholder), so this isn't defensive — without it the
+  # page would only look right for light-preference visitors even with
+  # the CSS below in place. Documented mechanism: goauthentik/authentik
+  # website/docs/customize/branding/custom-css.mdx, "Enforce a specific
+  # color scheme".
+  attributes = jsonencode({
+    settings = {
+      theme = {
+        base = "light"
+      }
+    }
+  })
+
+  branding_custom_css = <<-CSS
+    :root,
+    html[data-theme="dark"] {
+      --ak-global--background-image: none !important;
+    }
+
+    .pf-c-login,
+    .pf-c-login__main {
+      background-color: #f9f9ff !important;
+    }
+
+    .pf-c-login__main-header,
+    .pf-c-login__main-body,
+    .pf-c-title,
+    .pf-c-login__main-footer-band {
+      color: #1a1b20 !important;
+    }
+
+    a {
+      color: #435e91 !important;
+    }
+
+    .pf-c-button.pf-m-primary {
+      background-color: #435e91 !important;
+    }
+
+    .pf-c-login__footer,
+    .pf-c-login__footer a,
+    ak-locale-select,
+    ak-locale-select label,
+    ak-locale-select select {
+      color: #44474f !important;
+    }
+
+    .source-button {
+      background-color: #435e91 !important;
+      border-radius: 999px !important;
+    }
+  CSS
+}
+
+# --- Fleet forward-auth (Authelia migration, step 1 of the plan) ---
+#
+# Authelia currently gates 6 services on core-pi via a shared Caddy
+# forward_auth block (nix-presets/containers/caddy/helpers.nix), keyed off
+# one `auth = true` flag per inventory.nix node. Consolidating onto
+# Authentik instead of running two identity systems — see kleinbem_site's
+# own header comment for the same reasoning.
+#
+# authentik's EMBEDDED outpost (already running as part of the existing
+# `authentik` container on core-pi, port 9000 — no separate
+# outpost deployment) handles Proxy-Provider forward-auth natively at
+# /outpost.goauthentik.io/auth/caddy. `mode = "forward_domain"` +
+# cookie_domain covers every *.kleinbem.dev subdomain with ONE
+# Provider+Application and a shared session cookie — confirmed via the
+# provider's own resource docs, not one Provider per protected service.
+#
+# Scope: code-server, monitoring's alertmanager, syncthing, frigate,
+# paperless (5 of the 6 currently-Authelia'd services). NOT n8n — its
+# public exposure is tied to receiving external webhooks
+# (cloudflare-tunnel.nix's own comment), and how that coexists with a
+# domain-wrapping forward_auth wasn't traced to the bottom this session;
+# left on Authelia as a deliberate follow-up, not blocking this migration.
+# NOT Grafana either — it gets native OIDC below instead of forward-auth,
+# since it has first-class support for that and shouldn't sit behind a
+# second auth layer on top of its own login.
+resource "authentik_provider_proxy" "fleet_forward_auth" {
+  name          = "fleet-forward-auth"
+  mode          = "forward_domain"
+  external_host = "https://kleinbem.dev"
+  cookie_domain = "kleinbem.dev"
+
+  authorization_flow = data.authentik_flow.default_authorization_flow.id
+  invalidation_flow  = data.authentik_flow.default_invalidation_flow.id
+}
+
+resource "authentik_application" "fleet_forward_auth" {
+  name              = "Fleet internal services"
+  slug              = "fleet-forward-auth"
+  protocol_provider = authentik_provider_proxy.fleet_forward_auth.id
+  meta_description  = "Shared forward-auth gate for code-server, Alertmanager, Syncthing, Frigate, and Paperless — replaces Authelia."
+}
+
+# --- Grafana: native OIDC, not forward-auth ---
+#
+# Same authentik_provider_oauth2 pattern as kleinbem_site above (not
+# authentik_provider_proxy) — Grafana authenticates visitors itself via
+# services.grafana.settings.auth.generic_oauth rather than sitting behind
+# the shared forward-auth gate. grant_types set explicitly even though
+# this is a fresh resource (not a public->confidential switch like
+# kleinbem_site hit) — same defensive reasoning: it's Optional+Computed in
+# the provider schema, cheap to pin, expensive to silently lose.
+resource "authentik_provider_oauth2" "grafana" {
+  name        = "grafana"
+  client_id   = "grafana"
+  client_type = "confidential"
+  grant_types = ["authorization_code"]
+
+  authorization_flow = data.authentik_flow.default_authorization_flow.id
+  invalidation_flow  = data.authentik_flow.default_invalidation_flow.id
+
+  property_mappings = [
+    data.authentik_property_mapping_provider_scope.openid.id,
+    data.authentik_property_mapping_provider_scope.email.id,
+    data.authentik_property_mapping_provider_scope.profile.id,
+  ]
+
+  allowed_redirect_uris = [
+    {
+      matching_mode = "strict"
+      url           = "https://grafana.kleinbem.dev/login/generic_oauth"
+    }
+  ]
+}
+
+resource "authentik_application" "grafana" {
+  name              = "Grafana"
+  slug              = "grafana"
+  protocol_provider = authentik_provider_oauth2.grafana.id
+  meta_description  = "kleinbem fleet monitoring dashboard"
+}
+
+output "grafana_oidc_client_id" {
+  value = authentik_provider_oauth2.grafana.client_id
+}
+
+output "grafana_oidc_client_secret" {
+  value     = authentik_provider_oauth2.grafana.client_secret
+  sensitive = true
+}
+
+# --- Access scoping: internal infra is NOT for kleinbem.dev visitors ---
+#
+# Both Applications above and kleinbem_site's own Application live on the
+# SAME authentik instance/user directory as kleinbem.dev's public
+# self-registration flow — without an explicit access policy, anyone who
+# signs up on kleinbem.dev could also authenticate into Grafana, Paperless,
+# code-server, etc. Scoping internal infra to a "staff" group (currently:
+# just martin, the existing user — decided explicitly, not everyone the
+# directory happens to contain) is what actually enforces that boundary;
+# the two authentik_application resources above have no access
+# restriction of their own.
+#
+# `data.authentik_user` looks up martin's existing account (created via
+# the ordinary login flow, not Terraform-managed) rather than adopting it
+# as a full resource — Terraform only needs to reference it here, not own
+# it.
+data "authentik_user" "martin" {
+  username = "martin"
+}
+
+resource "authentik_group" "staff" {
+  name  = "staff"
+  users = [data.authentik_user.martin.id]
+}
+
+resource "authentik_policy_binding" "fleet_forward_auth_staff_only" {
+  target = authentik_application.fleet_forward_auth.uuid
+  group  = authentik_group.staff.id
+  order  = 0
+}
+
+resource "authentik_policy_binding" "grafana_staff_only" {
+  target = authentik_application.grafana.uuid
+  group  = authentik_group.staff.id
+  order  = 0
+}
