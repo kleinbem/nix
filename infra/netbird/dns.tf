@@ -53,7 +53,10 @@ locals {
   mesh_only_fqdns = [
     "code.kleinbem.dev",
     "frigate.kleinbem.dev",
-    "authelia.kleinbem.dev",
+    # authelia.kleinbem.dev removed 2026-09-22 — Authelia decommissioned,
+    # replaced by Authentik (auth.kleinbem.dev, on the public tunnel, not
+    # mesh-only — see cloudflare-tunnel.nix).
+    #
     # Added 2026-09-22: previously bare IP:port-only (no domain at all),
     # which meant authentik's forward_domain Proxy Provider couldn't ever
     # match them (its cookie_domain scoping needs a real *.kleinbem.dev

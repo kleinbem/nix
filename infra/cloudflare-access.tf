@@ -17,9 +17,10 @@
 #   * cache.kleinbem.dev — Attic Nix cache  -> NOT gated (SSO breaks Nix pulls)
 #   * n8n / chat         — use mTLS (webhooks/API)  -> NOT gated (SSO breaks them)
 #   * code.kleinbem.dev  — moved to mesh-only (nix-config#mesh-only-web-services);
-#                          off the tunnel, so Access can't gate it — Authelia
-#                          (auth = true on the inventory node) is its auth now.
-#   * frigate.kleinbem.dev — mesh-only, Authelia. Never on the tunnel.
+#                          off the tunnel, so Access can't gate it — Authentik
+#                          forward-auth (auth = true on the inventory node,
+#                          was Authelia until 2026-09-22) is its auth now.
+#   * frigate.kleinbem.dev — mesh-only, Authentik forward-auth. Never on the tunnel.
 #
 # Requires: the cloudflare_api_token to have "Access: Apps and Policies: Edit",
 # and the account's Zero Trust org to exist (it does — you run a tunnel).
