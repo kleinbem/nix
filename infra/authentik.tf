@@ -518,6 +518,17 @@ resource "authentik_application" "fleet_forward_auth" {
   slug              = "fleet-forward-auth"
   protocol_provider = authentik_provider_proxy.fleet_forward_auth.id
   meta_description  = "Shared forward-auth gate for code-server, Alertmanager, Syncthing, Frigate, Paperless, and n8n's UI — replaces Authelia. n8n's own /webhook* paths are carved out at the Caddy layer (nix-presets' caddy/helpers.nix), not covered by this gate at all."
+  # meta_launch_url is a separate, purely cosmetic field on the
+  # Application, distinct from the Provider's external_host above (which
+  # is security-relevant — it's where the outpost's own auth callback
+  # lives, https://<external_host>/outpost.goauthentik.io/callback, for
+  # every one of the 5 protected services). Deliberately NOT reusing
+  # home.kleinbem.dev for external_host itself — that host is gated by
+  # Cloudflare Access (cloudflare-access.tf), a different auth layer that
+  # could plausibly intercept the outpost callback path and break the
+  # already-working forward-auth for all 5 services. meta_launch_url only
+  # affects what the "My Applications" tile links to, nothing else.
+  meta_launch_url = "https://home.kleinbem.dev"
 }
 
 # Creating a Provider does NOT attach it to anything — outposts have their
