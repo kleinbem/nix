@@ -553,9 +553,12 @@ output "grafana_oidc_client_secret" {
 # `data.authentik_user` looks up martin's existing account (created via
 # the ordinary login flow, not Terraform-managed) rather than adopting it
 # as a full resource — Terraform only needs to reference it here, not own
-# it.
+# it. Username is the real login email, not "martin" — confirmed live via
+# GET /api/v3/core/users/ (2026-09-22): this account was created via
+# Google sign-in, which defaults an authentik user's `username` to their
+# email address rather than a short handle.
 data "authentik_user" "martin" {
-  username = "martin"
+  username = "martin.kleinberger@gmail.com"
 }
 
 resource "authentik_group" "staff" {
