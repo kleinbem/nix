@@ -7,11 +7,15 @@ set working-directory := ".."
 [group("Desktop")]
 sync:
     @echo "🧩 Syncing editor extensions..."
-    @for editor in cursor windsurf; do \
+    @for editor in cursor windsurf antigravity; do \
         echo "  ⚙ Building $editor extensions..."; \
         if bundle=$(nix build --no-link --print-out-paths \
             "git+file://{{ROOT}}/nix-presets#$editor-extensions-bundle" 2>/dev/null); then \
-            ext_dir="$HOME/.config/$editor/extensions"; \
+            if [ "$editor" = "antigravity" ]; then \
+                ext_dir="$HOME/.antigravity-ide/extensions"; \
+            else \
+                ext_dir="$HOME/.config/$editor/extensions"; \
+            fi; \
             mkdir -p "$ext_dir"; \
             find "$ext_dir" -maxdepth 1 -type l | while read link; do \
                 target=$(readlink "$link"); \
