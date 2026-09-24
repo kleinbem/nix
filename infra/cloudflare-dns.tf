@@ -3,26 +3,20 @@
 # Apex CNAME (`@`) already points at the cloudflared tunnel (main.tf:65).
 # Cloudflare's CNAME flattening means we can serve mail off the same apex
 # by declaring an MX that points at `mail.kleinbem.dev` (a separate
-# A record below).
+# A record, deliberately NOT declared here — see below).
 #
 # These records support the Stalwart container + AWS SES outbound relay
 # established in nix-presets/containers/stalwart.nix.
 
 # --- A: mail.kleinbem.dev → host running Stalwart ---
-# Replace var.mail_host_ip with the WAN IP of the host (or use a CNAME
-# to the cloudflared tunnel if you front Stalwart via Cloudflare Spectrum).
-resource "cloudflare_record" "mail_a" {
-  # Only create the record once a real Stalwart host IP is set — same gating
-  # pattern as stalwart_dkim below. Empty mail_host_ip = no record, so the root
-  # applies cleanly (and without prompting) before Stalwart is deployed.
-  count   = var.mail_host_ip == "" ? 0 : 1
-  zone_id = data.cloudflare_zone.main.id
-  name    = "mail"
-  content = var.mail_host_ip
-  type    = "A"
-  proxied = false # SMTP can't be Cloudflare-proxied
-  comment = "Stalwart mail server — see nix-presets/containers/stalwart.nix"
-}
+# NOT Terraform-managed. The mail host sits behind Digiweb's dynamic PPPoE
+# IP (confirmed reachable + unblocked on port 25, 2026-09-24), so this
+# record's source of truth is live network state, not a Tofu input — a
+# value that changes on its own would just fight `tofu apply` on every
+# run. `services.cloudflare-dyndns` on mac-mini (nix-config/hosts/mac-mini/
+# default.nix) owns this record instead: creates it on first run, keeps it
+# current on a 5-minute timer. If the mail host ever moves to a real static
+# IP, this is the natural place to bring it back under Terraform.
 
 # --- MX: route inbound mail for kleinbem.dev → mail.kleinbem.dev ---
 resource "cloudflare_record" "mail_mx" {

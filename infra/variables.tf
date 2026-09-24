@@ -81,14 +81,6 @@ variable "ntfy_deploy_topic" {
   description = "Secret ntfy topic name (sops: ntfy_deploy_topic), distributed as the NTFY_DEPLOY_TOPIC Actions secret. promote-production publishes 'production → SHA' to it after advancing the tag; hosts running my.deploy.autoUpgrade.ntfy long-poll it and upgrade immediately. The unguessable name is the access control on the public ntfy.kleinbem.dev vhost. Empty default keeps apply working before the topic is minted (the publish step in CI skips when the secret is empty)."
 }
 
-# --- Persona-fleet mail infrastructure ---
-
-variable "mail_host_ip" {
-  type        = string
-  default     = ""
-  description = "Public IPv4 of the host serving Stalwart (referenced by the mail.kleinbem.dev A record). Empty = no A record (the record is gated on this in cloudflare-dns.tf), so the root applies before Stalwart is deployed. Set it when Stalwart goes live. Stalwart's SMTP port can't be Cloudflare-proxied."
-}
-
 # --- Google Cloud (currently: Gemini API keys for AI personas only) ---
 
 variable "google_service_account_key" {
