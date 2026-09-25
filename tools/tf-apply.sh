@@ -266,7 +266,9 @@ if [ -z "$R2_KEY_ID" ] || [ -z "$R2_KEY_SECRET" ]; then
   exit 1
 fi
 
-cd infra
+# Relative to this script, not the caller's cwd (same as SECRETS_ROOT above) —
+# a plain `cd infra` failed when run from anywhere but nix/.
+cd "$(dirname "${BASH_SOURCE[0]}")/../infra"
 rm -f .r2-backend.hcl
 touch .r2-backend.hcl
 chmod 600 .r2-backend.hcl
@@ -378,13 +380,20 @@ if [ -n "$GEMINI_API_KEY_JUAN" ]; then
   GEMINI_WORK="$(mktemp -d /dev/shm/tf-apply-gemini-XXXXXX)"
   trap 'find "$GEMINI_WORK" -type f -exec shred -u {} \; 2>/dev/null; rm -rf "$GEMINI_WORK"' EXIT
   sops -d "$JUAN_YAML" >"$GEMINI_WORK/juan.yaml"
-  printf '%s' "$GEMINI_API_KEY_JUAN" >"$GEMINI_WORK/gemini_api_key.txt"
-  GEMINI_KEY_PATH="$GEMINI_WORK/gemini_api_key.txt" yq -i \
-    '.gemini_api_key = load_str(strenv(GEMINI_KEY_PATH))' "$GEMINI_WORK/juan.yaml"
-  sops --config "$SECRETS_ROOT/.sops.yaml" --filename-override "$JUAN_YAML" \
-    -e "$GEMINI_WORK/juan.yaml" >"$GEMINI_WORK/juan-enc.yaml"
-  mv "$GEMINI_WORK/juan-enc.yaml" "$JUAN_YAML"
-  echo -e "🟢 Wrote juan's Gemini API key to kleinbem-secrets/personas/juan-gonzalez.yaml"
+  # Only re-encrypt when the key actually changed: sops re-encryption rewrites
+  # every ciphertext line, so an unconditional write left kleinbem-secrets
+  # dirty after every apply even with an identical key.
+  if [ "$(yq '.gemini_api_key' "$GEMINI_WORK/juan.yaml")" = "$GEMINI_API_KEY_JUAN" ]; then
+    echo -e "🟢 juan's Gemini API key unchanged — kleinbem-secrets left untouched"
+  else
+    printf '%s' "$GEMINI_API_KEY_JUAN" >"$GEMINI_WORK/gemini_api_key.txt"
+    GEMINI_KEY_PATH="$GEMINI_WORK/gemini_api_key.txt" yq -i \
+      '.gemini_api_key = load_str(strenv(GEMINI_KEY_PATH))' "$GEMINI_WORK/juan.yaml"
+    sops --config "$SECRETS_ROOT/.sops.yaml" --filename-override "$JUAN_YAML" \
+      -e "$GEMINI_WORK/juan.yaml" >"$GEMINI_WORK/juan-enc.yaml"
+    mv "$GEMINI_WORK/juan-enc.yaml" "$JUAN_YAML"
+    echo -e "🟢 Wrote juan's Gemini API key to kleinbem-secrets/personas/juan-gonzalez.yaml"
+  fi
 fi
 
 # 4. Success
