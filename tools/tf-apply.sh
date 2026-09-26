@@ -178,12 +178,8 @@ NTFY_DEPLOY_TOPIC=$(echo "$SHARED_YAML" | yq '.ntfy_deploy_topic')
 # Human-facing alert topic. Lives in nix/shared.yaml (moved 2026-09-26 from
 # infra/terraform.yaml) because hosts post to it too — the backup engine's
 # failure/staleness alerts — and hosts can't decrypt infra/*. Single source
-# for both CI (NTFY_ALERT_TOPIC Actions secret) and hosts. The terraform.yaml
-# fallback only bridges the move; drop it once the key is gone from there.
+# for both CI (NTFY_ALERT_TOPIC Actions secret) and hosts.
 NTFY_ALERT_TOPIC=$(echo "$SHARED_YAML" | yq '.ntfy_alert_topic')
-if [ "$NTFY_ALERT_TOPIC" = "null" ] || [ -z "$NTFY_ALERT_TOPIC" ]; then
-  NTFY_ALERT_TOPIC=$(echo "$DECRYPTED_YAML" | yq '.ntfy_alert_topic')
-fi
 
 # --- Google Cloud (infra/google.tf) ---
 # Bootstrap service-account key (base64 JSON), manually created via gcloud —
