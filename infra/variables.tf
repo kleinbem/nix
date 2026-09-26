@@ -71,7 +71,7 @@ variable "ntfy_alert_topic" {
   type        = string
   sensitive   = true
   default     = ""
-  description = "Secret ntfy topic name (sops: ntfy_alert_topic), distributed as the NTFY_ALERT_TOPIC Actions secret. CI posts human-facing failure alerts to it (e.g. build-all's blocking container-factory eval — typically an insecure re-ack after a nixpkgs bump). Deliberately separate from ntfy_deploy_topic: that one is machine-consumed (any message triggers host upgrade polls), this one is for a human's phone. Empty default keeps apply working before the topic is minted (alert steps in CI skip when the secret is empty)."
+  description = "Secret ntfy topic name (sops: nix/shared.yaml ntfy_alert_topic), distributed as the NTFY_ALERT_TOPIC Actions secret. The fleet's single human-facing alert topic: CI posts failure alerts to it, and hosts post backup failure/staleness alerts to it (nix-config modules/nixos/backup.nix). CI example: build-all's blocking container-factory eval — typically an insecure re-ack after a nixpkgs bump. Deliberately separate from ntfy_deploy_topic: that one is machine-consumed (any message triggers host upgrade polls), this one is for a human's phone. Empty default keeps apply working before the topic is minted (alert steps in CI skip when the secret is empty)."
 }
 
 variable "ntfy_deploy_topic" {
