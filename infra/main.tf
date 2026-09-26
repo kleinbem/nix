@@ -20,6 +20,10 @@ terraform {
       source  = "goauthentik/authentik"
       version = "~> 2026.0"
     }
+    healthchecksio = {
+      source  = "kristofferahl/healthchecksio"
+      version = "~> 2.3"
+    }
   }
 }
 
