@@ -175,7 +175,15 @@ ATTIC_PUSH=$(echo "$ORIN_YAML" | yq '.attic_push_token')
 NETBIRD_KEY=$(echo "$SHARED_YAML" | yq '.netbird_setup_key')
 NETBIRD_KEY_EPHEMERAL=$(echo "$DECRYPTED_YAML" | yq '.netbird_setup_key_ephemeral')
 NTFY_DEPLOY_TOPIC=$(echo "$SHARED_YAML" | yq '.ntfy_deploy_topic')
-NTFY_ALERT_TOPIC=$(echo "$DECRYPTED_YAML" | yq '.ntfy_alert_topic')
+# Human-facing alert topic. Lives in nix/shared.yaml (moved 2026-09-26 from
+# infra/terraform.yaml) because hosts post to it too — the backup engine's
+# failure/staleness alerts — and hosts can't decrypt infra/*. Single source
+# for both CI (NTFY_ALERT_TOPIC Actions secret) and hosts. The terraform.yaml
+# fallback only bridges the move; drop it once the key is gone from there.
+NTFY_ALERT_TOPIC=$(echo "$SHARED_YAML" | yq '.ntfy_alert_topic')
+if [ "$NTFY_ALERT_TOPIC" = "null" ] || [ -z "$NTFY_ALERT_TOPIC" ]; then
+  NTFY_ALERT_TOPIC=$(echo "$DECRYPTED_YAML" | yq '.ntfy_alert_topic')
+fi
 
 # --- Google Cloud (infra/google.tf) ---
 # Bootstrap service-account key (base64 JSON), manually created via gcloud —
