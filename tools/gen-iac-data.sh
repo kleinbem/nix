@@ -55,4 +55,15 @@ emit() { # <data.nix attr> <dest file>
 emit personasJson "$DEST/personas.json"
 emit inventoryJson "$DEST/inventory.json"
 
-echo "✅ wrote $DEST/personas.json + $DEST/inventory.json"
+# heartbeats.json needs the *evaluated* host configs (my.heartbeat.checks), so
+# it comes from nix-config's flake output rather than iac/data.nix. Written
+# via a temp file so a failed eval never truncates the committed copy.
+tmp=$(mktemp)
+if nix eval --json "$NIX_CONFIG#heartbeats" 2>/dev/null | jq -S . >"$tmp" && [[ -s $tmp ]]; then
+  mv "$tmp" "$DEST/heartbeats.json"
+  echo "✅ wrote $DEST/personas.json + $DEST/inventory.json + $DEST/heartbeats.json"
+else
+  rm -f "$tmp"
+  echo "⚠️  nix-config#heartbeats eval failed — keeping the committed heartbeats.json" >&2
+  echo "✅ wrote $DEST/personas.json + $DEST/inventory.json"
+fi

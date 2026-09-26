@@ -185,6 +185,9 @@ NTFY_ALERT_TOPIC=$(echo "$SHARED_YAML" | yq '.ntfy_alert_topic')
 # Bootstrap service-account key (base64 JSON), manually created via gcloud —
 # see infra/google.tf's header comment. Not itself Terraform-managed.
 GOOGLE_SA_KEY=$(echo "$DECRYPTED_YAML" | yq '.google_service_account_key')
+# healthchecks.io read-write API key (infra/healthchecks.tf). Empty/missing
+# → that root manages no checks (pre-bootstrap state).
+HEALTHCHECKS_API_KEY=$(echo "$DECRYPTED_YAML" | yq '.healthchecks_api_key')
 
 # Normalise missing keys ("null") to empty strings
 [ "$GH_TF_TOKEN" = "null" ] && GH_TF_TOKEN=""
@@ -197,6 +200,7 @@ GOOGLE_SA_KEY=$(echo "$DECRYPTED_YAML" | yq '.google_service_account_key')
 [ "$NTFY_DEPLOY_TOPIC" = "null" ] && NTFY_DEPLOY_TOPIC=""
 [ "$NTFY_ALERT_TOPIC" = "null" ] && NTFY_ALERT_TOPIC=""
 [ "$GOOGLE_SA_KEY" = "null" ] && GOOGLE_SA_KEY=""
+[ "$HEALTHCHECKS_API_KEY" = "null" ] && HEALTHCHECKS_API_KEY=""
 
 if [ -z "$GH_TF_TOKEN" ]; then
   echo -e "${YELLOW}⚠️  github_tf_token not set in $TERRAFORM_FILE — GitHub resources will fail to authenticate."
@@ -225,6 +229,7 @@ export TF_VAR_netbird_setup_key_ephemeral="$NETBIRD_KEY_EPHEMERAL"
 export TF_VAR_ntfy_deploy_topic="$NTFY_DEPLOY_TOPIC"
 export TF_VAR_ntfy_alert_topic="$NTFY_ALERT_TOPIC"
 export TF_VAR_google_service_account_key="$GOOGLE_SA_KEY"
+export TF_VAR_healthchecks_api_key="$HEALTHCHECKS_API_KEY"
 
 # 2. OpenTofu Init & Plan/Apply
 echo -e "\n${BOLD}[2/4] Initializing OpenTofu...${RESET}"
