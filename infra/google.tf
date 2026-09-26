@@ -108,6 +108,21 @@ resource "google_project_service" "apikeys" {
   disable_on_destroy = false
 }
 
+# Google Drive API for the fleet's own rclone OAuth client (restic + secure
+# backups to gdrive:backups, nix-config modules/nixos/backup.nix and nasbook's
+# legacy backup container). Replaces rclone's shared client_id, which Google
+# is retiring during 2026. The OAuth consent screen (External, *In
+# production* — Testing mode expires refresh tokens after 7 days) and the
+# Desktop-app OAuth client itself aren't Terraform-manageable for external
+# apps (google_iap_* only covers internal/IAP clients), so those two are
+# the manual first-credential step; the client_id/secret + token then live
+# in `rclone_config` (kleinbem-secrets nix/shared.yaml).
+resource "google_project_service" "drive" {
+  project            = "kleinbem-ai"
+  service            = "drive.googleapis.com"
+  disable_on_destroy = false
+}
+
 # One API key per persona, restricted to the Generative Language API only —
 # same narrow-scope principle as everything else persona-related (own
 # signing key, own mailbox, now own API key). Add a new `google_apikeys_key`
