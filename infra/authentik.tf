@@ -642,9 +642,36 @@ import {
 # this is a fresh resource (not a public->confidential switch like
 # kleinbem_site hit) — same defensive reasoning: it's Optional+Computed in
 # the provider schema, cheap to pin, expensive to silently lose.
-resource "authentik_provider_oauth2" "grafana" {
-  name        = "grafana"
-  client_id   = "grafana"
+# --- Option A: Native OIDC Services (Plug-and-Play) ---
+# Services with first-class OAuth2 / OpenID Connect support (Grafana, Open WebUI,
+# etc.). Unlike Option B (forward-auth), these do not sit behind Caddy's gate,
+# preserving direct Bearer token API access for Chrome extensions (Page Assist),
+# agents, and mobile clients while authenticating web users natively through Authentik.
+#
+# To onboard a new OIDC service: simply add an entry to local.oidc_apps below.
+# OpenTofu automatically provisions the Provider, Application, launch tile,
+# and staff-only access policy.
+locals {
+  oidc_apps = {
+    grafana = {
+      name          = "Grafana"
+      redirect_uris = ["https://grafana.kleinbem.dev/login/generic_oauth"]
+      desc          = "Fleet monitoring dashboard"
+      launch_url    = "https://grafana.kleinbem.dev"
+    }
+    open-webui = {
+      name          = "Open WebUI"
+      redirect_uris = ["https://chat.kleinbem.dev/oauth/oidc/callback"]
+      desc          = "Fleet AI chat interface"
+      launch_url    = "https://chat.kleinbem.dev"
+    }
+  }
+}
+
+resource "authentik_provider_oauth2" "oidc" {
+  for_each    = local.oidc_apps
+  name        = each.key
+  client_id   = each.key
   client_type = "confidential"
   grant_types = ["authorization_code"]
 
@@ -658,72 +685,70 @@ resource "authentik_provider_oauth2" "grafana" {
   ]
 
   allowed_redirect_uris = [
-    {
+    for uri in each.value.redirect_uris : {
       matching_mode = "strict"
-      url           = "https://grafana.kleinbem.dev/login/generic_oauth"
+      url           = uri
     }
   ]
 }
 
-resource "authentik_application" "grafana" {
-  name              = "Grafana"
-  slug              = "grafana"
-  protocol_provider = authentik_provider_oauth2.grafana.id
-  meta_description  = "kleinbem fleet monitoring dashboard"
+resource "authentik_application" "oidc" {
+  for_each          = local.oidc_apps
+  name              = each.value.name
+  slug              = each.key
+  protocol_provider = authentik_provider_oauth2.oidc[each.key].id
+  meta_description  = each.value.desc
+  meta_launch_url   = each.value.launch_url
 }
 
+# State migration: move existing Grafana resources cleanly without recreation
+moved {
+  from = authentik_provider_oauth2.grafana
+  to   = authentik_provider_oauth2.oidc["grafana"]
+}
+
+moved {
+  from = authentik_application.grafana
+  to   = authentik_application.oidc["grafana"]
+}
+
+moved {
+  from = authentik_policy_binding.grafana_staff_only
+  to   = authentik_policy_binding.oidc_staff_only["grafana"]
+}
+
+output "oidc_client_ids" {
+  value = {
+    for k, p in authentik_provider_oauth2.oidc : k => p.client_id
+  }
+}
+
+output "oidc_client_secrets" {
+  value = {
+    for k, p in authentik_provider_oauth2.oidc : k => p.client_secret
+  }
+  sensitive = true
+}
+
+# Legacy outputs preserved for backward compatibility
 output "grafana_oidc_client_id" {
-  value = authentik_provider_oauth2.grafana.client_id
+  value = authentik_provider_oauth2.oidc["grafana"].client_id
 }
 
 output "grafana_oidc_client_secret" {
-  value     = authentik_provider_oauth2.grafana.client_secret
+  value     = authentik_provider_oauth2.oidc["grafana"].client_secret
   sensitive = true
-}
-
-# --- Open WebUI native OIDC (chat.kleinbem.dev) ---
-# Native OAuth2 provider so Open WebUI authenticates visitors via Authentik
-# while preserving direct Bearer token API access for Chrome extensions (Page
-# Assist) and mobile/agent clients without Caddy forward-auth interception.
-resource "authentik_provider_oauth2" "open_webui" {
-  name        = "open-webui"
-  client_id   = "open-webui"
-  client_type = "confidential"
-  grant_types = ["authorization_code"]
-
-  authorization_flow = data.authentik_flow.default_authorization_flow.id
-  invalidation_flow  = data.authentik_flow.default_invalidation_flow.id
-
-  property_mappings = [
-    data.authentik_property_mapping_provider_scope.openid.id,
-    data.authentik_property_mapping_provider_scope.email.id,
-    data.authentik_property_mapping_provider_scope.profile.id,
-  ]
-
-  allowed_redirect_uris = [
-    {
-      matching_mode = "strict"
-      url           = "https://chat.kleinbem.dev/oauth/oidc/callback"
-    }
-  ]
-}
-
-resource "authentik_application" "open_webui" {
-  name              = "Open WebUI"
-  slug              = "open-webui"
-  protocol_provider = authentik_provider_oauth2.open_webui.id
-  meta_description  = "kleinbem fleet AI chat interface"
-  meta_launch_url   = "https://chat.kleinbem.dev"
 }
 
 output "open_webui_oidc_client_id" {
-  value = authentik_provider_oauth2.open_webui.client_id
+  value = authentik_provider_oauth2.oidc["open-webui"].client_id
 }
 
 output "open_webui_oidc_client_secret" {
-  value     = authentik_provider_oauth2.open_webui.client_secret
+  value     = authentik_provider_oauth2.oidc["open-webui"].client_secret
   sensitive = true
 }
+
 
 
 # --- Access scoping: internal infra is NOT for kleinbem.dev visitors ---
@@ -782,15 +807,11 @@ resource "authentik_policy_binding" "fleet_staff_only" {
   order    = 0
 }
 
-resource "authentik_policy_binding" "grafana_staff_only" {
-  target = authentik_application.grafana.uuid
-  group  = authentik_group.staff.id
-  order  = 0
+resource "authentik_policy_binding" "oidc_staff_only" {
+  for_each = authentik_application.oidc
+  target   = each.value.uuid
+  group    = authentik_group.staff.id
+  order    = 0
 }
 
-resource "authentik_policy_binding" "open_webui_staff_only" {
-  target = authentik_application.open_webui.uuid
-  group  = authentik_group.staff.id
-  order  = 0
-}
 

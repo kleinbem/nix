@@ -359,6 +359,7 @@ fi
 echo -e "\n${BOLD}[3/4] Capturing outputs...${RESET}"
 TUNNEL_ID=$(tofu output -raw tunnel_id 2>/dev/null || echo "")
 GEMINI_API_KEY_JUAN=$(tofu output -raw juan_gemini_api_key 2>/dev/null || echo "")
+OIDC_SECRETS_JSON=$(tofu output -json oidc_client_secrets 2>/dev/null || echo "{}")
 cd ..
 
 if [ -z "$TUNNEL_ID" ]; then
@@ -404,6 +405,41 @@ if [ -n "$GEMINI_API_KEY_JUAN" ]; then
     echo -e "🟢 Wrote juan's Gemini API key to kleinbem-secrets/personas/juan-gonzalez.yaml"
   fi
 fi
+
+# Auto-sync Authentik OIDC client secrets to kleinbem-secrets/nix/per-container/<app>.yaml
+if [ -n "$OIDC_SECRETS_JSON" ] && [ "$OIDC_SECRETS_JSON" != "{}" ] && [ "$OIDC_SECRETS_JSON" != "null" ]; then
+  echo -e "\n${BOLD}Syncing Authentik OIDC client secrets to kleinbem-secrets...${RESET}"
+  for app in $(echo "$OIDC_SECRETS_JSON" | jq -r 'keys[]'); do
+    app_secret=$(echo "$OIDC_SECRETS_JSON" | jq -r --arg a "$app" '.[$a]')
+    if [ -z "$app_secret" ] || [ "$app_secret" = "null" ]; then
+      continue
+    fi
+
+    # Container name in per-container: grafana lives in monitoring.yaml, others live in <app>.yaml
+    container_name="$app"
+    [ "$app" = "grafana" ] && container_name="monitoring"
+
+    APP_YAML="$SECRETS_ROOT/nix/per-container/${container_name}.yaml"
+    key_name="${container_name//-/_}_oauth_client_secret"
+    [ "$app" = "grafana" ] && key_name="monitoring_grafana_oauth_client_secret"
+
+    if [ ! -f "$APP_YAML" ]; then
+      mkdir -p "$(dirname "$APP_YAML")"
+      echo "${key_name}: ${app_secret}" > "$APP_YAML"
+      sops --config "$SECRETS_ROOT/.sops.yaml" -e -i "$APP_YAML"
+      echo -e "🟢 Initialized and encrypted OIDC client secret in nix/per-container/${container_name}.yaml"
+    else
+      current_val=$(sops -d "$APP_YAML" 2>/dev/null | yq -r ".${key_name}" 2>/dev/null || echo "")
+      if [ "$current_val" != "$app_secret" ]; then
+        sops --set "[\"${key_name}\"] \"$app_secret\"" "$APP_YAML"
+        echo -e "🟢 Updated ${app}'s OIDC client secret in nix/per-container/${container_name}.yaml"
+      else
+        echo -e "🟢 ${app}'s OIDC client secret unchanged in kleinbem-secrets"
+      fi
+    fi
+  done
+fi
+
 
 # 4. Success
 echo -e "\n${BOLD}[4/4] OpenTofu Apply Complete!${RESET}"
