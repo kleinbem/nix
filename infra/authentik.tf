@@ -681,6 +681,51 @@ output "grafana_oidc_client_secret" {
   sensitive = true
 }
 
+# --- Open WebUI native OIDC (chat.kleinbem.dev) ---
+# Native OAuth2 provider so Open WebUI authenticates visitors via Authentik
+# while preserving direct Bearer token API access for Chrome extensions (Page
+# Assist) and mobile/agent clients without Caddy forward-auth interception.
+resource "authentik_provider_oauth2" "open_webui" {
+  name        = "open-webui"
+  client_id   = "open-webui"
+  client_type = "confidential"
+  grant_types = ["authorization_code"]
+
+  authorization_flow = data.authentik_flow.default_authorization_flow.id
+  invalidation_flow  = data.authentik_flow.default_invalidation_flow.id
+
+  property_mappings = [
+    data.authentik_property_mapping_provider_scope.openid.id,
+    data.authentik_property_mapping_provider_scope.email.id,
+    data.authentik_property_mapping_provider_scope.profile.id,
+  ]
+
+  allowed_redirect_uris = [
+    {
+      matching_mode = "strict"
+      url           = "https://chat.kleinbem.dev/oauth/oidc/callback"
+    }
+  ]
+}
+
+resource "authentik_application" "open_webui" {
+  name              = "Open WebUI"
+  slug              = "open-webui"
+  protocol_provider = authentik_provider_oauth2.open_webui.id
+  meta_description  = "kleinbem fleet AI chat interface"
+  meta_launch_url   = "https://chat.kleinbem.dev"
+}
+
+output "open_webui_oidc_client_id" {
+  value = authentik_provider_oauth2.open_webui.client_id
+}
+
+output "open_webui_oidc_client_secret" {
+  value     = authentik_provider_oauth2.open_webui.client_secret
+  sensitive = true
+}
+
+
 # --- Access scoping: internal infra is NOT for kleinbem.dev visitors ---
 #
 # Both Applications above and kleinbem_site's own Application live on the
@@ -742,3 +787,10 @@ resource "authentik_policy_binding" "grafana_staff_only" {
   group  = authentik_group.staff.id
   order  = 0
 }
+
+resource "authentik_policy_binding" "open_webui_staff_only" {
+  target = authentik_application.open_webui.uuid
+  group  = authentik_group.staff.id
+  order  = 0
+}
+
