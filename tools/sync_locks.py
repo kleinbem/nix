@@ -18,11 +18,12 @@ RESET = "\033[0m"
 TOPOLOGICAL_ORDER = [
     "nix-secrets",  # No dependencies
     "nix-devshells",  # No local dependencies
+    "nix-gantry",  # No local dependencies
     "nix-hardware",  # Depends on nix-devshells
     "nix-packages",  # Depends on nix-devshells
     "nix-templates",  # Depends on nix-devshells
-    "nix-presets",  # Depends on nix-devshells, nix-packages
-    "nix-config",  # Depends on presets, packages, hardware, devshells, secrets
+    "nix-presets",  # Depends on nix-devshells, nix-packages, nix-gantry
+    "nix-config",  # Depends on presets, packages, hardware, devshells, secrets, gantry
 ]
 
 # The "nix-secrets" flake input is kept under its historical name (renaming
@@ -145,7 +146,7 @@ def main():
                 # Only sub-flake inputs that live in this workspace count as
                 # "local deps" — those are the ones we re-pin to local HEADs.
                 local_deps = [dep for dep in TOPOLOGICAL_ORDER if dep in inputs]
-            except Exception as e:
+            except (json.JSONDecodeError, OSError) as e:
                 print(
                     f"  {YELLOW}Warning: Failed to parse flake.lock in {sub}: {e}{RESET}"
                 )
@@ -170,7 +171,9 @@ def main():
         # the lock only needs to be the canonical github form. We require the
         # dep's HEAD to be pushed (else a github:<rev> ref wouldn't resolve in
         # a clean eval) — if it isn't, skip the re-pin and tell the user.
-        cmd = ["nix", "flake", "update"] + local_deps + ["--flake", f"./{repo_dir(sub)}"]
+        cmd = (
+            ["nix", "flake", "update"] + local_deps + ["--flake", f"./{repo_dir(sub)}"]
+        )
         skip = False
         for dep in local_deps:
             dep_path = os.path.join(root_dir, repo_dir(dep))
