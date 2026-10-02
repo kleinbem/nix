@@ -5,13 +5,11 @@
 #   secure/<host>/<host>-<ts>.tar.gz.age   age-encrypted secure-tier bundles
 #   restic/<host>                          restic repo per host (bulk tier)
 #
-# Only the bucket is Terraform-managed. S3 access keys are NOT: create one per
-# host in the dashboard (R2 → "Manage R2 API Tokens" → Create API token →
-# "Object Read & Write", scoped to this bucket) — per host so one host's token
-# can be revoked alone. The screen shows Access Key ID, Secret and S3 endpoint;
-# they go into `backup_r2_rclone_config` in kleinbem-secrets/nix/per-host/
-# <host>.yaml. Automating token creation needs the root cloudflare_api_token
-# to also hold "API Tokens: Edit", which it deliberately doesn't.
+# Only the bucket is managed here. The per-host S3 credentials (one token per
+# host, so one host's access can be revoked alone) live in their own root,
+# infra/r2-tokens/ — minting tokens needs "API Tokens: Edit", which this
+# root's cloudflare_api_token deliberately doesn't hold. That root writes each
+# host's `backup_r2_rclone_config` into kleinbem-secrets/nix/per-host/<host>.yaml.
 #
 # Tamper-proofing: R2 tokens can't be scoped write-without-delete, so the
 # `secure/` prefix gets a bucket LOCK rule instead — objects there can't be
