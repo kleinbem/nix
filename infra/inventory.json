@@ -101,7 +101,8 @@
     "cache_entrypoint": "core-pi",
     "personal-devices": [
       "nixos-nvme",
-      "mac-mini"
+      "mac-mini",
+      "xcoverpro2eea"
     ],
     "smart-home": [
       "hass-pi",
