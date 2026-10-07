@@ -110,3 +110,24 @@ resource "netbird_policy" "ci_to_attic" {
     action        = "accept"
   }
 }
+
+# Personal devices -> the Buzz relay (buzz_relay route in routes.tf). A route
+# with access_control_groups is only usable through a policy whose
+# destination is that group, and peers only connect to the routing peer
+# (nixos-nvme) via such a policy. The route predates closing the default
+# All->All policy and silently relied on it until this existed.
+resource "netbird_policy" "personal_to_buzz_relay" {
+  name        = "personal-to-buzz-relay"
+  description = "Allow personal devices to reach the Buzz relay (3000) and its pairing relay (3001) via the buzz-relay route."
+  enabled     = true
+
+  rule {
+    name          = "buzz-relay"
+    sources       = [netbird_group.personal_devices.id]
+    destinations  = [netbird_group.personal_devices.id]
+    bidirectional = false
+    protocol      = "tcp"
+    ports         = ["3000", "3001"]
+    action        = "accept"
+  }
+}
