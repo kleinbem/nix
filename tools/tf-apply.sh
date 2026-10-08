@@ -172,6 +172,9 @@ GH_APP_ID=$(echo "$SHARED_YAML" | yq '.github_app_id')
 GH_APP_INSTALLATION_ID=$(echo "$SHARED_YAML" | yq '.github_app_installation_id')
 GH_APP_PRIVATE_KEY=$(echo "$SHARED_YAML" | yq '.github_app_private_key')
 ATTIC_PUSH=$(echo "$ORIN_YAML" | yq '.attic_push_token')
+# `cachix_auth_token` (infra/terraform.yaml): write token for the public
+# kleinbem-nixpkgs-review Cachix cache → nixpkgs-review-gha's CACHIX_AUTH_TOKEN. Optional.
+CACHIX_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.cachix_auth_token')
 NETBIRD_KEY=$(echo "$SHARED_YAML" | yq '.netbird_setup_key')
 NETBIRD_KEY_EPHEMERAL=$(echo "$DECRYPTED_YAML" | yq '.netbird_setup_key_ephemeral')
 NTFY_DEPLOY_TOPIC=$(echo "$SHARED_YAML" | yq '.ntfy_deploy_topic')
@@ -195,6 +198,7 @@ HEALTHCHECKS_API_KEY=$(echo "$DECRYPTED_YAML" | yq '.healthchecks_api_key')
 [ "$GH_APP_INSTALLATION_ID" = "null" ] && GH_APP_INSTALLATION_ID=""
 [ "$GH_APP_PRIVATE_KEY" = "null" ] && GH_APP_PRIVATE_KEY=""
 [ "$ATTIC_PUSH" = "null" ] && ATTIC_PUSH=""
+[ "$CACHIX_TOKEN" = "null" ] && CACHIX_TOKEN=""
 [ "$NETBIRD_KEY" = "null" ] && NETBIRD_KEY=""
 [ "$NETBIRD_KEY_EPHEMERAL" = "null" ] && NETBIRD_KEY_EPHEMERAL=""
 [ "$NTFY_DEPLOY_TOPIC" = "null" ] && NTFY_DEPLOY_TOPIC=""
@@ -224,6 +228,7 @@ export TF_VAR_github_app_id="$GH_APP_ID"
 export TF_VAR_github_app_installation_id="$GH_APP_INSTALLATION_ID"
 export TF_VAR_github_app_private_key="$GH_APP_PRIVATE_KEY"
 export TF_VAR_attic_push_token="$ATTIC_PUSH"
+export TF_VAR_cachix_auth_token="$CACHIX_TOKEN"
 export TF_VAR_netbird_setup_key="$NETBIRD_KEY"
 export TF_VAR_netbird_setup_key_ephemeral="$NETBIRD_KEY_EPHEMERAL"
 export TF_VAR_ntfy_deploy_topic="$NTFY_DEPLOY_TOPIC"

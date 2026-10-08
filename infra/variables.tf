@@ -54,6 +54,13 @@ variable "attic_push_token" {
   description = "Attic cache push token, distributed as the ATTIC_PUSH_TOKEN Actions secret."
 }
 
+variable "cachix_auth_token" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "Write token scoped to the public kleinbem-nixpkgs-review Cachix cache (Cachix-managed signing, separate from the kleinbem cache), distributed as nixpkgs-review-gha's CACHIX_AUTH_TOKEN Actions secret. Empty = not distributed."
+}
+
 variable "netbird_setup_key" {
   type        = string
   sensitive   = true

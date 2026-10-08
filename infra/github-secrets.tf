@@ -55,10 +55,20 @@ locals {
       "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_PAGES_DEPLOY_TOKEN",
       "AUTHENTIK_CLIENT_SECRET", "AUTH_SESSION_SECRET", "TURNSTILE_SECRET_KEY",
     ]
+    # Fork of Defelo/nixpkgs-review-gha: builds nixpkgs PRs on GitHub runners
+    # and pushes the results to the public kleinbem-nixpkgs-review Cachix cache
+    # (Cachix-managed signing, separate from the kleinbem cache), so testers
+    # of those PRs can substitute instead of building. Only once the token
+    # exists in sops (see cachix_enabled).
+    "nixpkgs-review-gha" = local.cachix_enabled ? ["CACHIX_AUTH_TOKEN"] : []
   }
+
+  # Whether the token is set is not itself secret; for_each needs it plain.
+  cachix_enabled = nonsensitive(var.cachix_auth_token != "")
 
   secret_values = {
     "ATTIC_PUSH_TOKEN"              = var.attic_push_token
+    "CACHIX_AUTH_TOKEN"             = var.cachix_auth_token
     "APP_ID"                        = var.github_app_id
     "APP_PRIVATE_KEY"               = var.github_app_private_key
     "APP_INSTALLATION_ID"           = var.github_app_installation_id
@@ -90,4 +100,25 @@ resource "github_actions_secret" "ci" {
   secret_name = each.value.secret
   # `value` replaces the deprecated `plaintext_value` argument (provider v6.x).
   value = local.secret_values[each.value.secret]
+}
+
+# nixpkgs-review-gha reads the cache name from a variable, not a secret.
+resource "github_actions_variable" "nixpkgs_review_gha_cachix_cache" {
+  count = local.cachix_enabled ? 1 : 0
+
+  repository    = "nixpkgs-review-gha"
+  variable_name = "CACHIX_CACHE"
+  value         = "kleinbem-nixpkgs-review"
+}
+
+# Extra Nix configuration for the nixpkgs-review-gha runners: the CUDA team's
+# binary cache, so CUDA reviews substitute NCCL and the CUDA libraries instead
+# of compiling them. Public key from nixos-cuda/infra (hosts/hydra/cache.nix).
+resource "github_actions_variable" "nixpkgs_review_gha_extra_nix_config" {
+  repository    = "nixpkgs-review-gha"
+  variable_name = "EXTRA_NIX_CONFIG"
+  value         = <<-EOT
+    extra-substituters = https://cache.nixos-cuda.org
+    extra-trusted-public-keys = cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M=
+  EOT
 }
