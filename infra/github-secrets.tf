@@ -55,12 +55,6 @@ locals {
       "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_PAGES_DEPLOY_TOKEN",
       "AUTHENTIK_CLIENT_SECRET", "AUTH_SESSION_SECRET", "TURNSTILE_SECRET_KEY",
     ]
-    # Fork of Defelo/nixpkgs-review-gha: builds nixpkgs PRs on GitHub runners
-    # and pushes the results to the public kleinbem-nixpkgs-review Cachix cache
-    # (Cachix-managed signing, separate from the kleinbem cache), so testers
-    # of those PRs can substitute instead of building. Only once the token
-    # exists in sops (see cachix_enabled).
-    "nixpkgs-review-gha" = local.cachix_enabled ? ["CACHIX_AUTH_TOKEN"] : []
   }
 
   # Whether the token is set is not itself secret; for_each needs it plain.
@@ -68,7 +62,6 @@ locals {
 
   secret_values = {
     "ATTIC_PUSH_TOKEN"              = var.attic_push_token
-    "CACHIX_AUTH_TOKEN"             = var.cachix_auth_token
     "APP_ID"                        = var.github_app_id
     "APP_PRIVATE_KEY"               = var.github_app_private_key
     "APP_INSTALLATION_ID"           = var.github_app_installation_id
@@ -100,6 +93,23 @@ resource "github_actions_secret" "ci" {
   secret_name = each.value.secret
   # `value` replaces the deprecated `plaintext_value` argument (provider v6.x).
   value = local.secret_values[each.value.secret]
+}
+
+# kleinbem/nixpkgs-review-gha (fork of Defelo/nixpkgs-review-gha) builds
+# nixpkgs PRs on GitHub runners and pushes the results to the public
+# kleinbem-nixpkgs-review Cachix cache (Cachix-managed signing, separate from
+# the kleinbem cache), so testers of those PRs can substitute instead of
+# building. Only once the token exists in sops (see cachix_enabled).
+#
+# Its own resource rather than an entry in ci_secrets: secret_values also
+# holds Authentik outputs, so going through it would make this secret depend
+# on the Authentik provider.
+resource "github_actions_secret" "nixpkgs_review_gha_cachix_token" {
+  count = local.cachix_enabled ? 1 : 0
+
+  repository  = "nixpkgs-review-gha"
+  secret_name = "CACHIX_AUTH_TOKEN"
+  value       = var.cachix_auth_token
 }
 
 # nixpkgs-review-gha reads the cache name from a variable, not a secret.
