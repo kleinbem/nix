@@ -67,6 +67,7 @@ locals {
     "syncthing.kleinbem.dev",
     "alertmanager.kleinbem.dev",
     "paperless.kleinbem.dev",
+    "hass.kleinbem.dev",
   ]
 }
 

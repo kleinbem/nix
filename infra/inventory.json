@@ -92,6 +92,16 @@
         "android"
       ],
       "type": null
+    },
+    "tablet": {
+      "ip": null,
+      "netbirdIp": null,
+      "system": "aarch64-linux",
+      "tags": [
+        "mobile",
+        "android"
+      ],
+      "type": null
     }
   },
   "mesh": {
@@ -102,7 +112,8 @@
     "personal-devices": [
       "nixos-nvme",
       "mac-mini",
-      "xcoverpro2eea"
+      "xcoverpro2eea",
+      "MRX-W09NM"
     ],
     "smart-home": [
       "hass-pi",
