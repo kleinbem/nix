@@ -26,6 +26,41 @@ resource "netbird_policy" "ssh_personal_to_smart_home" {
   }
 }
 
+# Personal devices -> personal devices (workstation, tablet, phone, mac-mini).
+# Required for running Herdr or dev shells from mobile devices into nixos-nvme.
+resource "netbird_policy" "ssh_personal_to_personal" {
+  name        = "ssh-personal-to-personal"
+  description = "Allow SSH between trusted personal devices (e.g. tablet/phone to workstation for Herdr/dev)."
+  enabled     = true
+
+  rule {
+    name          = "ssh"
+    sources       = [netbird_group.personal_devices.id]
+    destinations  = [netbird_group.personal_devices.id]
+    bidirectional = true
+    protocol      = "tcp"
+    ports         = ["22"]
+    action        = "accept"
+  }
+}
+
+# Personal devices -> personal devices ping/ICMP for mesh diagnostics.
+resource "netbird_policy" "ping_personal_to_personal" {
+  name        = "ping-personal-to-personal"
+  description = "Allow ICMP ping between trusted personal devices for mesh diagnostics."
+  enabled     = true
+
+  rule {
+    name          = "ping"
+    sources       = [netbird_group.personal_devices.id]
+    destinations  = [netbird_group.personal_devices.id]
+    bidirectional = true
+    protocol      = "icmp"
+    action        = "accept"
+  }
+}
+
+
 # --- The built-in "All -> All" default policy ---------------------------------
 #
 # Until this is removed, the SSH gate above is COSMETIC: NetBird ships a default
