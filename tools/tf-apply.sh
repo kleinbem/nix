@@ -11,23 +11,48 @@ set -euo pipefail
 #   --migrate-state   One-shot: copy local terraform.tfstate into the R2
 #                     backend (backend.tf) via `tofu init -migrate-state`.
 #                     The local tfstate files stay behind as a fallback copy.
+# Ensure we have the required tools
+if ! command -v tofu &>/dev/null || ! command -v sops &>/dev/null || ! command -v jq &>/dev/null || ! command -v yq &>/dev/null; then
+  echo "📦 Launching in nix shell with opentofu, sops, jq, and yq..."
+  exec nix shell nixpkgs#opentofu nixpkgs#jq nixpkgs#yq-go nixpkgs#sops -c "$0" "$@"
+fi
+
 MODE="apply"
 PASSTHROUGH=()
 SAW_DDASH=0
-for arg in "$@"; do
+while [ $# -gt 0 ]; do
   if [ $SAW_DDASH -eq 1 ]; then
-    PASSTHROUGH+=("$arg")
+    PASSTHROUGH+=("$1")
+    shift
     continue
   fi
-  case "$arg" in
-  --plan-only | --plan) MODE="plan" ;;
-  --migrate-tunnel) MODE="migrate-tunnel" ;;
-  --migrate-state) MODE="migrate-state" ;;
-  --) SAW_DDASH=1 ;;
+  case "$1" in
+  --plan-only | --plan) MODE="plan"; shift ;;
+  --migrate-tunnel) MODE="migrate-tunnel"; shift ;;
+  --migrate-state) MODE="migrate-state"; shift ;;
+  --state-rm)
+    MODE="state-rm"
+    shift
+    while [ $# -gt 0 ] && [[ "$1" != --* ]]; do
+      PASSTHROUGH+=("$1")
+      shift
+    done
+    ;;
+  --exec)
+    MODE="exec"
+    shift
+    while [ $# -gt 0 ] && [ "$1" != "--" ]; do
+      PASSTHROUGH+=("$1")
+      shift
+    done
+    ;;
+  --) SAW_DDASH=1; shift ;;
   -h | --help)
-    echo "Usage: $0 [--plan-only | --migrate-tunnel | --migrate-state] [-- <tofu-args>...]"
+    echo "Usage: $0 [--plan-only | --state-rm <resource...> | --exec <tofu-cmd...> | --migrate-tunnel | --migrate-state] [-- <tofu-args>...]"
     echo "  Default:          decrypt sops, run 'tofu apply -auto-approve', write back tunnel_id."
     echo "  --plan-only:      decrypt sops, run 'tofu plan', exit."
+    echo "  --state-rm:       remove one or more resources from OpenTofu state."
+    echo "  --exec:           run arbitrary tofu command with decrypted state & backend environment."
     echo "  --migrate-tunnel: rebind tunnel state to the new resource address."
     echo "  --migrate-state:  one-shot copy of local terraform.tfstate into the R2 backend."
     echo "  -- <tofu-args>:   pass everything after -- straight to 'tofu apply'."
@@ -36,14 +61,12 @@ for arg in "$@"; do
     echo "                    Example: $0 -- -target='github_actions_secret.ci' -auto-approve"
     exit 0
     ;;
+  *)
+    PASSTHROUGH+=("$1")
+    shift
+    ;;
   esac
 done
-
-# Ensure we have the required tools
-if ! command -v tofu &>/dev/null || ! command -v sops &>/dev/null || ! command -v jq &>/dev/null || ! command -v yq &>/dev/null; then
-  echo "📦 Launching in nix shell with opentofu, sops, jq, and yq..."
-  exec nix shell nixpkgs#opentofu nixpkgs#jq nixpkgs#yq-go nixpkgs#sops -c "$0" "$@"
-fi
 
 # Colors
 GREEN="\033[1;32m"
@@ -339,6 +362,29 @@ if [ "$MODE" = "migrate-tunnel" ]; then
   tofu import "$NEW_ADDR" "${TF_VAR_cloudflare_account_id}/${TUNNEL_ID}"
 
   echo -e "\n${BOLD}${GREEN}✅ Tunnel state migrated. Run \`$0 --plan-only\` to verify zero diff.${RESET}"
+  exit 0
+fi
+
+if [ "$MODE" = "state-rm" ]; then
+  if [ ${#PASSTHROUGH[@]} -eq 0 ]; then
+    echo -e "${RED}❌ Missing resource address for --state-rm.${RESET}"
+    exit 1
+  fi
+  for res in "${PASSTHROUGH[@]}"; do
+    echo -e "${YELLOW}Removing ${res} from OpenTofu state...${RESET}"
+    tofu state rm "$res"
+  done
+  echo -e "\n${BOLD}${GREEN}✅ Removed from state.${RESET}"
+  exit 0
+fi
+
+if [ "$MODE" = "exec" ]; then
+  if [ ${#PASSTHROUGH[@]} -eq 0 ]; then
+    echo -e "${RED}❌ Missing tofu arguments for --exec.${RESET}"
+    exit 1
+  fi
+  echo -e "\n${BOLD}Executing: tofu ${PASSTHROUGH[*]}${RESET}"
+  tofu "${PASSTHROUGH[@]}"
   exit 0
 fi
 
