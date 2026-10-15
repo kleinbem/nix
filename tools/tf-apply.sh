@@ -185,6 +185,8 @@ echo -n "  • Zero Trust Org: "
 curl -s -H "Authorization: Bearer $API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/access/organizations" | jq -c '{name: .result.name, auth_domain: .result.auth_domain, success: .success, errors: .errors}'
 echo -n "  • Access IdPs:    "
 curl -s -H "Authorization: Bearer $API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/access/identity_providers" | jq -c '{count: (.result | length), success: .success, errors: .errors}'
+echo -n "  • Web Analytics:  "
+curl -s -H "Authorization: Bearer $API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/rum/site_info/list" | jq -c '{count: (.result | length), success: .success, errors: .errors}'
 AUTHENTIK_OIDC_SECRET=$(curl -s -H "Authorization: Bearer $AUTHENTIK_API_TOKEN" "https://auth.kleinbem.dev/api/v3/providers/oauth2/?client_id=cloudflare-access" | jq -r '.results[0].client_secret // empty')
 if [ -n "$AUTHENTIK_OIDC_SECRET" ]; then
   echo -e "  • Authentik Secret: ${GREEN}$AUTHENTIK_OIDC_SECRET${RESET}"
