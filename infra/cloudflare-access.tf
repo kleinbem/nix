@@ -93,3 +93,8 @@ resource "cloudflare_zero_trust_access_identity_provider" "authentik" {
   }
 }
 
+import {
+  to = cloudflare_zero_trust_access_identity_provider.authentik
+  id = "${var.cloudflare_account_id}/6bb0c00a-ad4e-4250-b5bb-215e7129112a"
+}
+
