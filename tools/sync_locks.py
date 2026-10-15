@@ -16,7 +16,7 @@ RESET = "\033[0m"
 # Entries are flake INPUT names (as they appear in flake.lock), which don't
 # always match the on-disk repo directory — see REPO_DIR_OVERRIDES below.
 TOPOLOGICAL_ORDER = [
-    "nix-secrets",  # No dependencies
+    "kleinbem-secrets",  # No dependencies (nix-config's secrets input, flake = false)
     "nix-devshells",  # No local dependencies
     "nix-gantry",  # No local dependencies
     "nix-hardware",  # Depends on nix-devshells
@@ -26,14 +26,13 @@ TOPOLOGICAL_ORDER = [
     "nix-config",  # Depends on presets, packages, hardware, devshells, secrets, gantry
 ]
 
-# The "nix-secrets" flake input is kept under its historical name (renaming
-# every `inputs.nix-secrets` reference across the tree wasn't worth it), but
-# the underlying repo was consolidated into kleinbem-secrets on 2026-08-07.
-# Map input name -> actual on-disk/GitHub repo name wherever this script
-# touches the filesystem or constructs a github: ref.
-REPO_DIR_OVERRIDES = {
-    "nix-secrets": "kleinbem-secrets",
-}
+# Map input name -> on-disk/GitHub repo name where they differ, wherever this
+# script touches the filesystem or constructs a github: ref. Entries in
+# TOPOLOGICAL_ORDER must be the flake INPUT names: the secrets input was renamed
+# from nix-secrets to kleinbem-secrets, and while this list still said
+# "nix-secrets" it never matched, so nix-config's kleinbem-secrets pin stayed at
+# 2026-10-02 while local evals overrode it (found 2026-10-15).
+REPO_DIR_OVERRIDES: dict[str, str] = {}
 
 
 def repo_dir(name):
