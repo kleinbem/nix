@@ -34,7 +34,7 @@ nix build ".#nixOnDroidConfigurations.phone.activationPackage" --impure \
   --override-input nix-hardware ../nix-hardware \
   --override-input nix-packages ../nix-packages \
   --override-input nix-templates ../nix-templates \
-  --override-input nix-secrets ../kleinbem-secrets |&
+  --override-input kleinbem-secrets ../kleinbem-secrets |&
   cat
 
 echo "🏁 Applying Manual PTY Bypass (Atomic Switch)..."
