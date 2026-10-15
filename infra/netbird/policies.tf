@@ -78,6 +78,7 @@ resource "netbird_policy" "companion_tcp_personal_to_personal" {
       { start = 1701, end = 1701 },
       { start = 3389, end = 3389 },
       { start = 4747, end = 4747 },
+      { start = 5555, end = 5555 },
       { start = 1714, end = 1764 },
       { start = 22000, end = 22000 },
     ]
