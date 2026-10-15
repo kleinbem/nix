@@ -63,7 +63,7 @@ resource "cloudflare_zero_trust_access_policy" "allow_owner" {
 
   application_id = cloudflare_zero_trust_access_application.this[each.key].id
   account_id     = var.cloudflare_account_id
-  name           = "Allow owner (email OTP)"
+  name           = "Allow owner (email OTP or Authentik)"
   precedence     = 1
   decision       = "allow"
 
@@ -71,3 +71,25 @@ resource "cloudflare_zero_trust_access_policy" "allow_owner" {
     email = local.access_allowed_emails
   }
 }
+
+# ---------------------------------------------------------------------------
+# Authentik OIDC Identity Provider for Cloudflare Access (Edge SSO)
+# Replaces email one-time PIN with direct WebAuthn / YubiKey passkey auth,
+# while keeping email OTP as a fallback via the policy include block.
+# ---------------------------------------------------------------------------
+resource "cloudflare_zero_trust_access_identity_provider" "authentik" {
+  account_id = var.cloudflare_account_id
+  name       = "Authentik (Passkey / WebAuthn)"
+  type       = "oidc"
+
+  config {
+    client_id     = authentik_provider_oauth2.oidc["cloudflare-access"].client_id
+    client_secret = authentik_provider_oauth2.oidc["cloudflare-access"].client_secret
+    auth_url      = "https://auth.kleinbem.dev/application/o/authorize/"
+    token_url     = "https://auth.kleinbem.dev/application/o/token/"
+    certs_url     = "https://auth.kleinbem.dev/application/o/cloudflare-access/jwks/"
+    pkce_enabled  = true
+    scopes        = ["openid", "email", "profile"]
+  }
+}
+

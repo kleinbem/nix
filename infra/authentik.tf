@@ -670,6 +670,13 @@ locals {
       desc          = "Fleet AI chat interface"
       launch_url    = "https://chat.kleinbem.dev"
     }
+    cloudflare-access = {
+      name          = "Cloudflare Access"
+      redirect_uris = ["^https://.*\\.cloudflareaccess\\.com/cdn-cgi/access/callback$"]
+      matching_mode = "regex"
+      desc          = "Cloudflare Zero Trust edge SSO (Passkey / WebAuthn)"
+      launch_url    = "https://home.kleinbem.dev"
+    }
   }
 }
 
@@ -692,7 +699,7 @@ resource "authentik_provider_oauth2" "oidc" {
 
   allowed_redirect_uris = [
     for uri in each.value.redirect_uris : {
-      matching_mode = "strict"
+      matching_mode = try(each.value.matching_mode, "strict")
       url           = uri
     }
   ]

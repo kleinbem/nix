@@ -78,4 +78,19 @@ resource "cloudflare_ruleset" "waf_custom" {
     expression  = "(http.host eq \"n8n.kleinbem.dev\" and starts_with(http.request.uri.path, \"/webhook\") and (cf.threat_score gt 30 or http.request.body.size gt 10485760))"
     action      = "block"
   }
+
+  rules {
+    ref         = "block_malicious_scanners"
+    description = "Block known vulnerability scanners and automated exploit probes"
+    expression  = "(http.user_agent contains \"sqlmap\" or http.user_agent contains \"nikto\" or http.user_agent contains \"masscan\" or http.user_agent contains \"acunetix\" or http.user_agent contains \"censys\")"
+    action      = "block"
+  }
+
+  rules {
+    ref         = "authentik_threat_challenge"
+    description = "Managed challenge for high-threat IPs attempting Authentik login or API flows"
+    expression  = "(http.host eq \"auth.kleinbem.dev\" and starts_with(http.request.uri.path, \"/api/v3/flows/executor/\") and cf.threat_score gt 20)"
+    action      = "managed_challenge"
+  }
 }
+
