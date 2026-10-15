@@ -65,10 +65,6 @@ data "authentik_property_mapping_provider_scope" "profile" {
   scope_name = "profile"
 }
 
-data "authentik_certificate_key_pair" "jwt" {
-  name = "authentik Internal JWT Certificate"
-}
-
 # --- Self-registration for kleinbem.dev visitors ---
 #
 # First attempt at this pointed enrollment_flow (below) at Authentik's
@@ -304,7 +300,6 @@ resource "authentik_provider_oauth2" "kleinbem_site" {
 
   authorization_flow = data.authentik_flow.default_authorization_flow.id
   invalidation_flow  = data.authentik_flow.default_invalidation_flow.id
-  signing_key        = data.authentik_certificate_key_pair.jwt.id
 
   property_mappings = [
     data.authentik_property_mapping_provider_scope.openid.id,
@@ -689,7 +684,6 @@ resource "authentik_provider_oauth2" "oidc" {
 
   authorization_flow = data.authentik_flow.default_authorization_flow.id
   invalidation_flow  = data.authentik_flow.default_invalidation_flow.id
-  signing_key        = data.authentik_certificate_key_pair.jwt.id
 
   property_mappings = [
     data.authentik_property_mapping_provider_scope.openid.id,
