@@ -178,6 +178,15 @@ export TF_VAR_cloudflare_tunnel_secret="$TUNNEL_SECRET"
 export TF_VAR_kleinbem_site_session_secret="$SESSION_SECRET"
 export TF_VAR_cloudflare_pages_deploy_token="$PAGES_DEPLOY_TOKEN"
 
+echo -e "\n${BOLD}${YELLOW}🔍 Cloudflare Token & Zero Trust Diagnostics:${RESET}"
+echo -n "  • Token status:   "
+curl -s -H "Authorization: Bearer $API_TOKEN" https://api.cloudflare.com/client/v4/user/tokens/verify | jq -c '{id: .result.id, status: .result.status, success: .success, errors: .errors}'
+echo -n "  • Zero Trust Org: "
+curl -s -H "Authorization: Bearer $API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/access/organizations" | jq -c '{name: .result.name, auth_domain: .result.auth_domain, success: .success, errors: .errors}'
+echo -n "  • Access IdPs:    "
+curl -s -H "Authorization: Bearer $API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/access/identity_providers" | jq -c '{count: (.result | length), success: .success, errors: .errors}'
+
+
 # --- GitHub provider inputs (sourced from sops) ---
 # `github_tf_token` is the admin PAT the provider authenticates with.
 # `github_app_id` + `github_app_installation_id` + `github_app_private_key` are
