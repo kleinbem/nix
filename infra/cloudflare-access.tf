@@ -74,27 +74,16 @@ resource "cloudflare_zero_trust_access_policy" "allow_owner" {
 
 # ---------------------------------------------------------------------------
 # Authentik OIDC Identity Provider for Cloudflare Access (Edge SSO)
-# Replaces email one-time PIN with direct WebAuthn / YubiKey passkey auth,
-# while keeping email OTP as a fallback via the policy include block.
+# Live IdP UUID: 6bb0c00a-ad4e-4250-b5bb-215e7129112a
+#
+# Configured and verified in Cloudflare Zero Trust (Integrations > Identity providers).
+# Cloudflare returns 1010 (auth.forbidden) when fine-grained API tokens attempt
+# to manage Identity Providers programmatically on free/pay-as-you-go tiers.
+#
+# Authentication flow:
+#   1. Cloudflare Access redirects to Authentik (https://auth.kleinbem.dev).
+#   2. Authentik issues RS256 token containing the user's verified email.
+#   3. allow_owner policy above matches on `email = local.access_allowed_emails`
+#      ("martin.kleinberger@gmail.com") and grants edge access.
 # ---------------------------------------------------------------------------
-resource "cloudflare_zero_trust_access_identity_provider" "authentik" {
-  account_id = var.cloudflare_account_id
-  name       = "Authentik (Passkey / WebAuthn)"
-  type       = "oidc"
-
-  config {
-    client_id     = authentik_provider_oauth2.oidc["cloudflare-access"].client_id
-    client_secret = authentik_provider_oauth2.oidc["cloudflare-access"].client_secret
-    auth_url      = "https://auth.kleinbem.dev/application/o/authorize/"
-    token_url     = "https://auth.kleinbem.dev/application/o/token/"
-    certs_url     = "https://auth.kleinbem.dev/application/o/cloudflare-access/jwks/"
-    pkce_enabled  = false
-    scopes        = ["openid", "email", "profile"]
-  }
-}
-
-import {
-  to = cloudflare_zero_trust_access_identity_provider.authentik
-  id = "b302761dfcdc0ec01b2bae70d98ac46c/6bb0c00a-ad4e-4250-b5bb-215e7129112a"
-}
 
