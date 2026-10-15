@@ -88,7 +88,7 @@ resource "cloudflare_zero_trust_access_identity_provider" "authentik" {
     auth_url      = "https://auth.kleinbem.dev/application/o/authorize/"
     token_url     = "https://auth.kleinbem.dev/application/o/token/"
     certs_url     = "https://auth.kleinbem.dev/application/o/cloudflare-access/jwks/"
-    pkce_enabled  = true
+    pkce_enabled  = false
     scopes        = ["openid", "email", "profile"]
   }
 }
