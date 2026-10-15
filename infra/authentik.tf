@@ -65,6 +65,14 @@ data "authentik_property_mapping_provider_scope" "profile" {
   scope_name = "profile"
 }
 
+locals {
+  # Authentik's system certificate keypair UUID used for signing OIDC tokens / JWKS.
+  # Pinning the UUID directly ensures providers advertise RS256 and publish public keys
+  # in their /jwks/ endpoints (which Cloudflare Access strictly requires for OIDC IdP validation),
+  # avoiding fragile name-based data source queries.
+  authentik_jwt_cert_id = "5d46e643-75cf-45a9-b623-46f8dd95e5ee"
+}
+
 # --- Self-registration for kleinbem.dev visitors ---
 #
 # First attempt at this pointed enrollment_flow (below) at Authentik's
@@ -300,6 +308,7 @@ resource "authentik_provider_oauth2" "kleinbem_site" {
 
   authorization_flow = data.authentik_flow.default_authorization_flow.id
   invalidation_flow  = data.authentik_flow.default_invalidation_flow.id
+  signing_key        = local.authentik_jwt_cert_id
 
   property_mappings = [
     data.authentik_property_mapping_provider_scope.openid.id,
@@ -684,6 +693,7 @@ resource "authentik_provider_oauth2" "oidc" {
 
   authorization_flow = data.authentik_flow.default_authorization_flow.id
   invalidation_flow  = data.authentik_flow.default_invalidation_flow.id
+  signing_key        = local.authentik_jwt_cert_id
 
   property_mappings = [
     data.authentik_property_mapping_provider_scope.openid.id,

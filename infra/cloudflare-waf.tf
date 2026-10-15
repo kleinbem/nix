@@ -74,8 +74,8 @@ resource "cloudflare_ruleset" "waf_custom" {
 
   rules {
     ref         = "n8n_webhook_abuse"
-    description = "n8n webhooks — block known-bad IP reputation or oversized bodies (real auth is n8n's own per-webhook Header Auth/HMAC)"
-    expression  = "(http.host eq \"n8n.kleinbem.dev\" and starts_with(http.request.uri.path, \"/webhook\") and (cf.threat_score gt 30 or http.request.body.size gt 10485760))"
+    description = "n8n webhooks — block known-bad IP reputation (real auth is n8n's own per-webhook Header Auth/HMAC)"
+    expression  = "(http.host eq \"n8n.kleinbem.dev\" and starts_with(http.request.uri.path, \"/webhook\") and cf.threat_score gt 30)"
     action      = "block"
   }
 
