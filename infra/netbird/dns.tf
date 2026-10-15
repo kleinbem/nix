@@ -68,6 +68,8 @@ locals {
     "alertmanager.kleinbem.dev",
     "paperless.kleinbem.dev",
     "hass.kleinbem.dev",
+    "s3.kleinbem.dev",
+    "torrents.kleinbem.dev",
   ]
 }
 

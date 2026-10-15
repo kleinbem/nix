@@ -123,3 +123,26 @@ resource "netbird_route" "paperless" {
   masquerade            = true
   enabled               = true
 }
+
+resource "netbird_route" "garage_s3" {
+  network_id            = "garage-s3"
+  description           = "Garage S3 object storage on nixos-nvme (cbr0 host-native service). Live IP 10.85.46.1:3900. Allows core-pi Caddy and mesh peers to reach S3 directly without Cloudflare 100MB cap."
+  network               = "10.85.46.1/32"
+  peer                  = data.netbird_peer.personal_devices["nixos-nvme"].id
+  groups                = [netbird_group.personal_devices.id]
+  access_control_groups = [netbird_group.cache.id, netbird_group.personal_devices.id]
+  masquerade            = true
+  enabled               = true
+}
+
+resource "netbird_route" "qbittorrent" {
+  network_id            = "qbittorrent"
+  description           = "qbittorrent container on nasbook (mesh-only service)."
+  network               = "10.85.47.134/32"
+  peer                  = data.netbird_peer.smart_home["nasbook"].id
+  groups                = [netbird_group.smart_home.id]
+  access_control_groups = [netbird_group.cache.id]
+  masquerade            = true
+  enabled               = true
+}
+

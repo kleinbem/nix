@@ -60,7 +60,73 @@ resource "netbird_policy" "ping_personal_to_personal" {
   }
 }
 
+# Personal devices -> personal devices TCP companion workflows:
+# Weylus (1701), RDP (3389), DroidCam (4747), KDE Connect (1714:1764), Syncthing direct (22000).
+resource "netbird_policy" "companion_tcp_personal_to_personal" {
+  name        = "companion-tcp-personal-to-personal"
+  description = "Allow TCP companion services (Weylus stylus/screen, RDP, DroidCam, KDE Connect, Syncthing) between trusted personal devices."
+  enabled     = true
 
+  rule {
+    name          = "companion-tcp"
+    sources       = [netbird_group.personal_devices.id]
+    destinations  = [netbird_group.personal_devices.id]
+    bidirectional = true
+    protocol      = "tcp"
+    action        = "accept"
+    port_ranges = [
+      { start = 1701, end = 1701 },
+      { start = 3389, end = 3389 },
+      { start = 4747, end = 4747 },
+      { start = 1714, end = 1764 },
+      { start = 22000, end = 22000 },
+    ]
+  }
+}
+
+# Personal devices -> personal devices UDP companion workflows:
+# KDE Connect discovery/pairing (1714:1764) and Syncthing transfer (22000).
+resource "netbird_policy" "companion_udp_personal_to_personal" {
+  name        = "companion-udp-personal-to-personal"
+  description = "Allow UDP companion services (KDE Connect discovery, Syncthing transfer) between trusted personal devices."
+  enabled     = true
+
+  rule {
+    name          = "companion-udp"
+    sources       = [netbird_group.personal_devices.id]
+    destinations  = [netbird_group.personal_devices.id]
+    bidirectional = true
+    protocol      = "udp"
+    action        = "accept"
+    port_ranges = [
+      { start = 1714, end = 1764 },
+      { start = 22000, end = 22000 },
+    ]
+  }
+}
+
+# Mac-mini (monitoring container) -> fleet Prometheus node-exporter scraping (9100).
+# REQUIRED before closing the default All->All policy: without this, VictoriaMetrics
+# on mac-mini cannot scrape node-exporter metrics across the fleet.
+resource "netbird_policy" "monitoring_scrape" {
+  name        = "monitoring-scrape"
+  description = "Allow monitoring host (mac-mini) to scrape Prometheus node-exporter (9100) across fleet nodes."
+  enabled     = true
+
+  rule {
+    name    = "node-exporter"
+    sources = [netbird_group.personal_devices.id]
+    destinations = [
+      netbird_group.personal_devices.id,
+      netbird_group.smart_home.id,
+      netbird_group.cache.id,
+    ]
+    bidirectional = false
+    protocol      = "tcp"
+    ports         = ["9100"]
+    action        = "accept"
+  }
+}
 # --- The built-in "All -> All" default policy ---------------------------------
 #
 # Until this is removed, the SSH gate above is COSMETIC: NetBird ships a default
