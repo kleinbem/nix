@@ -203,13 +203,15 @@ fi
 # provider uses `app_auth {}` directly and needs APP_INSTALLATION_ID too. All
 # three live in nix/shared.yaml (every NixOS host's scope), not
 # infra/terraform.yaml.
-# `attic_push_token` becomes the ATTIC_PUSH_TOKEN secret — lives in
-# orin-nano's own per-host scope.
+# `attic_ci_push_token` (infra/terraform.yaml) becomes the ATTIC_PUSH_TOKEN
+# secret: CI's own token (sub github-ci), separate from orin-nano's since the
+# 2026-10 rotation. Falls back to orin-nano's attic_push_token until then.
 GH_TF_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.github_tf_token')
 GH_APP_ID=$(echo "$SHARED_YAML" | yq '.github_app_id')
 GH_APP_INSTALLATION_ID=$(echo "$SHARED_YAML" | yq '.github_app_installation_id')
 GH_APP_PRIVATE_KEY=$(echo "$SHARED_YAML" | yq '.github_app_private_key')
-ATTIC_PUSH=$(echo "$ORIN_YAML" | yq '.attic_push_token')
+ATTIC_PUSH=$(echo "$DECRYPTED_YAML" | yq '.attic_ci_push_token')
+[ "$ATTIC_PUSH" = "null" ] && ATTIC_PUSH=$(echo "$ORIN_YAML" | yq '.attic_push_token')
 # `cachix_auth_token` (infra/terraform.yaml): write token for the public
 # kleinbem-nixpkgs-review Cachix cache → nixpkgs-review-gha's CACHIX_AUTH_TOKEN. Optional.
 CACHIX_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.cachix_auth_token')
