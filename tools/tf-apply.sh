@@ -321,10 +321,22 @@ fi
 # Relative to this script, not the caller's cwd (same as SECRETS_ROOT above) —
 # a plain `cd infra` failed when run from anywhere but nix/.
 cd "$(dirname "${BASH_SOURCE[0]}")/../infra"
-rm -f .r2-backend.hcl
-touch .r2-backend.hcl
-chmod 600 .r2-backend.hcl
-cat >.r2-backend.hcl <<EOF
+# The R2 keys only exist on disk for the length of this run: the backend
+# config goes to tmpfs, and `tofu init` also caches them in
+# .terraform/terraform.tfstate, so both are wiped on exit. The next run
+# re-inits with -reconfigure.
+rm -f .r2-backend.hcl # older runs left it here
+BACKEND_CFG=$(mktemp -p "${XDG_RUNTIME_DIR:-/tmp}" r2-backend.XXXXXX.hcl)
+cleanup_backend() {
+  rm -f "$BACKEND_CFG"
+  if [ -f .terraform/terraform.tfstate ]; then
+    jq '.backend.config.access_key = null | .backend.config.secret_key = null' \
+      .terraform/terraform.tfstate >.terraform/terraform.tfstate.tmp &&
+      mv .terraform/terraform.tfstate.tmp .terraform/terraform.tfstate
+  fi
+}
+trap cleanup_backend EXIT
+cat >"$BACKEND_CFG" <<EOF
 endpoints  = { s3 = "https://${ACCOUNT_ID}.r2.cloudflarestorage.com" }
 access_key = "${R2_KEY_ID}"
 secret_key = "${R2_KEY_SECRET}"
@@ -333,12 +345,12 @@ EOF
 if [ "$MODE" = "migrate-state" ]; then
   echo -e "${YELLOW}Migrating local terraform.tfstate into the R2 backend (kleinbem-tofu-state/infra.tfstate)...${RESET}"
   echo -e "${YELLOW}Local tfstate files stay behind, gitignored, as a fallback copy.${RESET}"
-  tofu init -backend-config=.r2-backend.hcl -migrate-state -force-copy
+  tofu init -backend-config="$BACKEND_CFG" -migrate-state -force-copy
   echo -e "\n${BOLD}${GREEN}✅ State migrated to R2. Verify with: $0 --plan-only (expect no changes).${RESET}"
   exit 0
 fi
 
-tofu init -input=false -backend-config=.r2-backend.hcl
+tofu init -input=false -reconfigure -backend-config="$BACKEND_CFG"
 
 if [ "$MODE" = "plan" ]; then
   echo -e "\n${BOLD}🔎 Running plan only (no changes will be applied)...${RESET}"
@@ -454,7 +466,7 @@ fi
 if [ -n "$GEMINI_API_KEY_JUAN" ]; then
   JUAN_YAML="$SECRETS_ROOT/personas/juan-gonzalez.yaml"
   GEMINI_WORK="$(mktemp -d /dev/shm/tf-apply-gemini-XXXXXX)"
-  trap 'find "$GEMINI_WORK" -type f -exec shred -u {} \; 2>/dev/null; rm -rf "$GEMINI_WORK"' EXIT
+  trap 'cleanup_backend; find "$GEMINI_WORK" -type f -exec shred -u {} \; 2>/dev/null; rm -rf "$GEMINI_WORK"' EXIT
   sops -d "$JUAN_YAML" >"$GEMINI_WORK/juan.yaml"
   # Only re-encrypt when the key actually changed: sops re-encryption rewrites
   # every ciphertext line, so an unconditional write left kleinbem-secrets
