@@ -6,7 +6,7 @@
 # (guarded by prevent_destroy on the bucket resource).
 #
 # The endpoint and the R2 access key can't be expressed here (backend blocks
-# take no variables); tools/tf-apply.sh generates `.r2-backend.hcl` (gitignored)
+# take no variables); tools/tf-apply.sh generates a backend-config file on tmpfs, deleted after the run
 # from sops (`r2_state_access_key_id` / `r2_state_secret_access_key` +
 # `cloudflare_account_id`) and passes it via `tofu init -backend-config=…`.
 # Credentials deliberately go in that file, NOT AWS_* env vars — the aws
