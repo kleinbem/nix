@@ -54,6 +54,12 @@ variable "attic_push_token" {
   description = "Attic cache push token, distributed as the ATTIC_PUSH_TOKEN Actions secret."
 }
 
+variable "attic_pull_token" {
+  type        = string
+  sensitive   = true
+  description = "Attic cache pull-only token (sub github-ci-pull), distributed as the ATTIC_PULL_TOKEN Actions secret for CI jobs that only read the cache."
+}
+
 variable "cachix_auth_token" {
   type        = string
   sensitive   = true

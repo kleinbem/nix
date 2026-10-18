@@ -212,6 +212,14 @@ GH_APP_INSTALLATION_ID=$(echo "$SHARED_YAML" | yq '.github_app_installation_id')
 GH_APP_PRIVATE_KEY=$(echo "$SHARED_YAML" | yq '.github_app_private_key')
 ATTIC_PUSH=$(echo "$DECRYPTED_YAML" | yq '.attic_ci_push_token')
 [ "$ATTIC_PUSH" = "null" ] && ATTIC_PUSH=$(echo "$ORIN_YAML" | yq '.attic_push_token')
+# `attic_ci_pull_token` (infra/terraform.yaml) becomes ATTIC_PULL_TOKEN: pull
+# only, for CI jobs that only read the cache (PR builds). Mint it with
+# `just nixos::attic-mint infra/terraform.yaml attic_ci_pull_token --sub github-ci-pull --pull system`.
+ATTIC_PULL=$(echo "$DECRYPTED_YAML" | yq '.attic_ci_pull_token')
+if [ "$ATTIC_PULL" = "null" ]; then
+  echo -e "${RED}❌ attic_ci_pull_token missing in $TERRAFORM_FILE; mint it first (see above).${RESET}" >&2
+  exit 1
+fi
 # `cachix_auth_token` (infra/terraform.yaml): write token for the public
 # kleinbem-nixpkgs-review Cachix cache → nixpkgs-review-gha's CACHIX_AUTH_TOKEN. Optional.
 CACHIX_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.cachix_auth_token')
@@ -268,6 +276,7 @@ export TF_VAR_github_app_id="$GH_APP_ID"
 export TF_VAR_github_app_installation_id="$GH_APP_INSTALLATION_ID"
 export TF_VAR_github_app_private_key="$GH_APP_PRIVATE_KEY"
 export TF_VAR_attic_push_token="$ATTIC_PUSH"
+export TF_VAR_attic_pull_token="$ATTIC_PULL"
 export TF_VAR_cachix_auth_token="$CACHIX_TOKEN"
 export TF_VAR_netbird_setup_key="$NETBIRD_KEY"
 export TF_VAR_netbird_setup_key_ephemeral="$NETBIRD_KEY_EPHEMERAL"
