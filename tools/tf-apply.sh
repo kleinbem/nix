@@ -231,6 +231,14 @@ NTFY_DEPLOY_TOPIC=$(echo "$SHARED_YAML" | yq '.ntfy_deploy_topic')
 # failure/staleness alerts — and hosts can't decrypt infra/*. Single source
 # for both CI (NTFY_ALERT_TOPIC Actions secret) and hosts.
 NTFY_ALERT_TOPIC=$(echo "$SHARED_YAML" | yq '.ntfy_alert_topic')
+# CI's ntfy bearer token (NTFY_CI_TOKEN). Optional until ntfy.kleinbem.dev
+# runs with auth (nix-presets ntfy.secretsFile); empty means "no header".
+NTFY_CI_TOKEN=$(echo "$SHARED_YAML" | yq '.ntfy_ci_token')
+[ "$NTFY_CI_TOKEN" = "null" ] && NTFY_CI_TOKEN=""
+# CI's ntfy bearer token (NTFY_CI_TOKEN). Optional until ntfy.kleinbem.dev
+# runs with auth (nix-presets ntfy.secretsFile); empty means "no header".
+NTFY_CI_TOKEN=$(echo "$SHARED_YAML" | yq '.ntfy_ci_token')
+[ "$NTFY_CI_TOKEN" = "null" ] && NTFY_CI_TOKEN=""
 
 # --- Google Cloud (infra/google.tf) ---
 # Bootstrap service-account key (base64 JSON), manually created via gcloud —

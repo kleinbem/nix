@@ -24,7 +24,7 @@ locals {
     # ATTIC_PULL_TOKEN (pull only) is for jobs that only read, PR builds
     # included; ATTIC_PUSH_TOKEN only for build-all's non-PR runs.
     # nix and nix-packages have no workflow that uses Attic or NetBird.
-    "nix-config"   = ["ATTIC_PUSH_TOKEN", "ATTIC_PULL_TOKEN", "APP_ID", "APP_PRIVATE_KEY", "NETBIRD_SETUP_KEY_EPHEMERAL", "NTFY_DEPLOY_TOPIC", "NTFY_ALERT_TOPIC"]
+    "nix-config"   = ["ATTIC_PUSH_TOKEN", "ATTIC_PULL_TOKEN", "APP_ID", "APP_PRIVATE_KEY", "NETBIRD_SETUP_KEY_EPHEMERAL", "NTFY_DEPLOY_TOPIC", "NTFY_ALERT_TOPIC", "NTFY_CI_TOKEN"]
     "nix-packages" = ["APP_ID", "APP_PRIVATE_KEY"]
     # APP_ID + APP_PRIVATE_KEY needed by each sub-flake's maintain.yaml
     # workflow (auto-updates flake.lock + commits via Contents API).
@@ -70,6 +70,7 @@ locals {
     "NETBIRD_SETUP_KEY_EPHEMERAL"   = var.netbird_setup_key_ephemeral
     "NTFY_DEPLOY_TOPIC"             = var.ntfy_deploy_topic
     "NTFY_ALERT_TOPIC"              = var.ntfy_alert_topic
+    "NTFY_CI_TOKEN"                 = var.ntfy_ci_token
     "CLOUDFLARE_ACCOUNT_ID"         = var.cloudflare_account_id
     "CLOUDFLARE_PAGES_DEPLOY_TOKEN" = var.cloudflare_pages_deploy_token
     "R2_ACCESS_KEY_ID"              = var.r2_state_access_key_id
