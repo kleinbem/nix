@@ -87,6 +87,13 @@ variable "ntfy_alert_topic" {
   description = "Secret ntfy topic name (sops: nix/shared.yaml ntfy_alert_topic), distributed as the NTFY_ALERT_TOPIC Actions secret. The fleet's single human-facing alert topic: CI posts failure alerts to it, and hosts post backup failure/staleness alerts to it (nix-config modules/nixos/backup.nix). CI example: build-all's blocking container-factory eval — typically an insecure re-ack after a nixpkgs bump. Deliberately separate from ntfy_deploy_topic: that one is machine-consumed (any message triggers host upgrade polls), this one is for a human's phone. Empty default keeps apply working before the topic is minted (alert steps in CI skip when the secret is empty)."
 }
 
+variable "ntfy_ci_token" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "ntfy access token for CI (sops: nix/shared.yaml ntfy_ci_token, a tk_… token owned by the `ci` ntfy user with write access to the deploy and alert topics), distributed as the NTFY_CI_TOKEN Actions secret. Required once ntfy.kleinbem.dev runs with auth-default-access = deny-all (nix-presets ntfy.secretsFile); CI's curl steps send it as a bearer token when non-empty. Empty default keeps apply working before the token exists."
+}
+
 variable "ntfy_deploy_topic" {
   type        = string
   sensitive   = true
