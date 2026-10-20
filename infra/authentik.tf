@@ -674,8 +674,24 @@ locals {
       desc          = "Fleet AI chat interface"
       launch_url    = "https://chat.kleinbem.dev"
     }
+    # Home Assistant on hass-pi: the auth_oidc custom component
+    # (nix-presets containers/home-assistant.nix) logs users in with
+    # PKCE as a *public* client, so there is no client secret to ship
+    # into the container — hence client_type public, unlike the rest.
+    # Second redirect URI is HA's direct LAN address (the nftables DNAT
+    # on hass-pi), for when Caddy/DNS are out of the picture.
+    home-assistant = {
+      name        = "Home Assistant"
+      client_type = "public"
+      redirect_uris = [
+        "https://hass.kleinbem.dev/auth/oidc/callback",
+        "http://10.0.0.21:8123/auth/oidc/callback",
+      ]
+      desc       = "Smart home (hass-pi)"
+      launch_url = "https://hass.kleinbem.dev"
+    }
     cloudflare-access = {
-      name          = "Cloudflare Access"
+      name = "Cloudflare Access"
       redirect_uris = [
         "https://sparkling-feather-0ab4.cloudflareaccess.com/cdn-cgi/access/callback",
         "^https://.*\\.cloudflareaccess\\.com/cdn-cgi/access/callback$",
@@ -691,7 +707,7 @@ resource "authentik_provider_oauth2" "oidc" {
   for_each    = local.oidc_apps
   name        = each.key
   client_id   = each.key
-  client_type = "confidential"
+  client_type = try(each.value.client_type, "confidential")
   grant_types = ["authorization_code"]
 
   authorization_flow = data.authentik_flow.default_authorization_flow.id
