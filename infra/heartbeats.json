@@ -1,7 +1,7 @@
 {
   "core-pi": {
     "core-pi-alive": {
-      "grace": 900,
+      "grace": 1800,
       "kind": "alive",
       "timeout": 300
     },
@@ -23,21 +23,21 @@
   },
   "hass-pi": {
     "hass-pi-alive": {
-      "grace": 900,
+      "grace": 1800,
       "kind": "alive",
       "timeout": 300
     }
   },
   "mac-mini": {
     "mac-mini-alive": {
-      "grace": 900,
+      "grace": 1800,
       "kind": "alive",
       "timeout": 300
     }
   },
   "nasbook": {
     "nasbook-alive": {
-      "grace": 900,
+      "grace": 1800,
       "kind": "alive",
       "timeout": 300
     }
@@ -45,7 +45,7 @@
   "nixos-nvme": {},
   "orin-nano": {
     "orin-nano-alive": {
-      "grace": 900,
+      "grace": 1800,
       "kind": "alive",
       "timeout": 300
     }
