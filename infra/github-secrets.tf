@@ -97,6 +97,32 @@ resource "github_actions_secret" "ci" {
   value = local.secret_values[each.value.secret]
 }
 
+# Runs that Dependabot triggers only see Dependabot secrets, never Actions
+# secrets, so each repo's dependabot-auto-merge.yaml gets the app credentials
+# here. It arms auto-merge with an app token rather than GITHUB_TOKEN because
+# a merge made by GITHUB_TOKEN triggers no push workflows on main, and
+# kleinbem-site deploys from exactly that push. Direct var references, not
+# secret_values, so a targeted apply stays clear of the Authentik provider.
+locals {
+  dependabot_app_secrets = {
+    "APP_ID"          = var.github_app_id
+    "APP_PRIVATE_KEY" = var.github_app_private_key
+  }
+  dependabot_secret_pairs = merge([
+    for repo in ["kleinbem-auth", "kleinbem-site", "nix-packages"] : {
+      for n in keys(local.dependabot_app_secrets) : "${repo}/${n}" => { repo = repo, secret = n }
+    }
+  ]...)
+}
+
+resource "github_dependabot_secret" "app" {
+  for_each = local.dependabot_secret_pairs
+
+  repository  = each.value.repo
+  secret_name = each.value.secret
+  value       = local.dependabot_app_secrets[each.value.secret]
+}
+
 # kleinbem/nixpkgs-review-gha (fork of Defelo/nixpkgs-review-gha) builds
 # nixpkgs PRs on GitHub runners and pushes the results to the public
 # kleinbem-nixpkgs-review Cachix cache (Cachix-managed signing, separate from
