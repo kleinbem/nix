@@ -187,10 +187,10 @@ echo -n "  • Access IdPs:    "
 curl -s -H "Authorization: Bearer $API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/access/identity_providers" | jq -c '{count: (.result | length), success: .success, errors: .errors}'
 echo -n "  • Web Analytics:  "
 curl -s -H "Authorization: Bearer $API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/rum/site_info/list" | jq -c '{count: (.result | length), success: .success, errors: .errors}'
-AUTHENTIK_OIDC_SECRET=$(curl -s -H "Authorization: Bearer $AUTHENTIK_API_TOKEN" "https://auth.kleinbem.dev/api/v3/providers/oauth2/?client_id=cloudflare-access" | jq -r '.results[0].client_secret // empty')
-if [ -n "$AUTHENTIK_OIDC_SECRET" ]; then
-  echo -e "  • Authentik Secret: ${GREEN}$AUTHENTIK_OIDC_SECRET${RESET}"
-fi
+# Report only whether the cloudflare-access client secret exists, never the
+# value: this output gets pasted into chats and issues.
+echo -n "  • Authentik OIDC: "
+curl -s -H "Authorization: Bearer $AUTHENTIK_API_TOKEN" "https://auth.kleinbem.dev/api/v3/providers/oauth2/?client_id=cloudflare-access" | jq -c '{client: "cloudflare-access", secret_present: ((.results[0].client_secret // "") != "")}'
 
 
 # --- GitHub provider inputs (sourced from sops) ---
