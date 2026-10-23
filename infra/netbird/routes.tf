@@ -33,7 +33,9 @@ resource "netbird_route" "buzz_relay" {
 
   # Who may actually USE this route: your own trusted machines only, same
   # group SSH access to smart-home is scoped to.
-  access_control_groups = [netbird_group.personal_devices.id]
+  # Plus `cache` (core-pi): Caddy there fronts the relay as
+  # buzz.kleinbem.dev (dns.tf), same as the mesh-only backends below.
+  access_control_groups = [netbird_group.personal_devices.id, netbird_group.cache.id]
 
   # nixos-nvme must masquerade so return traffic looks like it came from
   # nixos-nvme itself — the buzz container has no route back to the NetBird

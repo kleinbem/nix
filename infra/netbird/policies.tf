@@ -233,3 +233,23 @@ resource "netbird_policy" "personal_to_buzz_relay" {
     action        = "accept"
   }
 }
+
+# core-pi (Caddy) -> the Buzz relay (buzz_relay route in routes.tf), for
+# wss://buzz.kleinbem.dev: Caddy terminates TLS with a publicly trusted
+# DNS-01 certificate and proxies to the relay (3000) and its pairing relay
+# (3001, path /pair). Same shape as personal_to_buzz_relay.
+resource "netbird_policy" "caddy_to_buzz_relay" {
+  name        = "caddy-to-buzz-relay"
+  description = "Allow core-pi's Caddy to reach the Buzz relay (3000) and its pairing relay (3001) via the buzz-relay route."
+  enabled     = true
+
+  rule {
+    name          = "buzz-relay-proxy"
+    sources       = [netbird_group.cache.id]
+    destinations  = [netbird_group.cache.id]
+    bidirectional = false
+    protocol      = "tcp"
+    ports         = ["3000", "3001"]
+    action        = "accept"
+  }
+}

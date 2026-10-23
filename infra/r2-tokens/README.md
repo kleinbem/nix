@@ -1,7 +1,13 @@
-# Per-host R2 backup tokens (OpenTofu)
+# Minted Cloudflare tokens (OpenTofu)
 
-One bucket-scoped R2 token per fleet host for the backup engine's `r2`
-destination. Hosts come from `../backup-hosts.json` (`nix-config#backupHosts`:
+- One bucket-scoped R2 token per fleet host for the backup engine's `r2`
+  destination (`tokens.tf`).
+- Caddy's DNS-01 token for core-pi (`acme-dns.tf`): DNS edit + zone read on
+  kleinbem.dev only, written to `kleinbem-secrets/nix/per-host/core-pi.yaml`
+  as `caddy_acme_cloudflare_token`. It gives mesh-only names such as
+  `buzz.kleinbem.dev` publicly trusted certificates.
+
+R2 tokens: Hosts come from `../backup-hosts.json` (`nix-config#backupHosts`:
 every host that registers `my.backup.items`); each host's rclone config is
 written to `kleinbem-secrets/nix/per-host/<host>.yaml` as
 `backup_r2_rclone_config`.

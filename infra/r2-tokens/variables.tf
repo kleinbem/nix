@@ -26,3 +26,13 @@ variable "backup_bucket" {
   default     = "kleinbem-backup"
   description = "R2 bucket the tokens are scoped to. Owned by the main infra/ root (cloudflare-r2.tf); not referenced across roots, so keep the name in sync."
 }
+
+variable "cloudflare_zone_id" {
+  type        = string
+  description = "Zone id of kleinbem.dev, for the zone-scoped Caddy DNS-01 token (acme-dns.tf). Not secret; state-env.sh looks it up with the main root's cloudflare_api_token, since the minter token itself can't read zones."
+
+  validation {
+    condition     = can(regex("^[0-9a-f]{32}$", var.cloudflare_zone_id))
+    error_message = "cloudflare_zone_id must be the 32-hex zone id of kleinbem.dev."
+  }
+}
