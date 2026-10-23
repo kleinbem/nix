@@ -70,6 +70,11 @@ locals {
     "hass.kleinbem.dev",
     "s3.kleinbem.dev",
     "torrents.kleinbem.dev",
+    # Added 2026-10-23: Buzz relay (nixos-nvme container) behind Caddy with a
+    # publicly trusted DNS-01 certificate (nix-config inventory `buzz`,
+    # `publicCert = true`). Buzz 1.0 joins communities only over TLS and
+    # trusts only the public CA list, so `tls internal` isn't enough.
+    "buzz.kleinbem.dev",
   ]
 }
 
