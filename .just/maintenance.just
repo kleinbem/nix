@@ -333,6 +333,12 @@ update-cached:
 update-local:
     @{{LOCK_CMD}} python3 ./tools/sync_locks.py
 
+# Drop update-local's leftover lock re-pins before a pull rebases them into
+# conflicts (dev::apply runs this first). Hand-edited locks stay.
+[group("Updates")]
+drop-local-pins:
+    @{{LOCK_CMD}} python3 ./tools/sync_locks.py --drop-stale
+
 # Bump Antigravity to latest (delegates to nix-packages' own justfile, which
 # owns the upstream URL and the script). Run `cd nix-packages && just --list`
 # to see the full updater set (update-antigravity, update-langfuse, …).

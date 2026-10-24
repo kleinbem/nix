@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import hashlib
 import json
 import os
 import subprocess
@@ -37,6 +38,67 @@ REPO_DIR_OVERRIDES: dict[str, str] = {}
 
 def repo_dir(name):
     return REPO_DIR_OVERRIDES.get(name, name)
+
+
+# The sync leaves its re-pins uncommitted, pinned to local HEADs ahead of
+# main's lock. Once CI bumps main, the next pull-all rebases them into
+# conflict markers that break evaluation (2026-10-23/24). It records the hash
+# of each lock it writes here, so --drop-stale can tell its own leftovers from
+# a hand-made `nix flake update` and drop only those before the pull.
+MARKER_DIR = os.path.join(
+    os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache"),
+    "kleinbem",
+    "sync-locks",
+)
+
+
+def lock_hash(path):
+    try:
+        with open(os.path.join(path, "flake.lock"), "rb") as f:
+            return hashlib.sha256(f.read()).hexdigest()
+    except OSError:
+        return None
+
+
+def marker_path(sub):
+    return os.path.join(MARKER_DIR, f"{repo_dir(sub)}.sha256")
+
+
+def record_lock(sub, sub_path):
+    digest = lock_hash(sub_path)
+    if digest is None:
+        return
+    os.makedirs(MARKER_DIR, exist_ok=True)
+    with open(marker_path(sub), "w") as f:
+        f.write(digest + "\n")
+
+
+def drop_stale(root_dir):
+    """Restore flake.lock from HEAD where it is the sync's own untouched
+    leftover and the only change; the sync re-creates it after the pull."""
+    for sub in TOPOLOGICAL_ORDER:
+        sub_path = os.path.join(root_dir, repo_dir(sub))
+        try:
+            with open(marker_path(sub)) as f:
+                recorded = f.read().strip()
+        except OSError:
+            continue
+        ok, status = run_cmd(
+            ["git", "status", "--porcelain"], cwd=sub_path, capture=True
+        )
+        changed = [line[3:] for line in status.splitlines() if line.strip()]
+        if not ok or changed != ["flake.lock"]:
+            continue
+        if lock_hash(sub_path) != recorded:
+            continue
+        ok, err = run_cmd(
+            ["git", "checkout", "HEAD", "--", "flake.lock"], cwd=sub_path, capture=True
+        )
+        if ok:
+            os.remove(marker_path(sub))
+            print(f"  ↩  {sub}: dropped the previous sync's lock re-pin")
+        else:
+            print(f"  {YELLOW}⚠  {sub}: could not restore flake.lock: {err}{RESET}")
 
 
 def run_cmd(args, cwd=None, capture=False):
@@ -93,6 +155,10 @@ def main():
     # where every sub-flake actually lives as a flat sibling (not nested
     # under nix/ — that assumption predates the 2026 flat-layout migration).
     root_dir = os.path.dirname(os.path.dirname(script_dir))
+
+    if sys.argv[1:] == ["--drop-stale"]:
+        drop_stale(root_dir)
+        return
 
     print(f"{BOLD}{CYAN}🔄 Topological Workspace Lockfile Sync...{RESET}")
     print(
@@ -210,6 +276,7 @@ def main():
             # under non-interactive subprocess context), which is more
             # friction than it's worth for purely-machine-generated commits.
             run_cmd(["git", "add", "flake.lock"], cwd=sub_path)
+            record_lock(sub, sub_path)
             print(f"  ✅ Staged in {BOLD}{sub}{RESET} (commit when ready)")
         else:
             print(
