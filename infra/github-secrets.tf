@@ -23,15 +23,18 @@ locals {
     # ci-runners (cache-only policy) and auto-expire ~10 min after the run.
     # ATTIC_PULL_TOKEN (pull only) is for jobs that only read, PR builds
     # included; ATTIC_PUSH_TOKEN only for build-all's non-PR runs.
-    # nix and nix-packages have no workflow that uses Attic or NetBird.
-    "nix-config"   = ["ATTIC_PUSH_TOKEN", "ATTIC_PULL_TOKEN", "APP_ID", "APP_PRIVATE_KEY", "NETBIRD_SETUP_KEY_EPHEMERAL", "NTFY_DEPLOY_TOPIC", "NTFY_ALERT_TOPIC", "NTFY_CI_TOKEN"]
-    "nix-packages" = ["APP_ID", "APP_PRIVATE_KEY"]
-    # APP_ID + APP_PRIVATE_KEY needed by each sub-flake's maintain.yaml
-    # workflow (auto-updates flake.lock + commits via Contents API).
-    "nix-devshells" = ["APP_ID", "APP_PRIVATE_KEY"]
-    "nix-hardware"  = ["APP_ID", "APP_PRIVATE_KEY"]
-    "nix-templates" = ["APP_ID", "APP_PRIVATE_KEY"]
-    "nix-presets"   = ["APP_ID", "APP_PRIVATE_KEY"]
+    "nix-config" = ["ATTIC_PUSH_TOKEN", "ATTIC_PULL_TOKEN", "APP_ID", "APP_PRIVATE_KEY", "NETBIRD_SETUP_KEY_EPHEMERAL", "NTFY_DEPLOY_TOPIC", "NTFY_ALERT_TOPIC", "NTFY_CI_TOKEN"]
+    # The sub-flake CIs read the cache too, through kleinbem/actions/nix-setup:
+    # pull token + ephemeral NetBird key, same ci-runners (cache-only) policy
+    # as nix-config. Without them the action just builds without the cache.
+    # APP_ID + APP_PRIVATE_KEY for each sub-flake's maintain.yaml (lock
+    # updates committed via the Contents API).
+    "nix-packages"  = ["APP_ID", "APP_PRIVATE_KEY", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
+    "nix-devshells" = ["APP_ID", "APP_PRIVATE_KEY", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
+    "nix-hardware"  = ["APP_ID", "APP_PRIVATE_KEY", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
+    "nix-templates" = ["APP_ID", "APP_PRIVATE_KEY", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
+    "nix-presets"   = ["APP_ID", "APP_PRIVATE_KEY", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
+    "nix-gantry"    = ["ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
     # NTFY_ALERT_TOPIC: the scheduled drift-detection plan (terraform-plan.yaml)
     # pings this human topic when GitHub config no longer matches Terraform.
     "github-config" = ["APP_ID", "APP_PRIVATE_KEY", "APP_INSTALLATION_ID", "NTFY_ALERT_TOPIC", "CLOUDFLARE_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]
