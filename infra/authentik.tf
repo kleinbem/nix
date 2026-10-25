@@ -316,14 +316,19 @@ resource "authentik_provider_oauth2" "kleinbem_site" {
     data.authentik_property_mapping_provider_scope.profile.id,
   ]
 
+  # redirect_uri_type is the server's default, but Authentik stores it on
+  # this provider and the plan showed it as a diff on every apply; declaring
+  # it keeps the plan clean.
   allowed_redirect_uris = [
     {
-      matching_mode = "strict"
-      url           = "https://kleinbem.dev/auth/callback"
+      matching_mode     = "strict"
+      redirect_uri_type = "authorization"
+      url               = "https://kleinbem.dev/auth/callback"
     },
     {
-      matching_mode = "strict"
-      url           = "https://www.kleinbem.dev/auth/callback"
+      matching_mode     = "strict"
+      redirect_uri_type = "authorization"
+      url               = "https://www.kleinbem.dev/auth/callback"
     },
   ]
 }
