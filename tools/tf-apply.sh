@@ -194,9 +194,9 @@ curl -s -H "Authorization: Bearer $AUTHENTIK_API_TOKEN" "https://auth.kleinbem.d
 
 
 # --- GitHub provider inputs (sourced from sops) ---
-# `github_tf_token` is the admin PAT the provider authenticates with.
 # `github_app_id` + `github_app_installation_id` + `github_app_private_key` are
-# the GitHub App credentials distributed to CI repos as APP_ID /
+# what the github provider authenticates with (app_auth in infra/main.tf; the
+# old github_tf_token PAT is gone), and the credentials distributed to CI repos as APP_ID /
 # APP_INSTALLATION_ID / APP_PRIVATE_KEY (replaces the retired long-lived GH_PAT).
 # Most repos mint short-lived tokens via actions/create-github-app-token at
 # runtime (installation ID auto-derived from owner); github-config's tofu
@@ -206,7 +206,6 @@ curl -s -H "Authorization: Bearer $AUTHENTIK_API_TOKEN" "https://auth.kleinbem.d
 # `attic_ci_push_token` (infra/terraform.yaml) becomes the ATTIC_PUSH_TOKEN
 # secret: CI's own token (sub github-ci), separate from orin-nano's since the
 # 2026-10 rotation. Falls back to orin-nano's attic_push_token until then.
-GH_TF_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.github_tf_token')
 GH_APP_ID=$(echo "$SHARED_YAML" | yq '.github_app_id')
 GH_APP_INSTALLATION_ID=$(echo "$SHARED_YAML" | yq '.github_app_installation_id')
 GH_APP_PRIVATE_KEY=$(echo "$SHARED_YAML" | yq '.github_app_private_key')
@@ -249,7 +248,6 @@ GOOGLE_SA_KEY=$(echo "$DECRYPTED_YAML" | yq '.google_service_account_key')
 HEALTHCHECKS_API_KEY=$(echo "$DECRYPTED_YAML" | yq '.healthchecks_api_key')
 
 # Normalise missing keys ("null") to empty strings
-[ "$GH_TF_TOKEN" = "null" ] && GH_TF_TOKEN=""
 [ "$GH_APP_ID" = "null" ] && GH_APP_ID=""
 [ "$GH_APP_INSTALLATION_ID" = "null" ] && GH_APP_INSTALLATION_ID=""
 [ "$GH_APP_PRIVATE_KEY" = "null" ] && GH_APP_PRIVATE_KEY=""
@@ -262,24 +260,18 @@ HEALTHCHECKS_API_KEY=$(echo "$DECRYPTED_YAML" | yq '.healthchecks_api_key')
 [ "$GOOGLE_SA_KEY" = "null" ] && GOOGLE_SA_KEY=""
 [ "$HEALTHCHECKS_API_KEY" = "null" ] && HEALTHCHECKS_API_KEY=""
 
-if [ -z "$GH_TF_TOKEN" ]; then
-  echo -e "${YELLOW}⚠️  github_tf_token not set in $TERRAFORM_FILE — GitHub resources will fail to authenticate."
-  echo -e "    Add a fine-grained PAT (Administration + Issues + Secrets: R/W on the nix-* repos) under key 'github_tf_token' to manage GitHub via IaC.${RESET}"
-fi
-
-if [ -z "$GH_APP_ID" ] || [ -z "$GH_APP_PRIVATE_KEY" ]; then
-  echo -e "${YELLOW}⚠️  github_app_id or github_app_private_key not set in $SHARED_FILE — CI workflows that mint App tokens will fail.${RESET}"
-fi
-
-if [ -z "$GH_APP_INSTALLATION_ID" ]; then
-  echo -e "${YELLOW}⚠️  github_app_installation_id not set in $SHARED_FILE — github-config's tofu provider (app_auth) will fail to authenticate.${RESET}"
+# The github provider authenticates as the App, so all three are required:
+# without them every github_* resource fails, and a refresh would error out
+# halfway through an apply. Stop before touching anything.
+if [ -z "$GH_APP_ID" ] || [ -z "$GH_APP_INSTALLATION_ID" ] || [ -z "$GH_APP_PRIVATE_KEY" ]; then
+  echo -e "${RED}❌ github_app_id, github_app_installation_id and github_app_private_key must all be set in $SHARED_FILE — infra/main.tf's github provider authenticates with them (app_auth).${RESET}"
+  exit 1
 fi
 
 if [ -z "$GOOGLE_SA_KEY" ]; then
   echo -e "${YELLOW}⚠️  google_service_account_key not set in $TERRAFORM_FILE — infra/google.tf resources will fail to authenticate.${RESET}"
 fi
 
-export TF_VAR_github_tf_token="$GH_TF_TOKEN"
 export TF_VAR_github_app_id="$GH_APP_ID"
 export TF_VAR_github_app_installation_id="$GH_APP_INSTALLATION_ID"
 export TF_VAR_github_app_private_key="$GH_APP_PRIVATE_KEY"

@@ -24,16 +24,10 @@ variable "cloudflare_tunnel_secret" {
 
 # --- GitHub (secret distribution only; repo config lives in github-config) ---
 
-variable "github_tf_token" {
-  type        = string
-  sensitive   = true
-  description = "Fine-grained PAT for distributing Actions secrets to the nix CI repos (Secrets R/W + Metadata R on nix, nix-config, nix-packages)."
-}
-
 variable "github_app_id" {
   type        = string
   sensitive   = true
-  description = "GitHub App ID, distributed as the APP_ID Actions secret. Workflows mint a short-lived installation token via actions/create-github-app-token instead of using a long-lived PAT. Required App permissions: Contents R/W + Pull requests R/W on kleinbem/nix-config and kleinbem/nix-packages."
+  description = "GitHub App ID. The github provider here authenticates as this App (app_auth in main.tf), and it is distributed as the APP_ID Actions secret so workflows mint short-lived installation tokens. Repository permissions the App needs: Secrets R/W, Dependabot secrets R/W, Variables R/W (this root), Contents R/W + Pull requests R/W (workflows), Metadata R. Its installation must cover every repo in github-secrets.tf, nixpkgs-review-gha included."
 }
 
 variable "github_app_private_key" {

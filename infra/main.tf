@@ -33,9 +33,17 @@ provider "cloudflare" {
 
 # Only used here to DISTRIBUTE Actions secrets to the nix CI repos (values come
 # from sops). Repo settings/rulesets/labels are owned by the github-config repo.
+# Authenticates as the kleinbem GitHub App (the same one github-config uses),
+# not a fine-grained PAT: the PAT had to list every repo by hand, and a repo
+# missing from that list failed the apply with a 403 (nix-gantry, 2026-10-25).
+# The App is installed account-wide, so a new repo needs no token change.
 provider "github" {
   owner = "kleinbem"
-  token = var.github_tf_token
+  app_auth {
+    id              = var.github_app_id
+    installation_id = var.github_app_installation_id
+    pem_file        = var.github_app_private_key # PEM contents, despite the name
+  }
 }
 
 data "cloudflare_zone" "main" {
