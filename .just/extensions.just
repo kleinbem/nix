@@ -4,12 +4,17 @@ set working-directory := ".."
 
 # Build and sync editor extensions from the nix-presets flake.
 # Runs independently of nixos-rebuild — a broken extension never blocks a system switch.
+# Each bundle keeps a GC root under ~/.local/state/editor-extensions: the
+# editors link straight into the store, and without a root the next
+# `nix-collect-garbage` deleted every bundle and left all links dangling.
 [group("Desktop")]
 sync:
     @echo "🧩 Syncing editor extensions..."
+    @mkdir -p "$HOME/.local/state/editor-extensions"
     @for editor in cursor windsurf antigravity; do \
         echo "  ⚙ Building $editor extensions..."; \
-        if bundle=$(nix build --no-link --print-out-paths \
+        if bundle=$(nix build --print-out-paths \
+            --out-link "$HOME/.local/state/editor-extensions/$editor" \
             "git+file://{{ROOT}}/nix-presets#$editor-extensions-bundle" 2>/dev/null); then \
             if [ "$editor" = "antigravity" ]; then \
                 ext_dir="$HOME/.antigravity-ide/extensions"; \
