@@ -19,9 +19,10 @@ secrets := "../../../kleinbem-secrets/infra/terraform.yaml"
 # State encryption (encryption.tf): passphrase from sops, same key as infra/.
 _enc := "TF_ENCRYPTION=\"key_provider \\\"pbkdf2\\\" \\\"state_key\\\" { passphrase = \\\"$(sops -d " + secrets + " | yq '.tofu_state_passphrase')\\\" }\""
 
-# Init (local state — no remote backend; see backend.tf).
+# Init (local state — no remote backend; see backend.tf). tofu init already
+# checks the encryption keys, so it needs the passphrase too.
 init:
-    tofu init -input=false
+    {{_enc}} tofu init -input=false
 
 # Review planned Garage control-plane changes (buckets / keys / permissions).
 plan: init
@@ -37,4 +38,4 @@ creds: init
 
 # Dump the live provider schema to verify resource/attribute names.
 schema: init
-    tofu providers schema -json | yq -P
+    {{_enc}} tofu providers schema -json | yq -P
