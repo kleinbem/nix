@@ -34,7 +34,9 @@ locals {
     "nix-hardware"  = ["APP_ID", "APP_PRIVATE_KEY", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
     "nix-templates" = ["APP_ID", "APP_PRIVATE_KEY", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
     "nix-presets"   = ["APP_ID", "APP_PRIVATE_KEY", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
-    "nix-gantry"    = ["ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
+    # The weekly release workflow opens PRs (App token) and alerts via ntfy.
+    "nix-holds"  = ["APP_ID", "APP_PRIVATE_KEY", "NTFY_ALERT_TOPIC"]
+    "nix-gantry" = ["ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
     # NTFY_ALERT_TOPIC: the scheduled drift-detection plan (terraform-plan.yaml)
     # pings this human topic when GitHub config no longer matches Terraform.
     "github-config" = ["APP_ID", "APP_PRIVATE_KEY", "APP_INSTALLATION_ID", "NTFY_ALERT_TOPIC", "CLOUDFLARE_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]
