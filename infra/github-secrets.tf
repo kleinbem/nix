@@ -37,6 +37,8 @@ locals {
     # The weekly release workflow opens PRs (App token) and alerts via ntfy.
     "nix-holds"  = ["APP_ID", "APP_PRIVATE_KEY", "NTFY_ALERT_TOPIC"]
     "nix-gantry" = ["ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
+    # The r2-budget workflow (R2_BUDGET_TOKEN is its own resource below).
+    "nix" = ["CLOUDFLARE_ACCOUNT_ID", "NTFY_ALERT_TOPIC"]
     # NTFY_ALERT_TOPIC: the scheduled drift-detection plan (terraform-plan.yaml)
     # pings this human topic when GitHub config no longer matches Terraform.
     "github-config" = ["APP_ID", "APP_PRIVATE_KEY", "APP_INSTALLATION_ID", "NTFY_ALERT_TOPIC", "CLOUDFLARE_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]
@@ -175,6 +177,17 @@ resource "github_actions_secret" "mesh_agents_cache" {
   repository  = "mesh-agents"
   secret_name = each.key
   value       = each.value
+}
+
+# kleinbem/nix's r2-budget workflow (tools/r2-budget.sh): R2 has no spending
+# cap, so it estimates the bill and takes the public cache offline past the
+# budget. CLOUDFLARE_ACCOUNT_ID and NTFY_ALERT_TOPIC come from ci_secrets.
+resource "github_actions_secret" "r2_budget_token" {
+  count = nonsensitive(var.r2_budget_token != "") ? 1 : 0
+
+  repository  = "nix"
+  secret_name = "R2_BUDGET_TOKEN"
+  value       = var.r2_budget_token
 }
 
 # Where CI pushes: the bucket through R2's S3 endpoint. Not secret (the

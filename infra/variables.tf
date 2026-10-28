@@ -61,6 +61,13 @@ variable "cachix_auth_token" {
   description = "Write token scoped to the public kleinbem-nixpkgs-review Cachix cache (Cachix-managed signing, separate from the kleinbem cache), distributed as nixpkgs-review-gha's CACHIX_AUTH_TOKEN Actions secret. Empty = not distributed."
 }
 
+variable "r2_budget_token" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "Token of the R2 budget watchdog (Account Analytics Read + Workers R2 Storage Write), minted in r2-tokens/ and synced into infra/terraform.yaml; kleinbem/nix's R2_BUDGET_TOKEN. Empty = not distributed."
+}
+
 variable "mesh_agents_cache_access_key_id" {
   type        = string
   sensitive   = true

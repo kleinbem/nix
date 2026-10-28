@@ -8,6 +8,8 @@
 #     mesh-only names), synced into kleinbem-secrets/nix/per-host/core-pi.yaml.
 #   - mesh-agents-cache.tf: mesh-agents' CI credentials for its public cache
 #     bucket, synced into kleinbem-secrets/infra/terraform.yaml.
+#   - r2-budget.tf: the R2 budget watchdog's token (kleinbem/nix's r2-budget
+#     workflow), synced into kleinbem-secrets/infra/terraform.yaml.
 #
 # Why a separate root: minting API tokens needs "API Tokens: Edit", which is
 # effectively account-admin (it can mint a token with any permission). Only
