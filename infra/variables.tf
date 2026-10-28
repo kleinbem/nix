@@ -61,11 +61,25 @@ variable "cachix_auth_token" {
   description = "Write token scoped to the public kleinbem-nixpkgs-review Cachix cache (Cachix-managed signing, separate from the kleinbem cache), distributed as nixpkgs-review-gha's CACHIX_AUTH_TOKEN Actions secret. Empty = not distributed."
 }
 
-variable "mesh_agents_cachix_auth_token" {
+variable "mesh_agents_cache_access_key_id" {
   type        = string
   sensitive   = true
   default     = ""
-  description = "Write token scoped to the public mesh-agents Cachix cache (Cachix-managed signing), distributed as mesh-agents' CACHIX_AUTH_TOKEN Actions secret. Empty = not distributed."
+  description = "S3 access key id for mesh-agents' public cache bucket, minted in r2-tokens/ and synced into infra/terraform.yaml. Empty = not distributed."
+}
+
+variable "mesh_agents_cache_secret_access_key" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "S3 secret access key for mesh-agents' public cache bucket, minted in r2-tokens/ and synced into infra/terraform.yaml. Empty = not distributed."
+}
+
+variable "mesh_agents_cache_signing_key" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "Nix signing key of mesh-agents-cache.kleinbem.dev (`nix key generate-secret --key-name mesh-agents-cache.kleinbem.dev-1`), in infra/terraform.yaml. Empty = not distributed."
 }
 
 variable "netbird_setup_key" {
