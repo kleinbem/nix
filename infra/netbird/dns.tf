@@ -75,6 +75,8 @@ locals {
     # `publicCert = true`). Buzz 1.0 joins communities only over TLS and
     # trusts only the public CA list, so `tls internal` isn't enough.
     "buzz.kleinbem.dev",
+    # Garage UI (nixos-nvme container, Authentik OIDC login).
+    "garage.kleinbem.dev",
   ]
 }
 

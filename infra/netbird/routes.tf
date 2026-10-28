@@ -93,6 +93,17 @@ resource "netbird_route" "syncthing" {
   enabled               = true
 }
 
+resource "netbird_route" "garage_ui" {
+  network_id            = "garage-ui"
+  description           = "garage-ui container on nixos-nvme (mesh-only, Authentik OIDC login)."
+  network               = "10.85.46.134/32"
+  peer                  = data.netbird_peer.personal_devices["nixos-nvme"].id
+  groups                = [netbird_group.personal_devices.id]
+  access_control_groups = [netbird_group.cache.id]
+  masquerade            = true
+  enabled               = true
+}
+
 resource "netbird_route" "frigate" {
   network_id            = "frigate"
   description           = "frigate container on orin-nano (mesh-only forward-auth service). LIVE IP — see note above re: inventory.nix drift (declares .130)."

@@ -673,6 +673,15 @@ locals {
       desc          = "Fleet monitoring dashboard"
       launch_url    = "https://grafana.kleinbem.dev"
     }
+    # Garage UI on nixos-nvme (nix-presets containers/garage-ui.nix). Members
+    # of `staff` (the groups claim) are admins there; the binding below keeps
+    # everyone else out anyway.
+    garage-ui = {
+      name          = "Garage UI"
+      redirect_uris = ["https://garage.kleinbem.dev/auth/oidc/callback"]
+      desc          = "Garage S3 buckets, keys and layout"
+      launch_url    = "https://garage.kleinbem.dev"
+    }
     open-webui = {
       name          = "Open WebUI"
       redirect_uris = ["https://chat.kleinbem.dev/oauth/oidc/callback"]
