@@ -130,7 +130,7 @@ locals {
   dependabot_secret_pairs = merge([
     # nix-config: its required `check` (ci.yml), sync-docs and build-all mint
     # an app token on pull_request, so Dependabot PRs fail without these.
-    for repo in ["kleinbem-auth", "kleinbem-site", "nix-packages", "nix-config"] : {
+    for repo in ["kleinbem-site", "nix-packages", "nix-config"] : {
       for n in keys(local.dependabot_app_secrets) : "${repo}/${n}" => { repo = repo, secret = n }
     }
   ]...)
