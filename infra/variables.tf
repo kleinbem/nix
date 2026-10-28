@@ -68,25 +68,25 @@ variable "r2_budget_token" {
   description = "Token of the R2 budget watchdog (Account Analytics Read + Workers R2 Storage Write), minted in r2-tokens/ and synced into infra/terraform.yaml; kleinbem/nix's R2_BUDGET_TOKEN. Empty = not distributed."
 }
 
-variable "mesh_agents_cache_access_key_id" {
+variable "public_cache_access_key_id" {
   type        = string
   sensitive   = true
   default     = ""
-  description = "S3 access key id for mesh-agents' public cache bucket, minted in r2-tokens/ and synced into infra/terraform.yaml. Empty = not distributed."
+  description = "S3 access key id for the public cache bucket (kleinbem-cache), minted in r2-tokens/ and synced into infra/terraform.yaml. Empty = not distributed."
 }
 
-variable "mesh_agents_cache_secret_access_key" {
+variable "public_cache_secret_access_key" {
   type        = string
   sensitive   = true
   default     = ""
-  description = "S3 secret access key for mesh-agents' public cache bucket, minted in r2-tokens/ and synced into infra/terraform.yaml. Empty = not distributed."
+  description = "S3 secret access key for the public cache bucket (kleinbem-cache), minted in r2-tokens/ and synced into infra/terraform.yaml. Empty = not distributed."
 }
 
-variable "mesh_agents_cache_signing_key" {
+variable "public_cache_signing_key" {
   type        = string
   sensitive   = true
   default     = ""
-  description = "Nix signing key of mesh-agents-cache.kleinbem.dev (`nix key generate-secret --key-name mesh-agents-cache.kleinbem.dev-1`), in infra/terraform.yaml. Empty = not distributed."
+  description = "Nix signing key of cache.kleinbem.dev (`nix key generate-secret --key-name cache.kleinbem.dev-1`), in infra/terraform.yaml. Empty = not distributed."
 }
 
 variable "netbird_setup_key" {
