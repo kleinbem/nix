@@ -61,6 +61,13 @@ variable "cachix_auth_token" {
   description = "Write token scoped to the public kleinbem-nixpkgs-review Cachix cache (Cachix-managed signing, separate from the kleinbem cache), distributed as nixpkgs-review-gha's CACHIX_AUTH_TOKEN Actions secret. Empty = not distributed."
 }
 
+variable "mesh_agents_cachix_auth_token" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "Write token scoped to the public mesh-agents Cachix cache (Cachix-managed signing), distributed as mesh-agents' CACHIX_AUTH_TOKEN Actions secret. Empty = not distributed."
+}
+
 variable "netbird_setup_key" {
   type        = string
   sensitive   = true
