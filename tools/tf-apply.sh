@@ -222,6 +222,9 @@ fi
 # `cachix_auth_token` (infra/terraform.yaml): write token for the public
 # kleinbem-nixpkgs-review Cachix cache → nixpkgs-review-gha's CACHIX_AUTH_TOKEN. Optional.
 CACHIX_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.cachix_auth_token')
+# `mesh_agents_cachix_auth_token` (infra/terraform.yaml): write token for the
+# public mesh-agents Cachix cache → mesh-agents' CACHIX_AUTH_TOKEN. Optional.
+MESH_AGENTS_CACHIX_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.mesh_agents_cachix_auth_token')
 NETBIRD_KEY=$(echo "$SHARED_YAML" | yq '.netbird_setup_key')
 NETBIRD_KEY_EPHEMERAL=$(echo "$DECRYPTED_YAML" | yq '.netbird_setup_key_ephemeral')
 NTFY_DEPLOY_TOPIC=$(echo "$SHARED_YAML" | yq '.ntfy_deploy_topic')
@@ -253,6 +256,7 @@ HEALTHCHECKS_API_KEY=$(echo "$DECRYPTED_YAML" | yq '.healthchecks_api_key')
 [ "$GH_APP_PRIVATE_KEY" = "null" ] && GH_APP_PRIVATE_KEY=""
 [ "$ATTIC_PUSH" = "null" ] && ATTIC_PUSH=""
 [ "$CACHIX_TOKEN" = "null" ] && CACHIX_TOKEN=""
+[ "$MESH_AGENTS_CACHIX_TOKEN" = "null" ] && MESH_AGENTS_CACHIX_TOKEN=""
 [ "$NETBIRD_KEY" = "null" ] && NETBIRD_KEY=""
 [ "$NETBIRD_KEY_EPHEMERAL" = "null" ] && NETBIRD_KEY_EPHEMERAL=""
 [ "$NTFY_DEPLOY_TOPIC" = "null" ] && NTFY_DEPLOY_TOPIC=""
@@ -278,6 +282,7 @@ export TF_VAR_github_app_private_key="$GH_APP_PRIVATE_KEY"
 export TF_VAR_attic_push_token="$ATTIC_PUSH"
 export TF_VAR_attic_pull_token="$ATTIC_PULL"
 export TF_VAR_cachix_auth_token="$CACHIX_TOKEN"
+export TF_VAR_mesh_agents_cachix_auth_token="$MESH_AGENTS_CACHIX_TOKEN"
 export TF_VAR_netbird_setup_key="$NETBIRD_KEY"
 export TF_VAR_netbird_setup_key_ephemeral="$NETBIRD_KEY_EPHEMERAL"
 export TF_VAR_ntfy_deploy_topic="$NTFY_DEPLOY_TOPIC"

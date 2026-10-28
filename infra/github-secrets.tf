@@ -63,7 +63,8 @@ locals {
   }
 
   # Whether the token is set is not itself secret; for_each needs it plain.
-  cachix_enabled = nonsensitive(var.cachix_auth_token != "")
+  cachix_enabled             = nonsensitive(var.cachix_auth_token != "")
+  mesh_agents_cachix_enabled = nonsensitive(var.mesh_agents_cachix_auth_token != "")
 
   secret_values = {
     "ATTIC_PUSH_TOKEN"              = var.attic_push_token
@@ -154,6 +155,17 @@ resource "github_actions_variable" "nixpkgs_review_gha_cachix_cache" {
   repository    = "nixpkgs-review-gha"
   variable_name = "CACHIX_CACHE"
   value         = "kleinbem-nixpkgs-review"
+}
+
+# kleinbem/mesh-agents pushes its packages to the public mesh-agents Cachix
+# cache from main, so users substitute instead of compiling mesh-llm. Only
+# once the token exists in sops (see mesh_agents_cachix_enabled).
+resource "github_actions_secret" "mesh_agents_cachix_token" {
+  count = local.mesh_agents_cachix_enabled ? 1 : 0
+
+  repository  = "mesh-agents"
+  secret_name = "CACHIX_AUTH_TOKEN"
+  value       = var.mesh_agents_cachix_auth_token
 }
 
 # Extra Nix configuration for the nixpkgs-review-gha runners: the CUDA team's
