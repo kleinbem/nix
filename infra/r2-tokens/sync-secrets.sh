@@ -64,5 +64,16 @@ else
 fi
 unset CACHE_CI
 
+# The r2-budget watchdog's token (r2-budget.tf) → infra/terraform.yaml.
+BUDGET_TOKEN=$(cd "$_here" && tofu output -raw r2_budget_token 2>/dev/null || true)
+if [ -n "$BUDGET_TOKEN" ]; then
+  printf '%s' "$BUDGET_TOKEN" | jq -Rs . |
+    sops set --idempotent --value-stdin "$SECRETS_ROOT/infra/terraform.yaml" '["r2_budget_token"]'
+  echo "🟢 r2_budget_token in sync in infra/terraform.yaml"
+else
+  echo "⚠️  no r2_budget_token output — skipped the budget watchdog's token" >&2
+fi
+unset BUDGET_TOKEN
+
 echo
 echo "Next: review + push kleinbem-secrets (jj st there), then bump it in nix-config."
