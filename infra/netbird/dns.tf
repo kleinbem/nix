@@ -77,6 +77,10 @@ locals {
     "buzz.kleinbem.dev",
     # Garage UI (nixos-nvme container, Authentik OIDC login).
     "garage.kleinbem.dev",
+    # Added 2026-10-28: Attic's new name. Attic moves from cache.kleinbem.dev
+    # (the `cache` zone above) to here; cache.kleinbem.dev then becomes the
+    # public R2 binary cache and leaves NetBird.
+    "attic.kleinbem.dev",
   ]
 }
 
