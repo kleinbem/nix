@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # R2 budget watchdog: R2 has no spending cap, so this is ours. Estimates the
 # month's R2 bill from Cloudflare's analytics (all buckets), alerts via ntfy
-# from ALERT_EUR, and from OFFLINE_EUR takes the public mesh-agents cache
-# offline (disables its custom domain). The cache is the only bucket strangers
-# can read from; with it offline, users just build locally.
+# from ALERT_EUR, and from OFFLINE_EUR takes the public cache offline
+# (disables its custom domain). The cache is the only bucket strangers can
+# read from; with it offline, users just build locally.
 #
 # Bring it back after checking the cause: `r2-budget.sh --online`, or the
 # r2-budget workflow run by hand with "online" ticked.
@@ -15,8 +15,8 @@ set -euo pipefail
 
 ALERT_EUR=${ALERT_EUR:-5}
 OFFLINE_EUR=${OFFLINE_EUR:-15}
-bucket=mesh-agents-cache
-domain=mesh-agents-cache.kleinbem.dev
+bucket=kleinbem-cache
+domain=cache.kleinbem.dev
 
 # R2 list prices in USD (https://developers.cloudflare.com/r2/pricing/);
 # counted 1:1 in euro, which errs on the safe side.
@@ -94,7 +94,7 @@ if over "$OFFLINE_EUR"; then
     else
       curl -fsS -X PUT "${auth[@]}" "$domain_api/$domain" --data '{"enabled": false}' |
         jq -e .success >/dev/null
-      notify "R2 over €${OFFLINE_EUR}: mesh-agents cache OFFLINE" \
+      notify "R2 over €${OFFLINE_EUR}: public cache OFFLINE" \
         "$summary. $domain is disabled; users build locally. Find the cause, then run the r2-budget workflow with online ticked."
       echo "took $domain offline"
     fi

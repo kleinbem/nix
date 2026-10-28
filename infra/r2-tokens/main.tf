@@ -6,8 +6,8 @@
 #     backup hosts and `just apply`.
 #   - acme-dns.tf: Caddy's DNS-01 token on core-pi (publicly trusted certs for
 #     mesh-only names), synced into kleinbem-secrets/nix/per-host/core-pi.yaml.
-#   - mesh-agents-cache.tf: mesh-agents' CI credentials for its public cache
-#     bucket, synced into kleinbem-secrets/infra/terraform.yaml.
+#   - public-cache.tf: CI credentials for the public cache bucket
+#     (cache.kleinbem.dev), synced into kleinbem-secrets/infra/terraform.yaml.
 #   - r2-budget.tf: the R2 budget watchdog's token (kleinbem/nix's r2-budget
 #     workflow), synced into kleinbem-secrets/infra/terraform.yaml.
 #

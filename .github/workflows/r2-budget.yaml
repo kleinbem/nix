@@ -1,15 +1,16 @@
 name: r2-budget
 
 # R2 has no spending cap: tools/r2-budget.sh estimates the month's bill every
-# 6 hours, alerts via ntfy from €5 and takes the public mesh-agents cache
-# offline from €15. Run by hand with "online" to bring the cache back.
+# 6 hours, alerts via ntfy from €5 and takes the public cache
+# (cache.kleinbem.dev) offline from €15. Run by hand with "online" to bring
+# the cache back.
 on:
   schedule:
     - cron: '17 */6 * * *'
   workflow_dispatch:
     inputs:
       online:
-        description: Bring the mesh-agents cache back online
+        description: Bring the public cache back online
         type: boolean
         default: false
       dry_run:

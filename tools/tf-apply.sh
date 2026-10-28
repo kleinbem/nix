@@ -222,12 +222,12 @@ fi
 # `cachix_auth_token` (infra/terraform.yaml): write token for the public
 # kleinbem-nixpkgs-review Cachix cache → nixpkgs-review-gha's CACHIX_AUTH_TOKEN. Optional.
 CACHIX_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.cachix_auth_token')
-# mesh-agents' public cache (infra/terraform.yaml): S3 credentials from
-# r2-tokens/sync-secrets.sh and the hand-made signing key → mesh-agents'
-# CACHE_* secrets. Optional.
-MESH_AGENTS_CACHE_KEY_ID=$(echo "$DECRYPTED_YAML" | yq '.mesh_agents_cache_access_key_id')
-MESH_AGENTS_CACHE_SECRET=$(echo "$DECRYPTED_YAML" | yq '.mesh_agents_cache_secret_access_key')
-MESH_AGENTS_CACHE_SIGNING_KEY=$(echo "$DECRYPTED_YAML" | yq '.mesh_agents_cache_signing_key')
+# The public cache, cache.kleinbem.dev (infra/terraform.yaml): S3 credentials
+# from r2-tokens/sync-secrets.sh and the hand-made signing key → the CACHE_*
+# secrets of each project on it. Optional.
+PUBLIC_CACHE_KEY_ID=$(echo "$DECRYPTED_YAML" | yq '.public_cache_access_key_id')
+PUBLIC_CACHE_SECRET=$(echo "$DECRYPTED_YAML" | yq '.public_cache_secret_access_key')
+PUBLIC_CACHE_SIGNING_KEY=$(echo "$DECRYPTED_YAML" | yq '.public_cache_signing_key')
 # `r2_budget_token` (infra/terraform.yaml): the R2 budget watchdog's token from
 # r2-tokens/sync-secrets.sh → kleinbem/nix's R2_BUDGET_TOKEN. Optional.
 R2_BUDGET_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.r2_budget_token')
@@ -291,9 +291,9 @@ export TF_VAR_github_app_private_key="$GH_APP_PRIVATE_KEY"
 export TF_VAR_attic_push_token="$ATTIC_PUSH"
 export TF_VAR_attic_pull_token="$ATTIC_PULL"
 export TF_VAR_cachix_auth_token="$CACHIX_TOKEN"
-export TF_VAR_mesh_agents_cache_access_key_id="$MESH_AGENTS_CACHE_KEY_ID"
-export TF_VAR_mesh_agents_cache_secret_access_key="$MESH_AGENTS_CACHE_SECRET"
-export TF_VAR_mesh_agents_cache_signing_key="$MESH_AGENTS_CACHE_SIGNING_KEY"
+export TF_VAR_public_cache_access_key_id="$PUBLIC_CACHE_KEY_ID"
+export TF_VAR_public_cache_secret_access_key="$PUBLIC_CACHE_SECRET"
+export TF_VAR_public_cache_signing_key="$PUBLIC_CACHE_SIGNING_KEY"
 export TF_VAR_r2_budget_token="$R2_BUDGET_TOKEN"
 export TF_VAR_netbird_setup_key="$NETBIRD_KEY"
 export TF_VAR_netbird_setup_key_ephemeral="$NETBIRD_KEY_EPHEMERAL"

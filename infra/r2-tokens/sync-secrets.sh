@@ -50,17 +50,17 @@ else
 fi
 unset ACME_TOKEN
 
-# mesh-agents' CI credentials for its public cache (mesh-agents-cache.tf) →
-# infra/terraform.yaml, read by tools/tf-apply.sh for the main root.
-CACHE_CI=$(cd "$_here" && tofu output -json mesh_agents_cache_ci 2>/dev/null || true)
+# CI credentials for the public cache (public-cache.tf) → infra/terraform.yaml,
+# read by tools/tf-apply.sh for the main root.
+CACHE_CI=$(cd "$_here" && tofu output -json public_cache_ci 2>/dev/null || true)
 if [ -n "$CACHE_CI" ] && [ "$CACHE_CI" != "null" ]; then
   for key in access_key_id secret_access_key; do
     echo "$CACHE_CI" | jq -c --arg k "$key" '.[$k]' |
-      sops set --idempotent --value-stdin "$SECRETS_ROOT/infra/terraform.yaml" "[\"mesh_agents_cache_$key\"]"
+      sops set --idempotent --value-stdin "$SECRETS_ROOT/infra/terraform.yaml" "[\"public_cache_$key\"]"
   done
-  echo "🟢 mesh_agents_cache_{access_key_id,secret_access_key} in sync in infra/terraform.yaml"
+  echo "🟢 public_cache_{access_key_id,secret_access_key} in sync in infra/terraform.yaml"
 else
-  echo "⚠️  no mesh_agents_cache_ci output — skipped mesh-agents' cache credentials" >&2
+  echo "⚠️  no public_cache_ci output — skipped the public cache's CI credentials" >&2
 fi
 unset CACHE_CI
 
