@@ -13,8 +13,9 @@ set -euo pipefail
 # actually live as flat siblings (not nested under nix/).
 REPO_ROOT="$(dirname "$(git rev-parse --show-toplevel)")"
 # nix-config is the root flake — its lock has the canonical pins for every
-# sub-flake. (Meta dir no longer has a flake.nix.)
-LOCKS=$(nix flake metadata --json "$REPO_ROOT/nix-config" 2>/dev/null | jq -c '.locks.nodes')
+# sub-flake, found via the root inputs (node names can carry a _N suffix).
+# (Meta dir no longer has a flake.nix.)
+LOCKS=$(nix flake metadata --json "$REPO_ROOT/nix-config" 2>/dev/null | jq -c '.locks')
 
 GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
@@ -26,7 +27,7 @@ for dir in "$REPO_ROOT"/nix-*; do
   [ -d "$dir/.git" ] || continue
   name=$(basename "$dir")
 
-  locked=$(echo "$LOCKS" | jq -r --arg n "$name" '.[$n].locked.rev // empty')
+  locked=$(echo "$LOCKS" | jq -r --arg n "$name" '(.nodes.root.inputs[$n] | strings) as $k | .nodes[$k].locked.rev // empty')
   if [ -z "$locked" ]; then
     printf "  %-20s %b(no lock entry — not a flake input?)%b\n" "$name" "$YELLOW" "$RESET"
     continue
