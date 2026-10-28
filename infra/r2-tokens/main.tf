@@ -6,6 +6,8 @@
 #     backup hosts and `just apply`.
 #   - acme-dns.tf: Caddy's DNS-01 token on core-pi (publicly trusted certs for
 #     mesh-only names), synced into kleinbem-secrets/nix/per-host/core-pi.yaml.
+#   - mesh-agents-cache.tf: mesh-agents' CI credentials for its public cache
+#     bucket, synced into kleinbem-secrets/infra/terraform.yaml.
 #
 # Why a separate root: minting API tokens needs "API Tokens: Edit", which is
 # effectively account-admin (it can mint a token with any permission). Only
