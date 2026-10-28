@@ -1,6 +1,10 @@
 import os
 
-from mcp.server.fastmcp import FastMCP
+try:
+    from mcp.server.mcpserver import MCPServer as FastMCP
+except ImportError:
+    # mcp 1.x, until every host's python env has mcp 2.
+    from mcp.server.fastmcp import FastMCP
 
 # We define the paths relative to this core file.
 # atlas_mcp/core.py is inside tools/atlas_mcp/
