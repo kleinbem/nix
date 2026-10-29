@@ -26,6 +26,21 @@
       "grace": 1800,
       "kind": "alive",
       "timeout": 300
+    },
+    "hass-pi-backup-bulk-gdrive": {
+      "grace": 21600,
+      "kind": "backup",
+      "timeout": 86400
+    },
+    "hass-pi-backup-bulk-r2": {
+      "grace": 21600,
+      "kind": "backup",
+      "timeout": 86400
+    },
+    "hass-pi-backup-secure": {
+      "grace": 21600,
+      "kind": "backup",
+      "timeout": 86400
     }
   },
   "mac-mini": {
@@ -33,6 +48,11 @@
       "grace": 1800,
       "kind": "alive",
       "timeout": 300
+    },
+    "mac-mini-backup-secure": {
+      "grace": 21600,
+      "kind": "backup",
+      "timeout": 86400
     }
   },
   "nasbook": {
@@ -40,6 +60,21 @@
       "grace": 1800,
       "kind": "alive",
       "timeout": 300
+    },
+    "nasbook-backup-bulk-gdrive": {
+      "grace": 21600,
+      "kind": "backup",
+      "timeout": 86400
+    },
+    "nasbook-backup-bulk-r2": {
+      "grace": 21600,
+      "kind": "backup",
+      "timeout": 86400
+    },
+    "nasbook-backup-secure": {
+      "grace": 21600,
+      "kind": "backup",
+      "timeout": 86400
     }
   },
   "nixos-nvme": {},
@@ -48,6 +83,11 @@
       "grace": 1800,
       "kind": "alive",
       "timeout": 300
+    },
+    "orin-nano-backup-secure": {
+      "grace": 21600,
+      "kind": "backup",
+      "timeout": 86400
     }
   }
 }
