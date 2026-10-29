@@ -208,6 +208,7 @@ curl -s -H "Authorization: Bearer $AUTHENTIK_API_TOKEN" "https://auth.kleinbem.d
 # 2026-10 rotation. Falls back to orin-nano's attic_push_token until then.
 GH_APP_ID=$(echo "$SHARED_YAML" | yq '.github_app_id')
 GH_APP_INSTALLATION_ID=$(echo "$SHARED_YAML" | yq '.github_app_installation_id')
+GH_APP_ORG_INSTALLATION_ID=$(echo "$SHARED_YAML" | yq '.github_app_org_installation_id')
 GH_APP_PRIVATE_KEY=$(echo "$SHARED_YAML" | yq '.github_app_private_key')
 ATTIC_PUSH=$(echo "$DECRYPTED_YAML" | yq '.attic_ci_push_token')
 [ "$ATTIC_PUSH" = "null" ] && ATTIC_PUSH=$(echo "$ORIN_YAML" | yq '.attic_push_token')
@@ -280,6 +281,14 @@ if [ -z "$GH_APP_ID" ] || [ -z "$GH_APP_INSTALLATION_ID" ] || [ -z "$GH_APP_PRIV
   echo -e "${RED}❌ github_app_id, github_app_installation_id and github_app_private_key must all be set in $SHARED_FILE — infra/main.tf's github provider authenticates with them (app_auth).${RESET}"
   exit 1
 fi
+# The `org` provider alias (kleinbem-dev) needs the App's installation id
+# there too: install the App on the org (Settings → GitHub Apps) and store the
+# id as github_app_org_installation_id.
+[ "$GH_APP_ORG_INSTALLATION_ID" = "null" ] && GH_APP_ORG_INSTALLATION_ID=""
+if [ -z "$GH_APP_ORG_INSTALLATION_ID" ]; then
+  echo -e "${RED}❌ github_app_org_installation_id must be set in $SHARED_FILE — infra/main.tf's github.org provider (kleinbem-dev repos) authenticates with it.${RESET}"
+  exit 1
+fi
 
 if [ -z "$GOOGLE_SA_KEY" ]; then
   echo -e "${YELLOW}⚠️  google_service_account_key not set in $TERRAFORM_FILE — infra/google.tf resources will fail to authenticate.${RESET}"
@@ -287,6 +296,7 @@ fi
 
 export TF_VAR_github_app_id="$GH_APP_ID"
 export TF_VAR_github_app_installation_id="$GH_APP_INSTALLATION_ID"
+export TF_VAR_github_app_org_installation_id="$GH_APP_ORG_INSTALLATION_ID"
 export TF_VAR_github_app_private_key="$GH_APP_PRIVATE_KEY"
 export TF_VAR_attic_push_token="$ATTIC_PUSH"
 export TF_VAR_attic_pull_token="$ATTIC_PULL"

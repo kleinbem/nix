@@ -35,13 +35,12 @@ locals {
     "nix-templates" = ["APP_ID", "APP_PRIVATE_KEY", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
     "nix-presets"   = ["APP_ID", "APP_PRIVATE_KEY", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
     # The weekly release workflow opens PRs (App token) and alerts via ntfy.
-    "nix-holds"  = ["APP_ID", "APP_PRIVATE_KEY", "NTFY_ALERT_TOPIC"]
-    "nix-gantry" = ["ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
+    "nix-holds" = ["APP_ID", "APP_PRIVATE_KEY", "NTFY_ALERT_TOPIC"]
     # The r2-budget workflow (R2_BUDGET_TOKEN is its own resource below).
     "nix" = ["CLOUDFLARE_ACCOUNT_ID", "NTFY_ALERT_TOPIC"]
     # NTFY_ALERT_TOPIC: the scheduled drift-detection plan (terraform-plan.yaml)
     # pings this human topic when GitHub config no longer matches Terraform.
-    "github-config" = ["APP_ID", "APP_PRIVATE_KEY", "APP_INSTALLATION_ID", "NTFY_ALERT_TOPIC", "CLOUDFLARE_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]
+    "github-config" = ["APP_ID", "APP_PRIVATE_KEY", "APP_INSTALLATION_ID", "APP_ORG_INSTALLATION_ID", "NTFY_ALERT_TOPIC", "CLOUDFLARE_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]
     # wrangler pages deploy — see cloudflare-pages.tf for the project/domain
     # resources and why this token is deliberately narrower than the one
     # this whole Terraform root itself uses.
@@ -62,6 +61,13 @@ locals {
       "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_PAGES_DEPLOY_TOKEN",
       "AUTHENTIK_CLIENT_SECRET", "AUTH_SESSION_SECRET", "TURNSTILE_SECRET_KEY",
     ]
+  }
+
+  # Repos under the kleinbem-dev organization (github-config's org_repos):
+  # same secrets, written through the `org` provider alias. nix-gantry's CI
+  # reads the cache through kleinbem/actions/nix-setup like the sub-flakes.
+  org_ci_secrets = {
+    "nix-gantry" = ["ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
   }
 
   # Whether the token is set is not itself secret; for_each needs it plain.
@@ -85,6 +91,7 @@ locals {
     "APP_ID"                        = var.github_app_id
     "APP_PRIVATE_KEY"               = var.github_app_private_key
     "APP_INSTALLATION_ID"           = var.github_app_installation_id
+    "APP_ORG_INSTALLATION_ID"       = var.github_app_org_installation_id
     "NETBIRD_SETUP_KEY"             = var.netbird_setup_key
     "NETBIRD_SETUP_KEY_EPHEMERAL"   = var.netbird_setup_key_ephemeral
     "NTFY_DEPLOY_TOPIC"             = var.ntfy_deploy_topic
@@ -105,6 +112,11 @@ locals {
       for n in names : "${repo}/${n}" => { repo = repo, secret = n }
     }
   ]...)
+  org_ci_secret_pairs = merge([
+    for repo, names in local.org_ci_secrets : {
+      for n in names : "${repo}/${n}" => { repo = repo, secret = n }
+    }
+  ]...)
 }
 
 resource "github_actions_secret" "ci" {
@@ -114,6 +126,26 @@ resource "github_actions_secret" "ci" {
   secret_name = each.value.secret
   # `value` replaces the deprecated `plaintext_value` argument (provider v6.x).
   value = local.secret_values[each.value.secret]
+}
+
+resource "github_actions_secret" "org_ci" {
+  for_each = local.org_ci_secret_pairs
+  provider = github.org
+
+  repository  = each.value.repo
+  secret_name = each.value.secret
+  value       = local.secret_values[each.value.secret]
+}
+
+# nix-gantry moved to the org on 2026-10-29; its secrets travelled with the
+# repo, so the state entries move too instead of being recreated.
+moved {
+  from = github_actions_secret.ci["nix-gantry/ATTIC_PULL_TOKEN"]
+  to   = github_actions_secret.org_ci["nix-gantry/ATTIC_PULL_TOKEN"]
+}
+moved {
+  from = github_actions_secret.ci["nix-gantry/NETBIRD_SETUP_KEY_EPHEMERAL"]
+  to   = github_actions_secret.org_ci["nix-gantry/NETBIRD_SETUP_KEY_EPHEMERAL"]
 }
 
 # Runs that Dependabot triggers only see Dependabot secrets, never Actions

@@ -42,6 +42,12 @@ variable "github_app_installation_id" {
   description = "Installation ID of the GitHub App on the kleinbem account, distributed as the APP_INSTALLATION_ID Actions secret. github-config's tofu provider authenticates with `app_auth {}` (env: GITHUB_APP_ID / GITHUB_APP_INSTALLATION_ID / GITHUB_APP_PEM_FILE) instead of a PAT, and that path needs the installation ID explicitly."
 }
 
+variable "github_app_org_installation_id" {
+  type        = string
+  sensitive   = true
+  description = "Installation ID of the same GitHub App on the kleinbem-dev organization. Used by the `org` provider alias (secrets of repos under the org) and distributed to github-config as APP_ORG_INSTALLATION_ID for its own `org` provider."
+}
+
 variable "attic_push_token" {
   type        = string
   sensitive   = true
