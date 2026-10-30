@@ -36,6 +36,9 @@ locals {
     "nix-presets"   = ["APP_ID", "APP_PRIVATE_KEY", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
     # The weekly release workflow opens PRs (App token) and alerts via ntfy.
     "nix-holds" = ["APP_ID", "APP_PRIVATE_KEY", "NTFY_ALERT_TOPIC"]
+    # sync-org.yaml copies the central config to kleinbem-dev/coderabbit
+    # through the App's org installation.
+    "coderabbit" = ["APP_ID", "APP_PRIVATE_KEY"]
     # The r2-budget workflow (R2_BUDGET_TOKEN is its own resource below).
     "nix" = ["CLOUDFLARE_ACCOUNT_ID", "NTFY_ALERT_TOPIC"]
     # NTFY_ALERT_TOPIC: the scheduled drift-detection plan (terraform-plan.yaml)
