@@ -697,6 +697,14 @@ locals {
       desc          = "Fleet AI chat interface"
       launch_url    = "https://chat.kleinbem.dev"
     }
+    # Forgejo on mac-mini (nix-presets containers/forgejo.nix). The preset
+    # names its login source "authentik", which sets the callback path.
+    forgejo = {
+      name          = "Forgejo"
+      redirect_uris = ["https://git.kleinbem.dev/user/oauth2/authentik/callback"]
+      desc          = "Self-hosted Git forge"
+      launch_url    = "https://git.kleinbem.dev"
+    }
     # Home Assistant on hass-pi: the auth_oidc custom component
     # (nix-presets containers/home-assistant.nix) logs users in with
     # PKCE as a *public* client, so there is no client secret to ship
