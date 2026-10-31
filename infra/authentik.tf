@@ -284,6 +284,13 @@ resource "authentik_source_oauth" "google" {
   authentication_flow = data.authentik_flow.default_source_authentication.id
   enrollment_flow     = data.authentik_flow.default_source_enrollment.id
   enabled             = true
+
+  # Authentik fills these from the Google type and stores them; left unset,
+  # every plan wants to null them.
+  authorization_url = "https://accounts.google.com/o/oauth2/v2/auth"
+  access_token_url  = "https://oauth2.googleapis.com/token"
+  profile_url       = "https://openidconnect.googleapis.com/v1/userinfo"
+  oidc_jwks_url     = "https://www.googleapis.com/oauth2/v3/certs"
 }
 
 output "google_source_callback_uri" {
@@ -452,7 +459,8 @@ resource "authentik_brand" "kleinbem_site" {
     }
   })
 
-  branding_custom_css = <<-CSS
+  # Authentik trims the trailing newline on save, so chomp it here too.
+  branding_custom_css = chomp(<<-CSS
     :root,
     html[data-theme="dark"] {
       --ak-global--background-image: none !important;
@@ -491,6 +499,7 @@ resource "authentik_brand" "kleinbem_site" {
       border-radius: 999px !important;
     }
   CSS
+  )
 }
 
 # --- Fleet forward-auth (Authelia migration, step 1 of the plan) ---
@@ -734,10 +743,13 @@ resource "authentik_provider_oauth2" "oidc" {
     data.authentik_property_mapping_provider_scope.profile.id,
   ]
 
+  # Declared for the same reason as on kleinbem-site: Authentik stores the
+  # default and the plan otherwise shows it as a diff on every apply.
   allowed_redirect_uris = [
     for uri in each.value.redirect_uris : {
-      matching_mode = try(each.value.matching_mode, "strict")
-      url           = uri
+      matching_mode     = try(each.value.matching_mode, "strict")
+      redirect_uri_type = "authorization"
+      url               = uri
     }
   ]
 }
