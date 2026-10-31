@@ -21,9 +21,13 @@ data "netbird_group" "all" {
   name = "All"
 }
 
+locals {
+  cache_fqdn = "cache.kleinbem.dev"
+}
+
 resource "netbird_dns_zone" "cache" {
   name                 = "cache-entrypoint"
-  domain               = "cache.kleinbem.dev"
+  domain               = local.cache_fqdn
   enabled              = true
   enable_search_domain = false
   distribution_groups  = [data.netbird_group.all.id]
@@ -32,7 +36,7 @@ resource "netbird_dns_zone" "cache" {
 resource "netbird_dns_record" "cache" {
   zone_id = netbird_dns_zone.cache.id
   # Root of the single-FQDN zone.
-  name = "cache.kleinbem.dev"
+  name = local.cache_fqdn
   type = "A"
   # The cache/caddy entrypoint peer, from nix-config/inventory.nix
   # (`meshGroups.cache`, the single `central` host) via inventory.tf.
@@ -50,38 +54,10 @@ resource "netbird_dns_record" "cache" {
 # shadows these exact names, the rest of kleinbem.dev stays public.
 # ---------------------------------------------------------------------------
 locals {
-  mesh_only_fqdns = [
-    "code.kleinbem.dev",
-    "frigate.kleinbem.dev",
-    # authelia.kleinbem.dev removed 2026-09-22 — Authelia decommissioned,
-    # replaced by Authentik (auth.kleinbem.dev, on the public tunnel, not
-    # mesh-only — see cloudflare-tunnel.nix).
-    #
-    # Added 2026-09-22: previously bare IP:port-only (no domain at all),
-    # which meant authentik's forward_domain Proxy Provider couldn't ever
-    # match them (its cookie_domain scoping needs a real *.kleinbem.dev
-    # hostname on the request) — confirmed live via a working code-server
-    # (has a domain) vs. a 404'ing syncthing (didn't) through the exact
-    # same Caddy forward_auth config. Mesh-only like code/frigate, not
-    # public — same access posture as before, just addressable now.
-    "syncthing.kleinbem.dev",
-    "alertmanager.kleinbem.dev",
-    "paperless.kleinbem.dev",
-    "hass.kleinbem.dev",
-    "s3.kleinbem.dev",
-    "torrents.kleinbem.dev",
-    # Added 2026-10-23: Buzz relay (nixos-nvme container) behind Caddy with a
-    # publicly trusted DNS-01 certificate (nix-config inventory `buzz`,
-    # `publicCert = true`). Buzz 1.0 joins communities only over TLS and
-    # trusts only the public CA list, so `tls internal` isn't enough.
-    "buzz.kleinbem.dev",
-    # Garage UI (nixos-nvme container, Authentik OIDC login).
-    "garage.kleinbem.dev",
-    # Added 2026-10-28: Attic's new name. Attic moves from cache.kleinbem.dev
-    # (the `cache` zone above) to here; cache.kleinbem.dev then becomes the
-    # public R2 binary cache and leaves NetBird.
-    "attic.kleinbem.dev",
-  ]
+  # nix-config inventory.nix nodes with `meshOnly = true` (domain +
+  # extraDomains), via inventory.json. cache.kleinbem.dev is one of them but
+  # keeps its own zone above.
+  mesh_only_fqdns = [for d in local.inventory.mesh_only_fqdns : d if d != local.cache_fqdn]
 }
 
 resource "netbird_dns_zone" "mesh_only" {

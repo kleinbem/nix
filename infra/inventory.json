@@ -120,5 +120,19 @@
       "orin-nano",
       "nasbook"
     ]
-  }
+  },
+  "mesh_only_fqdns": [
+    "alertmanager.kleinbem.dev",
+    "attic.kleinbem.dev",
+    "buzz.kleinbem.dev",
+    "cache.kleinbem.dev",
+    "code.kleinbem.dev",
+    "frigate.kleinbem.dev",
+    "garage.kleinbem.dev",
+    "hass.kleinbem.dev",
+    "paperless.kleinbem.dev",
+    "s3.kleinbem.dev",
+    "syncthing.kleinbem.dev",
+    "torrents.kleinbem.dev"
+  ]
 }
