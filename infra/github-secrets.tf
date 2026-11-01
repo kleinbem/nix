@@ -36,7 +36,7 @@ locals {
     "nix-presets"   = ["APP_ID", "APP_PRIVATE_KEY", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
     # The fleet's own holds list: release PRs (App token), ntfy alert, and
     # Attic for the release checks of our own packages.
-    "nix-holds-fleet" = ["APP_ID", "APP_PRIVATE_KEY", "NTFY_ALERT_TOPIC", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
+    "nix-detour-fleet" = ["APP_ID", "APP_PRIVATE_KEY", "NTFY_ALERT_TOPIC", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
     # sync-org.yaml copies the central config to kleinbem-dev/coderabbit
     # through the App's org installation.
     "coderabbit" = ["APP_ID", "APP_PRIVATE_KEY"]
@@ -150,6 +150,30 @@ moved {
 moved {
   from = github_actions_secret.ci["nix-gantry/NETBIRD_SETUP_KEY_EPHEMERAL"]
   to   = github_actions_secret.org_ci["nix-gantry/NETBIRD_SETUP_KEY_EPHEMERAL"]
+}
+
+# A repo rename: moved, so the replacement deletes the old secret before
+# creating the new one. As two separate resources, the delete (through
+# GitHub's redirect from the old name) could remove the new secret.
+moved {
+  from = github_actions_secret.ci["nix-holds-fleet/APP_ID"]
+  to   = github_actions_secret.ci["nix-detour-fleet/APP_ID"]
+}
+moved {
+  from = github_actions_secret.ci["nix-holds-fleet/APP_PRIVATE_KEY"]
+  to   = github_actions_secret.ci["nix-detour-fleet/APP_PRIVATE_KEY"]
+}
+moved {
+  from = github_actions_secret.ci["nix-holds-fleet/NTFY_ALERT_TOPIC"]
+  to   = github_actions_secret.ci["nix-detour-fleet/NTFY_ALERT_TOPIC"]
+}
+moved {
+  from = github_actions_secret.ci["nix-holds-fleet/ATTIC_PULL_TOKEN"]
+  to   = github_actions_secret.ci["nix-detour-fleet/ATTIC_PULL_TOKEN"]
+}
+moved {
+  from = github_actions_secret.ci["nix-holds-fleet/NETBIRD_SETUP_KEY_EPHEMERAL"]
+  to   = github_actions_secret.ci["nix-detour-fleet/NETBIRD_SETUP_KEY_EPHEMERAL"]
 }
 
 # Runs that Dependabot triggers only see Dependabot secrets, never Actions
