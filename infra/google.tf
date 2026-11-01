@@ -8,8 +8,8 @@ provider "google" {
 }
 
 # --- Project adoption (visibility only) -----------------------------------
-# Adopted, not created: creating a project needs an organization. Imported only
-# so state matches reality and a stray destroy is refused.
+# Adopted, not created: the project was made by hand (see above). Imported so
+# state matches reality.
 # billing_account stays unset and ignored: setting it makes the provider call the
 # Billing API, which the SA has no role for. Owning `name` would need
 # projectEditor on the SA; roles/browser covers import + read.

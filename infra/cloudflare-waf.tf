@@ -34,8 +34,8 @@ resource "cloudflare_ruleset" "ratelimit" {
 # Custom rules have their own quota (5 on Free), separate from the rate limit.
 # n8n's /webhook* paths skip Authentik on purpose (external callers can't log
 # in; see authExcludePaths in nix-presets caddy). Real auth there is n8n's
-# per-webhook Header Auth/HMAC; this only blocks obvious abuse, without
-# guessing payload shape, so it can't break real webhook traffic.
+# per-webhook Header Auth/HMAC. Note: Cloudflare now always reports
+# cf.threat_score as 0, so the threat_score rules below never match.
 # ---------------------------------------------------------------------------
 resource "cloudflare_ruleset" "waf_custom" {
   zone_id     = data.cloudflare_zone.main.id

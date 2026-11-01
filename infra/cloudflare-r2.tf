@@ -4,7 +4,8 @@
 # infra/r2-tokens/, since minting them needs "API Tokens: Edit", which this
 # root's token doesn't hold.
 # R2 tokens can't be write-without-delete, so secure/ gets a 30d bucket lock
-# instead. restic/ stays unlocked because prune must delete packs.
+# instead, and its bundles expire after 365 days. restic/ stays unlocked because
+# prune must delete packs.
 # ---------------------------------------------------------------------------
 
 resource "cloudflare_r2_bucket" "backup" {

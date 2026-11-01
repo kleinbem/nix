@@ -1,7 +1,7 @@
 # Network routes: reach containers (which don't run NetBird) through a
-# gateway peer. Access is gated by each route's `access_control_groups`, no
-# netbird_policy needed. Provider v0.0.9 predates the network_* resources,
-# so this uses netbird_route.
+# gateway peer. Traffic also needs a netbird_policy whose destination is the
+# route's `access_control_groups` (policies.tf). Provider v0.0.9 predates the
+# network_* resources, so this uses netbird_route.
 
 resource "netbird_route" "buzz_relay" {
   network_id  = "buzz-relay"
