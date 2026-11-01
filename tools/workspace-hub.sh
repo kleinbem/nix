@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
-# fzf browser over the `just` recipes of this repo and nix-config. It reads the
-# recipes without copying them; picking one runs it in its own repo, so it can
-# change state.
-# fzf preview/edit re-exec this script, reading the index from exported $INDEX,
-# so nothing is rebuilt per keystroke. Requires fzf and just.
+# fzf browser over the `just` recipes of this repo and nix-config; picking one
+# runs it in its own repo. Preview/edit re-exec this script with the index in
+# exported $INDEX, so nothing is rebuilt per keystroke. Requires fzf and just.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

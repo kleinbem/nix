@@ -3,10 +3,8 @@ import 'common.just'
 set working-directory := ".."
 
 # --- Cross-cutting deployment recipes ---
-# Host-specific deploys (deploy-fleet/deploy-orin/orin-*/pi-*/router-*/core-rebind-tang)
-# moved to `nix-config/.just/deployment.just`. Run them with:
-#   cd ../nix-config && just deployment::deploy-fleet
-# or via the [Main] shortcuts in the root justfile.
+# Host-specific deploys live in nix-config/.just/deployment.just
+# (e.g. `just in nix-config deployment::deploy-fleet`).
 
 [group("Status")]
 fleet mode="minimal":

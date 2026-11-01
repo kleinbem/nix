@@ -119,14 +119,10 @@ resource "netbird_policy" "monitoring_scrape" {
   }
 }
 # --- The built-in "All -> All" default policy ---------------------------------
-#
-# While it exists every peer reaches every other, so all rules here are moot.
-# It is closed with `just close-default-policy POLICY_ID`, not managed here: its
-# live rule shape is unverified, and a mismatched rule block would replace it.
-# Every path the fleet needs must have its own policy before it is closed;
-# recreate an All -> All in the console if something breaks.
-# To manage it later, import it once its live shape is confirmed:
-#
+# While it exists every rule here is moot. It is closed with
+# `just close-default-policy POLICY_ID`, not managed here: its live rule shape is
+# unverified and a mismatched rule block would replace it. Every needed path
+# must have its own policy first. To manage it later, once the shape is known:
 #   variable "default_policy_id" { type = string, default = "" }
 #   import {
 #     for_each = var.default_policy_id == "" ? toset([]) : toset([var.default_policy_id])
@@ -141,11 +137,9 @@ resource "netbird_policy" "monitoring_scrape" {
 #   }
 
 # --- Fleet + CI runners -> Attic cache ------------------------------------------
-#
-# Fleet hosts and CI runners reach the cache only over the mesh, so without
-# these, cache pulls and CI pushes (>100 MiB NARs) fail once the default policy
-# is gone. The `cache` group is core-pi, where :443 on wt0 DNATs to caddy/attic.
-# CI runners get the cache peer and nothing else.
+# The cache is mesh-only, so without these, pulls and CI pushes fail once the
+# default policy is gone. The `cache` group is core-pi (:443 on wt0 DNATs to
+# caddy/attic). CI runners get the cache peer and nothing else.
 resource "netbird_policy" "fleet_to_cache" {
   name        = "fleet-to-cache"
   description = "Allow trusted machines and smart-home nodes to pull from the Attic cache peer."

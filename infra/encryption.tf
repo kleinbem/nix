@@ -1,9 +1,6 @@
-# Client-side state encryption: state holds every managed secret in
-# plaintext, so R2 only ever gets AES-GCM ciphertext.
-#
-# tools/tf-apply.sh injects the passphrase from sops (`tofu_state_passphrase`)
-# via TF_ENCRYPTION; raw `tofu` without it fails instead of writing
-# plaintext. Losing the passphrase means re-importing every resource.
+# State holds every managed secret, so R2 only gets AES-GCM ciphertext.
+# tools/tf-apply.sh injects the passphrase (sops `tofu_state_passphrase`) via
+# TF_ENCRYPTION. Losing it means re-importing every resource.
 terraform {
   encryption {
     key_provider "pbkdf2" "state_key" {

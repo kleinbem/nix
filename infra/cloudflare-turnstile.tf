@@ -1,8 +1,5 @@
-# Cloudflare Turnstile widget: bot protection for kleinbem-site's contact form.
-#
-# The sitekey is public and ships in page source. The secret verifies tokens
-# server-side; github-secrets.tf hands it to kleinbem-site's CI as an Actions
-# secret, which writes it to Pages. No sops copy on that path.
+# Turnstile bot protection for kleinbem-site's contact form. The secret goes
+# to kleinbem-site's CI via github-secrets.tf, which writes it to Pages.
 # The root's token needs "Account -> Turnstile -> Edit".
 resource "cloudflare_turnstile_widget" "kleinbem_site" {
   account_id = var.cloudflare_account_id

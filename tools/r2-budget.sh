@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-# R2 has no spending cap, so this is ours: estimates the month's bill, alerts
-# via ntfy from ALERT_EUR and takes the public cache's domain offline from
-# OFFLINE_EUR (the only bucket strangers can read). Bring it back after checking
-# the cause with `r2-budget.sh --online` or the r2-budget workflow's "online".
-# Env: CLOUDFLARE_ACCOUNT_ID, R2_BUDGET_TOKEN (Account Analytics Read + Workers
-# R2 Storage Write), NTFY_ALERT_TOPIC (optional), DRY_RUN=1 to only report.
+# R2 has no spending cap, so this is ours: estimates the month's bill, alerts via
+# ntfy from ALERT_EUR and takes the public cache's domain offline from OFFLINE_EUR.
+# After checking the cause: `r2-budget.sh --online` or the workflow's "online" input.
+# Env: CLOUDFLARE_ACCOUNT_ID, R2_BUDGET_TOKEN, NTFY_ALERT_TOPIC (optional),
+# DRY_RUN=1 to only report.
 set -euo pipefail
 
 ALERT_EUR=${ALERT_EUR:-5}

@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
-# Compare flake.lock revisions against the current git HEAD of every local
-# `nix-*` submodule. Reports drift.
-#
-# Replaces audit_locks.py — the previous Python version was ~120 lines of
-# subprocess + JSON parsing. This is the equivalent with `nix flake metadata`
-# doing the work natively.
+# Compare nix-config's flake.lock pins against the git HEAD of each sibling
+# `nix-*` repo checkout and report drift.
 
 set -euo pipefail
 

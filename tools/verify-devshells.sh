@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
-# tools/verify-devshells.sh
-# Verifies all defined devshells by attempting to build their derivations.
-# This catches evaluation errors and missing dependencies.
-#
+# Build every devshell to catch eval errors and missing dependencies.
 # No `set -e`: every shell is built and reported, even after a failure.
 
 # Shells to verify, keyed by flake. All shells live in nix-devshells.

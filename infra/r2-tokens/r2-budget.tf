@@ -1,9 +1,6 @@
-# kleinbem/nix's r2-budget workflow (tools/r2-budget.sh): reads the account's
-# R2 usage and, past the budget, disables the custom domain of the public
-# cache (cache.kleinbem.dev). Disabling the domain needs account-level R2 write (no bucket
-# scope exists for bucket settings), so this token lives only in that
-# workflow's secrets, which scheduled runs on main see and fork PRs don't.
-# Synced into kleinbem-secrets/infra/terraform.yaml by sync-secrets.sh.
+# Token for the r2-budget workflow (tools/r2-budget.sh), which disables the public
+# cache's domain past the budget. That needs account-level R2 write (no bucket
+# scope exists), so the token lives only in that workflow's secrets.
 resource "cloudflare_api_token" "r2_budget" {
   name = "r2-budget-watchdog"
 

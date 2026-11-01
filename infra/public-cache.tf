@@ -1,24 +1,11 @@
-# ---------------------------------------------------------------------------
-# Public Nix binary cache for kleinbem's open-source projects (mesh-agents
-# first): cache.kleinbem.dev, static files in R2 (nix-cache-info, *.narinfo,
-# nar/*, roots/*). Each project's CI pushes its current build from main with
-# `nix copy`, lists what it uses in roots/<repo>, and deletes what no
-# project's roots list mentions. So the bucket holds one build per project
-# (a few GB, inside R2's free 10 GB), and shared dependencies are stored once.
-#
-# Unrelated to Attic, the fleet's private mesh-only cache. Attic still answers
-# on cache.kleinbem.dev, so the domain is attached only once it has moved
-# (public_cache_domain_live).
-#
-# R2 has no spending cap. Bounds: one build per project with a CI size limit,
-# writes only from CI on main, edge caching (below) for repeat reads, and
-# the r2-budget watchdog (tools/r2-budget.sh) taking the domain offline.
-#
-# CI credentials: r2-tokens/, distributed by github-secrets.tf. The signing
-# key is made by hand (`nix key generate-secret --key-name
-# cache.kleinbem.dev-1`) into infra/terraform.yaml; the public half goes in
-# each project's nixConfig.
-# ---------------------------------------------------------------------------
+# Public Nix binary cache (cache.kleinbem.dev) for kleinbem's open-source projects:
+# static files in R2. Each project's CI pushes its main build with `nix copy`,
+# lists it in roots/<repo> and deletes what no roots list mentions, so the bucket
+# holds one build per project, inside R2's free 10 GB. Unrelated to Attic, which
+# still answers on that name, hence public_cache_domain_live. R2 has no spending
+# cap: tools/r2-budget.sh takes the domain offline past the budget. Signing key:
+# `nix key generate-secret --key-name cache.kleinbem.dev-1` into infra/terraform.yaml;
+# its public half goes in each project's nixConfig.
 
 locals {
   public_cache_domain = "cache.kleinbem.dev"
@@ -122,14 +109,9 @@ resource "terraform_data" "public_cache_bucket" {
   }
 }
 
-# Cloudflare caches only known static extensions by default; .narinfo and
-# nar/* aren't among them. Store paths are content-addressed, so a file under
-# a name never changes: cache everything for 30 days at the edge. Misses (404)
-# only for a minute, so a fresh push shows up quickly. roots/* is CI's
-# bookkeeping and is read through the S3 endpoint, never this domain.
-#
-# The zone's only http_request_cache_settings ruleset: further cache rules go
-# here as more rules.
+# Cloudflare doesn't cache .narinfo or nar/* by default. Store paths never change
+# under a name, so cache 30 days at the edge, 404s for a minute so fresh pushes
+# show up. A zone has one ruleset per phase: further cache rules go here.
 resource "cloudflare_ruleset" "cache_settings" {
   zone_id     = data.cloudflare_zone.main.id
   name        = "Cache settings"

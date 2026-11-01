@@ -2,11 +2,10 @@ import 'common.just'
 
 set working-directory := ".."
 
+# Separate from nixos-rebuild so a broken extension never blocks a switch. The
+# editors link straight into the store, so each bundle keeps a GC root under
+# ~/.local/state/editor-extensions or garbage collection breaks every link.
 # Build and sync editor extensions from the nix-presets flake.
-# Runs independently of nixos-rebuild — a broken extension never blocks a system switch.
-# Each bundle keeps a GC root under ~/.local/state/editor-extensions: the
-# editors link straight into the store, and without a root the next
-# `nix-collect-garbage` deleted every bundle and left all links dangling.
 [group("Desktop")]
 sync:
     @echo "🧩 Syncing editor extensions..."

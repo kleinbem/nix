@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
-# Source this (`. ./state-env.sh`) before any tofu invocation in this root.
-# Decrypts sops (two YubiKey touches — two scoped kleinbem-secrets files, see
-# below) and prepares everything state ops need:
-#   - .r2-backend.hcl (R2 endpoint + access key) for `tofu init -backend-config`
-#   - TF_ENCRYPTION   (client-side state encryption passphrase, encryption.tf)
-#   - TF_VAR_netbird_api_token (provider auth)
-# Credentials go in the generated file / env for THIS process only — never
-# AWS_* env (collides with real-AWS provider auth elsewhere in the workspace).
+# Source this (`. ./state-env.sh`) before any tofu command in this root (two
+# YubiKey touches). Writes .r2-backend.hcl and exports TF_ENCRYPTION and
+# TF_VAR_netbird_api_token. No AWS_* env: the main root's aws provider would read it.
 set -euo pipefail
 
 _here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

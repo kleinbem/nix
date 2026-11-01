@@ -1,22 +1,15 @@
 default:
     @just --list
 
-# --- NetBird control plane (declarative, OpenTofu; state in Cloudflare R2) ---
-#
-# Everything sops-sourced from kleinbem-secrets (cutover 2026-08-08, scoped
-# across files, not one flat secrets.yaml): netbird_api_token,
-# r2_state_access_key_id/secret, tofu_state_passphrase (infra/terraform.yaml);
-# cloudflare_account_id (nix/per-host/core-pi.yaml). state-env.sh decrypts
-# both files ONCE per command (two YubiKey touches) and prepares the R2
-# backend config + state-encryption env. Run inside a shell with tofu+sops+yq,
-# e.g. nix shell nixpkgs#opentofu nixpkgs#sops nixpkgs#yq-go
+# --- NetBird control plane (OpenTofu; state in Cloudflare R2) ---
+# Secrets come from kleinbem-secrets infra/terraform.yaml and
+# nix/per-host/core-pi.yaml; state-env.sh decrypts both once per command
+# (two YubiKey touches). Needs tofu, sops and yq on PATH.
 
 secrets := "../../../kleinbem-secrets/infra/terraform.yaml"
 
-# Refresh ../inventory.json from nix-config/inventory.nix (meshGroups) so the
-# group membership in groups.tf tracks the fleet. Idempotent; cheap.
-# Soft-fail: a missing/dirty nix-config checkout must not block a plan — the
-# committed ../inventory.json is enough for `tofu plan` to run.
+# Refresh ../inventory.json from nix-config/inventory.nix so groups.tf tracks
+# the fleet. Soft-fails: the committed json is enough for a plan.
 [private]
 _gen:
     @../../tools/gen-iac-data.sh >/dev/null || \
@@ -26,20 +19,15 @@ _gen:
 init: _gen
     @. ./state-env.sh && tofu init -input=false -backend-config=.r2-backend.hcl
 
-# One-shot: copy local terraform.tfstate into the R2 backend. The local tfstate
-# files stay behind, gitignored, as a fallback copy. Afterwards: `just plan`
-# (expect no changes), verify the R2 object is ciphertext (a dummy passphrase
-# must fail with "message authentication failed"), then flip enforced=true and
-# drop the fallback in encryption.tf.
+# One-shot: copy a local terraform.tfstate into the R2 backend, then `just plan`
+# should show no changes.
 migrate-state:
     @. ./state-env.sh && tofu init -backend-config=.r2-backend.hcl -migrate-state -force-copy
     @echo "✅ State migrated to R2 (netbird.tfstate). Verify: just plan"
 
+# Don't chain `just plan && just apply`: each decrypts sops again, and a stale
+# second prompt aborts the apply. `just apply` shows the plan first anyway.
 # Review planned NetBird control-plane changes.
-# NOTE: don't chain `just plan && just apply` — each recipe is its own sops
-# decrypt (two YubiKey ceremonies, and the second prompt going stale aborts
-# the apply). `just apply` alone shows the same plan inline and asks for
-# confirmation: one command, one touch.
 plan: _gen
     @. ./state-env.sh && tofu init -input=false -backend-config=.r2-backend.hcl >/dev/null && tofu plan
 
@@ -52,9 +40,7 @@ schema:
     @. ./state-env.sh && tofu init -input=false -backend-config=.r2-backend.hcl >/dev/null && tofu providers schema -json | yq -P
 
 # --- First-apply adoption + default-policy closure (NetBird REST API) ---------
-#
-# These talk to the NetBird Management API directly (not via tofu), using the
-# same sops-sourced token. API base defaults to NetBird Cloud; override with
+# These call the Management API directly with the same token. Set
 # NETBIRD_API_URL for a self-hosted server.
 
 api_url := env_var_or_default("NETBIRD_API_URL", "https://api.netbird.io")
@@ -116,12 +102,9 @@ list-peers:
        | jq -r '["NAME","CONNECTED","LAST_SEEN","ID"], (.[] | [.name, (.connected|tostring), .last_seen, .id]) | @tsv' \
        | column -t -s "$(printf '\t')"
 
-# Delete a single peer BY EXACT NAME. For when a host is being wiped/reinstalled
-# (disko reformat, new LUKS enrollment): the old peer identity is stale and needs
-# clearing before the host re-enrolls under the same name via its setup key,
-# otherwise the personal_device_peers/etc. name lookups in groups.tf can hit an
-# ambiguous/duplicate name. Matches on exact name, not the prune-peers regex, so
-# this is deliberate and single-target regardless of connected/disconnected state.
+# Before reinstalling a host, clear its old peer so it re-enrolls under the same
+# name; a duplicate name breaks the name lookups in groups.tf.
+# Delete a single peer BY EXACT NAME.
 remove-peer NAME:
     @token="$(sops -d {{secrets}} | yq '.netbird_api_token')"; \
      peers="$(curl -fsSL -H "Authorization: Token $token" "{{api_url}}/api/peers")"; \
@@ -134,11 +117,10 @@ remove-peer NAME:
      id="$(printf '%s' "$match" | cut -f1)"; \
      curl -fsSL -X DELETE -H "Authorization: Token $token" "{{api_url}}/api/peers/$id" && echo "✅ deleted peer '{{NAME}}' ($id)"
 
-# Delete DISCONNECTED peers whose name does NOT match the protect regex (default
-# keeps the persistent hosts). Clears the leaked one-shot CI-runner peers without
-# touching real hosts (even if a host is currently offline — it's kept by name).
-# Override the kept set with NETBIRD_PROTECT="regex". Shows the list and requires
-# typing the COUNT to confirm, so a mass delete can't be fat-fingered.
+# Clears leaked one-shot CI-runner peers. Only names matching the protect regex
+# are kept (the phones' NetBird names don't match), so check the list first.
+# Override the kept set with NETBIRD_PROTECT="regex".
+# Delete DISCONNECTED peers not matching the protect regex (confirm by count).
 prune-peers:
     @token="$(sops -d {{secrets}} | yq '.netbird_api_token')"; \
      protect="${NETBIRD_PROTECT:-nixos-nvme|hass-pi|core-pi|orin|nasbook|router|phone|mac-mini}"; \

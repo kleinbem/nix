@@ -1,21 +1,8 @@
-# ---------------------------------------------------------------------------
-# Cloudflare Access (Zero Trust) — edge SSO in front of the browser-facing
-# self-hosted apps. Free tier (≤ 50 users). Login by email one-time PIN or
-# the Authentik IdP below.
-#
-# Scope (ingress: nix-config modules/nixos/services/cloudflare-tunnel.nix):
-#   * home.kleinbem.dev  — Dashboard  -> gated (stays on the public tunnel;
-#                          Access is its auth)
-#   * vault.kleinbem.dev/admin — gated, path-scoped. Bitwarden clients only use
-#                          /api, /identity, /notifications, /icons, so they
-#                          stay ungated; /admin gets SSO on top of ADMIN_TOKEN.
-#   * cache.kleinbem.dev — Attic Nix cache  -> NOT gated (SSO breaks Nix pulls)
-#   * n8n / chat         — use mTLS (webhooks/API)  -> NOT gated (SSO breaks them)
-#   * code, frigate      — mesh-only, not on the tunnel; Authentik forward-auth.
-#
-# Requires: the cloudflare_api_token to have "Access: Apps and Policies: Edit",
-# and the account's Zero Trust org to exist (it does — you run a tunnel).
-# ---------------------------------------------------------------------------
+# Cloudflare Access: edge SSO (email one-time PIN or Authentik) for the
+# tunnel-exposed apps in access_apps. Other public apps stay ungated because SSO
+# would break their clients (n8n/chat use mTLS for webhooks and APIs); mesh-only
+# apps use Authentik forward-auth instead. The API token needs
+# "Access: Apps and Policies: Edit".
 
 locals {
   access_apps = {
@@ -60,12 +47,7 @@ resource "cloudflare_zero_trust_access_policy" "allow_owner" {
   }
 }
 
-# ---------------------------------------------------------------------------
-# Authentik OIDC Identity Provider for Cloudflare Access
-# Live IdP UUID: 6bb0c00a-ad4e-4250-b5bb-215e7129112a
-#
-# Set up by hand in Zero Trust (Integrations > Identity providers): API tokens
-# get 1010 (auth.forbidden) managing IdPs on this plan. Authentik's ID token
-# carries the email that allow_owner matches.
-# ---------------------------------------------------------------------------
+# Authentik OIDC IdP (UUID 6bb0c00a-ad4e-4250-b5bb-215e7129112a) is set up by
+# hand in Zero Trust: API tokens get 1010 (auth.forbidden) managing IdPs on this
+# plan. Its ID token carries the email that allow_owner matches.
 

@@ -1,8 +1,7 @@
 # cache.kleinbem.dev resolves to the cache entrypoint's mesh IP for every peer,
-# CI runners included, so cache traffic skips the Cloudflare tunnel and its
-# 100 MiB per-NAR cap. /etc/hosts pins (attic-pull.nix) still override it.
-# Each zone is a single FQDN, not kleinbem.dev: NetBird answers its zones
-# authoritatively, so a domain-wide zone would hide the public records.
+# CI runners included (/etc/hosts pins from attic-pull.nix still win). Each zone
+# is a single FQDN: NetBird answers its zones authoritatively, so a kleinbem.dev
+# zone would hide the public records.
 
 data "netbird_group" "all" {
   # NetBird's built-in group containing every peer.
