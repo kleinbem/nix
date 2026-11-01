@@ -47,10 +47,10 @@ resource "netbird_route" "code_server" {
 
 resource "netbird_route" "syncthing" {
   network_id            = "syncthing"
-  description           = "syncthing container on nixos-nvme (mesh-only forward-auth service)."
-  network               = "10.85.46.127/32"
-  peer                  = data.netbird_peer.personal_devices["nixos-nvme"].id
-  groups                = [netbird_group.personal_devices.id]
+  description           = "syncthing container on nasbook (mesh-only forward-auth service)."
+  network               = "10.85.47.127/32"
+  peer                  = data.netbird_peer.smart_home["nasbook"].id
+  groups                = [netbird_group.cache.id]
   access_control_groups = [netbird_group.cache.id]
   masquerade            = true
   enabled               = true
