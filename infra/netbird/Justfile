@@ -117,8 +117,9 @@ remove-peer NAME:
      id="$(printf '%s' "$match" | cut -f1)"; \
      curl -fsSL -X DELETE -H "Authorization: Token $token" "{{api_url}}/api/peers/$id" && echo "✅ deleted peer '{{NAME}}' ($id)"
 
-# Clears leaked one-shot CI-runner peers; hosts are kept by name even when
-# offline. Override the kept set with NETBIRD_PROTECT="regex".
+# Clears leaked one-shot CI-runner peers. Only names matching the protect regex
+# are kept (the phones' NetBird names don't match), so check the list first.
+# Override the kept set with NETBIRD_PROTECT="regex".
 # Delete DISCONNECTED peers not matching the protect regex (confirm by count).
 prune-peers:
     @token="$(sops -d {{secrets}} | yq '.netbird_api_token')"; \

@@ -27,8 +27,8 @@ GOOGLE_SCOPES = [
     "https://www.googleapis.com/auth/tasks",
     "https://www.googleapis.com/auth/drive.readonly",
 ]
-# The OAuth client secret is decrypted in memory with sops (google.py), so it
-# never touches disk.
+# sops decrypts the OAuth client secret in memory (google.py), but the token
+# cache (GOOGLE_TOKEN_PATH) stores it too, since creds.to_json() includes it.
 GOOGLE_OAUTH_SOPS_FILE = os.path.join(
     WORKSPACE_ROOT, "kleinbem-secrets/infra/terraform.yaml"
 )

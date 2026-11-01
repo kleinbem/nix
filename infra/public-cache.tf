@@ -4,7 +4,8 @@
 # holds one build per project, inside R2's free 10 GB. Unrelated to Attic, which
 # still answers on that name, hence public_cache_domain_live. R2 has no spending
 # cap: tools/r2-budget.sh takes the domain offline past the budget. Signing key:
-# `nix key generate-secret --key-name cache.kleinbem.dev-1` into infra/terraform.yaml.
+# `nix key generate-secret --key-name cache.kleinbem.dev-1` into infra/terraform.yaml;
+# its public half goes in each project's nixConfig.
 
 locals {
   public_cache_domain = "cache.kleinbem.dev"
