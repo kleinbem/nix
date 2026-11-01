@@ -1,8 +1,7 @@
-# State backend: Cloudflare R2 bucket `kleinbem-tofu-state`, which this root
-# also manages (main.tf, prevent_destroy). Backend blocks take no variables, so
-# tools/tf-apply.sh writes endpoint + R2 keys from sops into a tmpfs
-# -backend-config file. Not AWS_* env vars: the aws provider would read those
-# as real-AWS credentials.
+# State lives in R2 bucket `kleinbem-tofu-state`, which this root also manages
+# (main.tf, prevent_destroy). Backend blocks take no variables, so
+# tools/tf-apply.sh writes endpoint + R2 keys into a -backend-config file;
+# not AWS_* env vars, which the aws provider would take as real AWS creds.
 terraform {
   backend "s3" {
     bucket = "kleinbem-tofu-state"

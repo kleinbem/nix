@@ -1,9 +1,6 @@
-# State backend: Cloudflare R2 (s3-compatible), same bucket as root infra/
-# (`kleinbem-tofu-state`), key `netbird.tfstate`.
-#
-# Backend blocks take no variables, so state-env.sh writes endpoint +
-# credentials from sops into `.r2-backend.hcl` (gitignored), passed via
-# `-backend-config`. State is client-side encrypted (encryption.tf).
+# Same R2 bucket as root infra/. Backend blocks take no variables, so
+# state-env.sh writes endpoint + credentials into `.r2-backend.hcl`
+# (gitignored), passed via `-backend-config`.
 terraform {
   backend "s3" {
     bucket = "kleinbem-tofu-state"

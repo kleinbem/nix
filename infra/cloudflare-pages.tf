@@ -1,20 +1,8 @@
-# ---------------------------------------------------------------------------
-# kleinbem-site (portfolio/blog) — served from Cloudflare Pages at
-# www.kleinbem.dev, with the apex redirecting to it.
-#
-# Not at the apex: that name carries the mail records (cloudflare-dns.tf) and
-# the tunnel CNAME (main.tf).
-#
-# No build_config/source: kleinbem-site's CI builds and runs
-# `wrangler pages deploy`. CI uses its own CLOUDFLARE_PAGES_DEPLOY_TOKEN
-# (Pages: Edit only, from github-secrets.tf); this root's token needs
-# "Cloudflare Pages: Edit" too.
-#
-# No env vars or secrets here: once a project deploys with a wrangler.jsonc,
-# Cloudflare ignores API-set vars. Plain vars live in kleinbem-site's
-# wrangler.jsonc; CI runs `wrangler pages secret put` before every deploy,
-# from the GitHub secrets in github-secrets.tf.
-# ---------------------------------------------------------------------------
+# kleinbem-site on Cloudflare Pages at www.kleinbem.dev; the apex carries the
+# mail records and tunnel CNAME, so it only redirects. kleinbem-site's CI
+# builds and deploys with wrangler, so no build_config here. No vars either:
+# with a wrangler.jsonc Cloudflare ignores API-set vars, and CI puts the
+# secrets (github-secrets.tf) with `wrangler pages secret put`.
 
 resource "cloudflare_pages_project" "kleinbem_site" {
   account_id        = var.cloudflare_account_id

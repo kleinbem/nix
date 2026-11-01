@@ -1,16 +1,9 @@
-# ---------------------------------------------------------------------------
-# External dead-man's switch (healthchecks.io): local alerting runs on core-pi
-# or the watched host, so these alert from outside the fleet.
-#
-# heartbeats.json comes from each host's `my.heartbeat.checks` via
-# tools/gen-iac-data.sh. The v1 API derives the slug from the check name;
-# hosts ping https://hc-ping.com/<project ping key>/<slug>.
-#
-# One-time bootstrap: create the account + project, put the read-write API key
-# in kleinbem-secrets infra/terraform.yaml (`healthchecks_api_key`) and the
-# ping key in nix/shared.yaml (`healthchecks_ping_key`), and create the
-# integrations in `healthchecks_channel_kinds` (never ntfy.kleinbem.dev).
-# ---------------------------------------------------------------------------
+# External dead-man's switch (healthchecks.io): local alerting runs inside the
+# fleet, so these alert from outside it. Checks come from each host's
+# my.heartbeat.checks (heartbeats.json via tools/gen-iac-data.sh); hosts ping
+# https://hc-ping.com/<ping key>/<slug>, the slug derived from the check name.
+# Bootstrap: create account + project, put the API key in infra/terraform.yaml
+# (healthchecks_api_key), the ping key in nix/shared.yaml (healthchecks_ping_key).
 
 variable "healthchecks_api_key" {
   type        = string

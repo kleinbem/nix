@@ -8,11 +8,9 @@ provider "google" {
 }
 
 # --- Project adoption (visibility only) -----------------------------------
-# Adopted, not created: the project was made by hand (see above). Imported so
-# state matches reality.
-# billing_account stays unset and ignored: setting it makes the provider call the
-# Billing API, which the SA has no role for. Owning `name` would need
-# projectEditor on the SA; roles/browser covers import + read.
+# billing_account stays ignored: setting it calls the Billing API, which the SA
+# has no role for. Owning `name` would need projectEditor; roles/browser covers
+# import + read.
 import {
   to = google_project.kleinbem_ai
   id = "kleinbem-ai"
@@ -30,13 +28,10 @@ resource "google_project" "kleinbem_ai" {
   }
 }
 
-# --- "Sign in with Google" client (MANUAL — no IaC path) ------------------
-# No API exists for OAuth clients any more (the IAP OAuth Admin API is gone), so
-# this was made by hand in the Cloud console. Its only redirect URI is
-#   https://auth.kleinbem.dev/source/oauth/callback/google/
-# tf-apply.sh reads client_id/secret from
-# kleinbem-secrets/nix/per-container/kleinbem-auth.yaml and exports them as
-# TF_VAR_kleinbem_auth_google_*.
+# --- "Sign in with Google" client (MANUAL: no API for OAuth clients) -------
+# Redirect URI: https://auth.kleinbem.dev/source/oauth/callback/google/
+# tf-apply.sh reads client_id/secret from kleinbem-secrets
+# nix/per-container/kleinbem-auth.yaml as TF_VAR_kleinbem_auth_google_*.
 
 # Declared so a fresh project gets them and google_apikeys_key can depend on them.
 resource "google_project_service" "generativelanguage" {

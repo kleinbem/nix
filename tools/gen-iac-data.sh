@@ -1,20 +1,9 @@
 #!/usr/bin/env bash
-# Generates the JSON bridge files the nix/infra OpenTofu roots consume, from
-# repo-canonical Nix data:
-#
-#   nix-config/personas.nix ⊕ kleinbem-secrets/personas/contact.nix
-#   nix-config/inventory.nix  (its `meshGroups` attr)
-#            │
-#            ▼  projection logic: nix-config/iac/data.nix
-#   infra/personas.json    → personas.tf
-#   infra/inventory.json   → netbird/inventory.tf (and dns.tf, groups.tf)
-#
-# Plus heartbeats.json and backup-hosts.json from nix-config's flake outputs
-# (below). Output matches `nix build nix-config#iac-data` and the `iac-data`
-# flake check byte for byte: all call iac/data.nix and `jq -S`.
-#
+# Generates the JSON files the nix/infra roots consume: personas.json and
+# inventory.json via nix-config/iac/data.nix (byte-identical to
+# `nix build nix-config#iac-data`, both `jq -S`), plus heartbeats.json and
+# backup-hosts.json from nix-config's flake outputs.
 # Usage: gen-iac-data.sh [DEST_DIR]   (default: nix/infra)
-#   check-iac-data.sh calls it with a tempdir to diff against the committed copy.
 
 set -euo pipefail
 

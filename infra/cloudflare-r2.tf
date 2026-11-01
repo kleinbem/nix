@@ -1,12 +1,7 @@
-# ---------------------------------------------------------------------------
-# Off-site fleet backups (backup-engine `r2` destination): secure/<host>/ holds
-# age bundles, restic/<host> a restic repo. Per-host tokens live in
-# infra/r2-tokens/, since minting them needs "API Tokens: Edit", which this
-# root's token doesn't hold.
-# R2 tokens can't be write-without-delete, so secure/ gets a 30d bucket lock
-# instead, and its bundles expire after 365 days. restic/ stays unlocked because
-# prune must delete packs.
-# ---------------------------------------------------------------------------
+# Off-site fleet backups (backup-engine `r2` destination): secure/<host>/ holds age
+# bundles, restic/<host> a restic repo. Per-host tokens are minted in infra/r2-tokens/.
+# R2 tokens can't be write-without-delete, so secure/ gets a 30d bucket lock and a
+# 365d expiry; restic/ stays unlocked because prune must delete packs.
 
 resource "cloudflare_r2_bucket" "backup" {
   account_id = var.cloudflare_account_id

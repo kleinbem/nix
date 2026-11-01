@@ -1,8 +1,6 @@
-# S3 credentials for the CI of the projects on the public cache: object
-# read/write on the kleinbem-cache bucket only (../public-cache.tf). One token
-# for all of them: they share the bucket, so separate tokens wouldn't keep
-# them apart. Synced into kleinbem-secrets/infra/terraform.yaml by
-# sync-secrets.sh; the main root distributes them (github-secrets.tf).
+# Object read/write on kleinbem-cache only, for the CI of public-cache projects.
+# One shared token: they share the bucket anyway. sync-secrets.sh copies it to
+# kleinbem-secrets infra/terraform.yaml; github-secrets.tf distributes it.
 resource "cloudflare_api_token" "public_cache_ci" {
   name = "kleinbem-cache-ci"
 

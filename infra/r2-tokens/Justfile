@@ -2,12 +2,9 @@ default:
     @just --list
 
 # --- Per-host R2 backup tokens (OpenTofu; state in Cloudflare R2) ---
-#
-# The only root holding the token-minting credential — see main.tf. Run
-# inside a shell with tofu+sops+yq+jq, e.g.
-#   nix shell nixpkgs#opentofu nixpkgs#sops nixpkgs#yq-go nixpkgs#jq
-# Each recipe is its own sops decrypt; don't chain `just plan && just apply`
-# (`apply` shows the plan inline and asks for confirmation anyway).
+# The only root holding the token-minting credential (main.tf). Needs tofu,
+# sops, yq and jq. Each recipe decrypts sops again, so don't chain
+# `just plan && just apply`; `apply` shows the plan first.
 
 # Refresh ../backup-hosts.json from nix-config#backupHosts. Soft-fail: the
 # committed copy is enough to plan.

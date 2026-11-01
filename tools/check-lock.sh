@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
-# Inspect the workspace flock at /tmp/workspace-just.lock (used by `just`
-# recipes to serialize long-running builds). Shows whether it's held and
-# by what.
-#
-# Replaces check_lock.py — the Python version did the same flock probe with
-# more LoC. This is the bash equivalent.
+# Show whether the workspace flock that serializes long-running `just` builds
+# is held, and by what.
 
 set -euo pipefail
 

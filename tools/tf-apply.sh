@@ -174,9 +174,8 @@ curl -s -H "Authorization: Bearer $AUTHENTIK_API_TOKEN" "https://auth.kleinbem.d
 
 # --- GitHub provider inputs (sourced from sops) ---
 # The GitHub App credentials (nix/shared.yaml) authenticate the github provider
-# and are also handed to CI repos as APP_ID / APP_INSTALLATION_ID / APP_PRIVATE_KEY.
-# attic_ci_push_token becomes ATTIC_PUSH_TOKEN; it falls back to orin-nano's
-# attic_push_token when unset.
+# and go to CI repos as APP_*. ATTIC_PUSH_TOKEN falls back to orin-nano's
+# attic_push_token when attic_ci_push_token is unset.
 GH_APP_ID=$(echo "$SHARED_YAML" | yq '.github_app_id')
 GH_APP_INSTALLATION_ID=$(echo "$SHARED_YAML" | yq '.github_app_installation_id')
 GH_APP_ORG_INSTALLATION_ID=$(echo "$SHARED_YAML" | yq '.github_app_org_installation_id')

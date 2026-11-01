@@ -9,13 +9,8 @@ mod maintenance '.just/maintenance.just'
 mod devshell '.just/devshell.just'
 mod extensions '.just/extensions.just'
 
-# Recipes moved to `nix-config/justfile` (call directly with `cd nix-config && just X::Y`,
-# or via shortcuts in the [Main] group below):
-#   mod nixos    — nixos::switch, build, test, dry-run, sys-plan, attic-*, …
-#   mod orin     — orin::ping, shell, stats, logs, …
-#   mod android  — android::phone, tablet, phone-push, phone-backup-fetch
-#   mod ai       (host-side only — ai::ai-check, ai-shell, ai-logs)
-# The meta `mod ai` above retains: sync-all, distill-session, architect, code, plan, local, distill
+# Host-side modules (nixos, orin, android, the host part of ai) live in
+# nix-config/justfile; the [Main] group below has shortcuts into them.
 
 [group("Main")]
 default:
@@ -77,11 +72,8 @@ alias ship := ship-all
 as persona *args:
     @KLEINBEM_PERSONA={{persona}} just jj::{{args}}
 
+# e.g. `just in nix-config nixos::switch`, `just in nix-presets check`
 # Pass-through to any sub-flake's justfile from the meta root.
-# Usage:
-#   just in nix-config nixos::switch
-#   just in nix-presets check
-#   just in nix-secrets edit secrets.yaml
 [group("Main")]
 in repo *args:
     @cd {{ROOT}}/{{repo}} && just {{args}}
@@ -108,11 +100,8 @@ tablet *args:
 
 
 # --- Workspace Hub (fleet-aware, linutil-style browser) ---
-# A read-only overlay over `just` recipes from BOTH the meta root and
-# nix-config: two-level tree (categories → recipes), ⭐ Common + 🚢 By Host
-# virtual categories. Recipes stay defined in their own repo; the hub only
-# discovers + dispatches (nix-config recipes run via `just in nix-config …`).
-# Implementation lives in tools/workspace-hub.sh.
+# Browses recipes from both this root and nix-config; it only discovers and
+# dispatches, recipes stay in their own repo. See tools/workspace-hub.sh.
 
 [group("Main")]
 hub:

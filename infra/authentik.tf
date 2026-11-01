@@ -1,11 +1,7 @@
-# Authentik runtime config. The container itself is NixOS (nix-config
-# hosts/core-pi); its Providers, Applications, Flows and Sources live in
-# Authentik's own database, so they are managed here.
-#
-# kleinbem-site is a confidential client: it exchanges the code server-side
-# (src/routes/auth/callback) with the client_secret, PKCE on as well.
+# Authentik runtime config: the container is NixOS (nix-config hosts/core-pi),
+# but Providers, Applications, Flows and Sources live in Authentik's database.
+# kleinbem-site is a confidential client (server-side code exchange plus PKCE).
 # Without the openid/email/profile mappings the ID token carries only `sub`.
-# No offline_access: kleinbem-site issues its own session cookie instead.
 
 provider "authentik" {
   url   = "https://auth.kleinbem.dev"
@@ -53,11 +49,9 @@ locals {
 }
 
 # --- Self-registration for kleinbem.dev visitors ---
-#
-# Not the built-in default-source-enrollment: its if-sso policy denies it
-# outside a Source login, and it only prompts for a username. Own stages
-# too, so changes to the SSO flow can't leak into this one.
-# No email verification: there is no SMTP transport configured.
+# Not default-source-enrollment: its if-sso policy denies it outside a Source
+# login. Own stages so SSO flow changes can't leak in. No email verification
+# because no SMTP transport is configured.
 resource "authentik_flow" "kleinbem_site_enrollment" {
   name        = "kleinbem-site-enrollment"
   slug        = "kleinbem-site-enrollment"
@@ -183,12 +177,9 @@ import {
 }
 
 # --- Google sign-in ---
-#
-# Uses the existing kleinbem-auth Google OAuth client. Its redirect URIs in
-# Google Cloud Console are set by hand: add google_source_callback_uri there.
-# The default-source-* flows fit here, since a Source is the SSO context
-# their policy expects. No property mappings needed: provider_type google
-# maps name/email itself.
+# Uses the kleinbem-auth Google OAuth client; its redirect URIs are set by hand
+# in Google Cloud Console (add google_source_callback_uri there). A Source is
+# the SSO context the default-source-* flows expect.
 data "authentik_flow" "default_source_authentication" {
   slug = "default-source-authentication"
 }
@@ -273,15 +264,10 @@ output "kleinbem_site_oidc_client_secret" {
 }
 
 # --- Branding: make auth.kleinbem.dev look like part of kleinbem.dev ---
-#
-# A Brand scoped to the hostname; Authentik matches brands by exact domain,
-# so the default brand and other domains are untouched.
-# The login page renders PatternFly 4 markup that ignores the documented
-# --ak-color-* variables, and `:root` never matches inside the shadow roots
-# the CSS is adopted into, so the CSS overrides .pf-c-* classes directly.
-# --ak-global--background-image is the exception: it is set in flow.html's
-# top-level <style>, so `:root` reaches it.
-# The Google "G" icon is white, hence the blue pill on .source-button.
+# Brands match by exact domain, so the default brand is untouched. The login
+# page's PatternFly 4 markup ignores --ak-color-* and `:root` doesn't match in
+# the shadow roots, so the CSS overrides .pf-c-* directly (except the
+# background image, set in flow.html's top-level <style>).
 # Colors mirror kleinbem-site/src/styles/global.css; keep them in sync.
 resource "authentik_brand" "kleinbem_site" {
   domain         = "auth.kleinbem.dev"
@@ -351,13 +337,10 @@ resource "authentik_brand" "kleinbem_site" {
 }
 
 # --- Fleet forward-auth ---
-#
 # Caddy's forward_auth (nix-presets containers/caddy/helpers.nix) sends every
-# `auth = true` inventory node to the embedded outpost on core-pi, which picks
-# the Provider by Host header. n8n's webhook paths are excluded in Caddy
-# (authExcludePaths). Services with native OIDC go in oidc_apps instead.
-# One forward_single Provider per service gives each its own launcher tile,
-# cookie and policy binding.
+# `auth = true` inventory node to the embedded outpost, which picks the
+# Provider by Host header. One forward_single Provider per service gives each
+# its own tile, cookie and policy binding. Native OIDC apps go in oidc_apps.
 locals {
   fleet_services = {
     code-server = {
@@ -455,11 +438,8 @@ import {
 }
 
 # --- Native OIDC services ---
-#
-# Apps with their own OIDC login stay out of Caddy's forward-auth, so API
-# clients (extensions, agents, mobile apps) keep direct token access.
-# An entry here gets a Provider, Application, tile and staff-only binding.
-# grant_types is pinned for the same reason as on kleinbem_site.
+# Kept out of Caddy's forward-auth so API clients (extensions, agents, mobile
+# apps) keep direct token access. grant_types is pinned as on kleinbem_site.
 locals {
   oidc_apps = {
     grafana = {
@@ -491,12 +471,9 @@ locals {
       desc          = "Self-hosted Git forge"
       launch_url    = "https://git.kleinbem.dev"
     }
-    # Home Assistant on hass-pi: the auth_oidc custom component
-    # (nix-presets containers/home-assistant.nix) logs users in with
-    # PKCE as a *public* client, so there is no client secret to ship
-    # into the container — hence client_type public, unlike the rest.
-    # Second redirect URI is HA's direct LAN address (the nftables DNAT
-    # on hass-pi), for when Caddy/DNS are out of the picture.
+    # HA's auth_oidc component logs in with PKCE as a public client, so no
+    # secret ships into the container. The second redirect URI is the LAN
+    # address (hass-pi's nftables DNAT), for when Caddy/DNS are down.
     home-assistant = {
       name        = "Home Assistant"
       client_type = "public"
@@ -608,14 +585,9 @@ output "open_webui_oidc_client_secret" {
 
 
 # --- Access scoping: internal infra is NOT for kleinbem.dev visitors ---
-#
-# Visitors self-register in the same user directory, so every fleet and OIDC
-# app is bound to the "staff" group; the Applications have no restriction
-# of their own.
-#
-# martin is imported to set type = internal: Google sign-in creates
-# "external" users, and only internal users may open /if/user/. The other
-# fields mirror the live account.
+# Visitors self-register in the same directory, so every fleet and OIDC app
+# is bound to the "staff" group. martin is imported to set type = internal:
+# Google sign-in creates "external" users, who can't open /if/user/.
 resource "authentik_user" "martin" {
   username  = "martin.kleinberger@gmail.com"
   name      = "Martin Kleinberger"

@@ -25,12 +25,9 @@ lint-all:
     @echo "  └─ meta files"
     @nix run {{ROOT}}/nix-devshells#formatter-meta -- --fail-on-change
 
-# ============================================================================
-#  COMPREHENSIVE WORKSPACE AUDIT — 7-stage check-all
-# ============================================================================
-# Stages: 1 lints (fail-fast), 2 flake evals, 3 audits, 4 x86_64 host builds,
-# 5 nix-packages builds, 6 VM tests, 7 summary. Stage 4 skips aarch64 hosts,
-# which would need binfmt + qemu.
+# --- check-all: 1 lints (fail-fast), 2 flake evals, 3 audits, 4 x86_64 host
+# builds, 5 nix-packages builds, 6 VM tests, 7 summary. Stage 4 skips aarch64
+# hosts, which would need binfmt + qemu.
 
 [private]
 _check-lints:

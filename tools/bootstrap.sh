@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
-# The fresh-machine entry point — run this BEFORE `just` anything else.
-#
-# The justfile imports .just/*.just, symlinks into ../kleinbem/.just/, and a
-# missing import breaks the whole justfile. So this clones kleinbem/ first,
-# with a hardcoded URL since repos.nix lives inside it.
-# Not shared with openwrt/tools/bootstrap.sh: it must work before any shared
-# file exists.
+# Fresh-machine entry point: run this before any `just`. The justfile imports
+# .just/*.just symlinks into ../kleinbem/, so clone kleinbem/ first, with a
+# hardcoded URL since repos.nix lives inside it. Not shared with
+# openwrt/tools/bootstrap.sh because it must work before any shared file exists.
 set -euo pipefail
 
 # Two levels up from tools/: past nix/ itself, to the true workspace root

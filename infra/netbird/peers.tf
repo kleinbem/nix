@@ -1,11 +1,8 @@
-# Peer flags. This resource can't create peers (they self-register); it
-# adopts an existing one by id and sets its control-plane flags.
-#
-# SSO-enrolled peers expire, and a headless server can't log in again without
-# a browser; setup-key re-enrollment is refused for a registered peer. So
-# infrastructure peers get login and inactivity expiration turned off here.
-# The name lookup fails on absent or duplicate names: run `just list-peers` /
-# `just prune-peers` first if plan errors here.
+# Adopts existing (self-registered) peers by id and sets their flags. SSO peers
+# expire, a headless server can't log in again, and setup-key re-enrollment is
+# refused for a registered peer, so infra peers get expiration turned off here.
+# The name lookup fails on absent or duplicate names: see `just list-peers` /
+# `just prune-peers`.
 
 variable "no_expiry_peers" {
   type        = list(string)

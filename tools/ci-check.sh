@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
-# Secret-free checks for the infra/ roots and tools/, run by CI
-# (.github/workflows/ci.yaml) and runnable locally: tools/ci-check.sh
-#
-# Needs tofu, just, yq and shellcheck on PATH. Uses a dummy state
-# passphrase and a stub sops, never real secrets or real state.
+# Secret-free checks for the infra/ roots and tools/, run by ci.yaml and locally.
+# Needs tofu, just, yq and shellcheck. Uses a dummy state passphrase and a stub
+# sops, never real secrets or state.
 
 set -euo pipefail
 

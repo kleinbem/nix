@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
-# Copy this root's outputs into kleinbem-secrets: per-host rclone configs,
-# core-pi's Caddy DNS-01 token, and the public cache CI and r2-budget tokens.
-# Run after `tofu apply` in the same state-env session (the Justfile's
-# `apply` and `sync` do).
-#
-# Values go in via stdin (never argv). --idempotent leaves an unchanged file
-# byte-identical. A missing per-host file is created from .sops.yaml's public
-# recipients; updating an existing one needs a YubiKey touch per file.
+# Copy this root's outputs into kleinbem-secrets. Run after apply in a state-env
+# session (`just apply` / `just sync` do). Values go in via stdin, never argv.
+# A missing per-host file is created from .sops.yaml's public recipients;
+# updating an existing one needs a YubiKey touch per file.
 set -euo pipefail
 
 _here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

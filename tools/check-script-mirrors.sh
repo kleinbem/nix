@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
-# Verifies that scripts mirrored across submodule boundaries have not drifted.
-#
-# Each pair is (source, mirror). Compare ignoring the marker comment lines
-# (those differ on purpose between the two locations).
+# Verifies that scripts mirrored between sibling repos have not drifted,
+# ignoring the marker comment lines that differ on purpose.
 
 set -euo pipefail
 

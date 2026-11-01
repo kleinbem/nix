@@ -27,12 +27,8 @@ GOOGLE_SCOPES = [
     "https://www.googleapis.com/auth/tasks",
     "https://www.googleapis.com/auth/drive.readonly",
 ]
-# google_credentials.json used to be read as a plaintext file from a
-# nix-secrets/ directory that never actually existed under nix/ in the flat
-# sibling-repo layout (stale pre-consolidation path). The OAuth client
-# secret now lives sops-encrypted in kleinbem-secrets as
-# infra/terraform.yaml's google_oauth_client_json key, decrypted in-memory
-# via sops (see google.py) rather than ever touching disk.
+# The OAuth client secret is decrypted in memory with sops (google.py), so it
+# never touches disk.
 GOOGLE_OAUTH_SOPS_FILE = os.path.join(
     WORKSPACE_ROOT, "kleinbem-secrets/infra/terraform.yaml"
 )

@@ -1,9 +1,5 @@
-# ---------------------------------------------------------------------------
-# Rate limit for the public, unauthenticated credential endpoints. The Free
-# plan allows one rate-limit rule, so it guards the top target: Vaultwarden's
-# token endpoint. On Pro, add n8n webhooks as a second rule.
-# Needs "Zone WAF: Edit" on the token; a 403 on apply means that scope is missing.
-# ---------------------------------------------------------------------------
+# The Free plan allows one rate-limit rule, so it guards the top target:
+# Vaultwarden's token endpoint. Needs "Zone WAF: Edit" (403 on apply if missing).
 
 resource "cloudflare_ruleset" "ratelimit" {
   zone_id     = data.cloudflare_zone.main.id
@@ -30,13 +26,9 @@ resource "cloudflare_ruleset" "ratelimit" {
   }
 }
 
-# ---------------------------------------------------------------------------
-# Custom rules have their own quota (5 on Free), separate from the rate limit.
-# n8n's /webhook* paths skip Authentik on purpose (external callers can't log
-# in; see authExcludePaths in nix-presets caddy). Real auth there is n8n's
-# per-webhook Header Auth/HMAC. Note: Cloudflare now always reports
-# cf.threat_score as 0, so the threat_score rules below never match.
-# ---------------------------------------------------------------------------
+# Custom rules have their own quota (5 on Free). n8n's /webhook* skips Authentik
+# (authExcludePaths in nix-presets caddy); n8n's per-webhook auth is the real gate.
+# Cloudflare now always reports cf.threat_score as 0, so those rules never match.
 resource "cloudflare_ruleset" "waf_custom" {
   zone_id     = data.cloudflare_zone.main.id
   name        = "Custom WAF rules"

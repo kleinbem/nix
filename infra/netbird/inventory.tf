@@ -1,9 +1,6 @@
-# Fleet inventory bridge.
-#
-# Mesh group membership comes from nix-config/inventory.nix `meshGroups`,
-# projected by nix-config/iac/data.nix and copied by ../../tools/gen-iac-data.sh
-# (drift-checked by ../../tools/check-iac-data.sh). Set a `*_peers` variable
-# to override one group for a single apply; null tracks inventory.
+# Mesh group membership comes from nix-config inventory.nix `meshGroups` via
+# ../inventory.json (tools/gen-iac-data.sh, drift-checked by check-iac-data.sh).
+# Set a `*_peers` variable to override one group for a single apply.
 
 locals {
   inventory = jsondecode(file("${path.module}/../inventory.json"))

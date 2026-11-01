@@ -1,20 +1,8 @@
-# DISABLED (renamed off .tf, 2026-07-16): no AWS account credentials exist yet,
-# and an unconfigurable provider blocks every full plan/apply of this root.
-# Nothing here was ever applied — no state entries to orphan. Re-enable when
-# the Stalwart/persona-fleet phase starts: rename back to aws-ses.tf and give
-# tf-apply.sh real AWS credentials (safe alongside the R2 backend — its creds
-# live in .r2-backend.hcl, not AWS_* env).
-#
-# AWS SES — outbound mail relay for Stalwart.
-#
-# Stalwart's host IP doesn't have email-sending reputation; SES does.
-# Stalwart authenticates to SES via SMTP credentials (an IAM user with
-# `ses:SendRawEmail`, converted to SMTP user/pass via AWS's standard
-# derivation).
-#
-# Cost: $0.10 per 1000 emails sent. At persona-fleet volumes (mostly
-# GitHub notifications + 2FA codes received, occasional outbound),
-# this rounds to free.
+# AWS SES as Stalwart's outbound relay: the host IP has no sending reputation.
+# Disabled (not .tf) because no AWS credentials exist yet and an unconfigurable
+# provider blocks every plan of this root. Never applied, so no state to orphan.
+# To enable: rename to aws-ses.tf and give tf-apply.sh real AWS credentials (the
+# R2 backend gets its creds from a backend config file, not AWS_* env).
 
 provider "aws" {
   region = var.aws_region
@@ -27,10 +15,7 @@ variable "aws_region" {
 }
 
 # --- SES domain identity for kleinbem.dev ---
-# Triggers AWS to expect 3 DKIM CNAMEs in the zone (auto-published by
-# aws_route53_record if you ran the zone in Route53; for Cloudflare DNS,
-# you fetch the DKIM tokens from this resource and add CNAMEs manually
-# via the cloudflare_record block below).
+# SES expects 3 DKIM CNAMEs; the zone is on Cloudflare, so ses_dkim below adds them.
 resource "aws_sesv2_email_identity" "primary_domain" {
   email_identity = local.primary_domain
   dkim_signing_attributes {
@@ -71,17 +56,14 @@ resource "aws_iam_user_policy" "stalwart_smtp" {
   })
 }
 
-# Access keys for the IAM user — Terraform generates them, you then
-# convert to SMTP credentials per AWS docs:
-#   https://docs.aws.amazon.com/ses/latest/dg/smtp-credentials.html
-# Final user/pass goes into nix-secrets/stalwart/ses-smtp-credentials.
+# Convert these keys to SMTP credentials per
+# https://docs.aws.amazon.com/ses/latest/dg/smtp-credentials.html and store
+# the result in kleinbem-secrets/nix/per-container/stalwart.yaml.
 resource "aws_iam_access_key" "stalwart_smtp" {
   user = aws_iam_user.stalwart_smtp.name
 }
 
-# Sensitive outputs — capture once after `tofu apply`, encrypt into sops,
-# then never read from state again. Output them sensitive so they don't
-# print to a screen-recording during plan.
+# Capture once after apply, encrypt into sops, never read from state again.
 output "ses_smtp_username" {
   value     = aws_iam_access_key.stalwart_smtp.id
   sensitive = true

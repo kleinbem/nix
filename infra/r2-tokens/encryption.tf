@@ -1,8 +1,6 @@
-# Client-side state encryption — same pattern and passphrase as root infra/
-# and netbird/ (sops: tofu_state_passphrase, injected via TF_ENCRYPTION by
-# state-env.sh). Enforced from the first apply: this state holds live R2
-# token values, so R2 must only ever see ciphertext, and raw `tofu` without
-# the env fails loudly instead of writing plaintext.
+# State encryption, same passphrase as infra/ (TF_ENCRYPTION from state-env.sh).
+# Enforced because this state holds live token values: R2 only sees ciphertext,
+# and raw `tofu` without the env fails instead of writing plaintext.
 terraform {
   encryption {
     key_provider "pbkdf2" "state_key" {
