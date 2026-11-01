@@ -87,7 +87,7 @@ resource "netbird_route" "syncthing" {
   description           = "syncthing container on nasbook (mesh-only forward-auth service)."
   network               = "10.85.47.127/32"
   peer                  = data.netbird_peer.smart_home["nasbook"].id
-  groups                = [netbird_group.smart_home.id, netbird_group.cache.id]
+  groups                = [netbird_group.cache.id]
   access_control_groups = [netbird_group.cache.id]
   masquerade            = true
   enabled               = true
