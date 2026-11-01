@@ -1,14 +1,8 @@
 #!/usr/bin/env bash
-# Source this (`. ./state-env.sh`) before any tofu invocation in this root.
-# Decrypts sops (two YubiKey touches — infra/terraform.yaml + core-pi.yaml)
-# and prepares:
-#   - .r2-backend.hcl (R2 endpoint + state access key) for `tofu init`
-#   - TF_ENCRYPTION   (state encryption passphrase, encryption.tf)
-#   - TF_VAR_cloudflare_token_minter_token / TF_VAR_cloudflare_account_id
-#   - TF_VAR_cloudflare_zone_id (kleinbem.dev, looked up with the main root's
-#     read-capable cloudflare_api_token: the minter can't read zones)
-# Same shape as ../netbird/state-env.sh. Never AWS_* env (collides with
-# real-AWS provider auth elsewhere in the workspace).
+# Source this (`. ./state-env.sh`) before any tofu command in this root (two
+# YubiKey touches). Writes .r2-backend.hcl and exports TF_ENCRYPTION and the
+# TF_VARs. The zone id is looked up with the main root's token, since the minter
+# can't read zones. No AWS_* env: the main root's aws provider would read it.
 set -euo pipefail
 
 _here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

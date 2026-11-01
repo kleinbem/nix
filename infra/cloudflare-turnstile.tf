@@ -1,20 +1,8 @@
-# Cloudflare Turnstile widget — bot protection for kleinbem-site's contact
-# form, replacing/augmenting the honeypot field with a real challenge.
-# Previously also covered kleinbem-auth's own /register page (decommissioned
-# 2026-09-21 — self-registration moved to Authentik's own enrollment flow,
-# which doesn't use Turnstile at all, see nix/infra/authentik.tf) — kept as
-# a single-purpose widget now rather than repurposed.
+# Cloudflare Turnstile widget: bot protection for kleinbem-site's contact form.
 #
-# The sitekey is NOT a secret — Turnstile sitekeys are meant to ship in page
-# source, same as the Cloudflare Web Analytics token (see
-# cloudflare-analytics.tf). The `secret` attribute IS sensitive: it verifies
-# challenge tokens server-side and must go through sops, not Terraform state
-# or this repo — see kleinbem-site's contact function for how it's wired in
-# once `tofu apply` has run.
-#
-# Requires: the token this root runs as needs "Account -> Turnstile -> Edit"
-# added to its scope (same class of one-time manual token edit as Pages in
-# cloudflare-pages.tf).
+# The sitekey is public and ships in page source. The secret verifies tokens
+# server-side; it goes to kleinbem-site via sops and Pages secrets.
+# The root's token needs "Account -> Turnstile -> Edit".
 resource "cloudflare_turnstile_widget" "kleinbem_site" {
   account_id = var.cloudflare_account_id
   name       = "kleinbem-site"

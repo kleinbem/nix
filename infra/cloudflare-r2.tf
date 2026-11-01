@@ -1,24 +1,10 @@
 # ---------------------------------------------------------------------------
-# R2 bucket for off-site fleet backups — the `r2` destination of
-# nix-presets' backup-engine, wired fleet-wide in
-# nix-config/modules/nixos/backup.nix. Layout:
-#   secure/<host>/<host>-<ts>.tar.gz.age   age-encrypted secure-tier bundles
-#   restic/<host>                          restic repo per host (bulk tier)
-#
-# Only the bucket is managed here. The per-host S3 credentials (one token per
-# host, so one host's access can be revoked alone) live in their own root,
-# infra/r2-tokens/ — minting tokens needs "API Tokens: Edit", which this
-# root's cloudflare_api_token deliberately doesn't hold. That root writes each
-# host's `backup_r2_rclone_config` into kleinbem-secrets/nix/per-host/<host>.yaml.
-#
-# Tamper-proofing: R2 tokens can't be scoped write-without-delete, so the
-# `secure/` prefix gets a bucket LOCK rule instead — objects there can't be
-# deleted or overwritten for 30d, even with the uploading host's own token.
-# `restic/` is deliberately NOT locked: restic prune has to delete packs.
-# Lifecycle expires secure bundles after 365d.
-#
-# Requires: cloudflare_api_token with "Workers R2 Storage: Edit" (same perm the
-# tofu_state bucket in main.tf already needs).
+# Off-site fleet backups (backup-engine `r2` destination): secure/<host>/ holds
+# age bundles, restic/<host> a restic repo. Per-host tokens live in
+# infra/r2-tokens/, since minting them needs "API Tokens: Edit", which this
+# root's token doesn't hold.
+# R2 tokens can't be write-without-delete, so secure/ gets a 30d bucket lock
+# instead. restic/ stays unlocked because prune must delete packs.
 # ---------------------------------------------------------------------------
 
 resource "cloudflare_r2_bucket" "backup" {
@@ -31,12 +17,8 @@ resource "cloudflare_r2_bucket" "backup" {
 }
 
 # ---------------------------------------------------------------------------
-# Lock + lifecycle rules. The pinned cloudflare provider (~> 4.0) has no
-# resources for these (cloudflare_r2_bucket_lock / _lifecycle are v5-only),
-# so they're applied via the API from terraform_data. PUT replaces the whole
-# rule set, so this is idempotent and the JSON below IS the full desired
-# state; re-runs whenever it changes. Replace with the native v5 resources as
-# part of the provider v5 migration.
+# Provider v4 has no lock/lifecycle resources (v5 only), so these go through
+# the API. PUT replaces the whole rule set, so the JSON below is the full state.
 # ---------------------------------------------------------------------------
 
 locals {

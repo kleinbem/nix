@@ -1,22 +1,15 @@
 # ---------------------------------------------------------------------------
-# External dead-man's switch (healthchecks.io). Local alerting (ntfy, gatus,
-# the backup freshness watchdog) all runs on core-pi or on the watched host
-# itself — a dead core-pi goes silent. These checks alert from OUTSIDE the
-# fleet when a host stops pinging.
+# External dead-man's switch (healthchecks.io): local alerting runs on core-pi
+# or the watched host, so these alert from outside the fleet.
 #
-# Data bridge: infra/heartbeats.json is generated from nix-config
-# (flake output `heartbeats` ← each host's `my.heartbeat.checks`, see
-# nix-config/modules/nixos/heartbeat.nix) by tools/gen-iac-data.sh, which
-# tf-apply.sh runs first. One check per slug; the API (v1, which this
-# provider uses) derives the check's slug from its name, and hosts ping
-# https://hc-ping.com/<project ping key>/<slug>.
+# heartbeats.json comes from each host's `my.heartbeat.checks` via
+# tools/gen-iac-data.sh. The v1 API derives the slug from the check name;
+# hosts ping https://hc-ping.com/<project ping key>/<slug>.
 #
-# Manual bootstrap (first credential only): healthchecks.io account + project,
-# a read-write API key → `healthchecks_api_key` in kleinbem-secrets
-# infra/terraform.yaml, the project's ping key → `healthchecks_ping_key` in
-# nix/shared.yaml, and the notification integrations named in
-# `healthchecks_channel_kinds` (email exists by default; never route through
-# ntfy.kleinbem.dev, which lives on core-pi).
+# One-time bootstrap: create the account + project, put the read-write API key
+# in kleinbem-secrets infra/terraform.yaml (`healthchecks_api_key`) and the
+# ping key in nix/shared.yaml (`healthchecks_ping_key`), and create the
+# integrations in `healthchecks_channel_kinds` (never ntfy.kleinbem.dev).
 # ---------------------------------------------------------------------------
 
 variable "healthchecks_api_key" {
@@ -40,9 +33,7 @@ locals {
   heartbeats = jsondecode(file("${path.module}/heartbeats.json"))
 
   # host → { slug → spec }  ⇒  slug → spec + host. Empty until the API key
-  # exists, so an apply before the bootstrap doesn't try to call the API.
-  # nonsensitive() on the *boolean* only ("is a key configured") — the key
-  # itself never reaches for_each.
+  # exists. nonsensitive() only unwraps the "is a key set" boolean.
   heartbeat_checks = nonsensitive(var.healthchecks_api_key == "") ? {} : merge([
     for host, checks in local.heartbeats : {
       for slug, c in checks : slug => merge(c, { host = host })

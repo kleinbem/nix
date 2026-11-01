@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
-# Fails if infra/personas.json or infra/inventory.json have drifted from the
-# canonical Nix sources (nix-config/{personas.nix,inventory.nix} ⊕
-# kleinbem-secrets/personas/contact.nix). Same idea as check-script-mirrors.sh.
-#
-# Fix a drift with: nix/tools/gen-iac-data.sh
-#
-# Wired into `just maintenance::check-iac-data` and run by the netbird root's
-# Justfile before plan/apply. `nix flake check` in nix-config independently
-# validates the generator (persona schema, meshGroups referential integrity).
+# Fails if infra/personas.json or infra/inventory.json drifted from nix-config.
+# Fix with nix/tools/gen-iac-data.sh.
 
 set -euo pipefail
 

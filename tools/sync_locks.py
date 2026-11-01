@@ -26,12 +26,9 @@ TOPOLOGICAL_ORDER = [
     "nix-config",  # Depends on presets, packages, hardware, devshells, secrets, gantry
 ]
 
-# Map input name -> on-disk/GitHub repo name where they differ, wherever this
-# script touches the filesystem or constructs a github: ref. Entries in
-# TOPOLOGICAL_ORDER must be the flake INPUT names: the secrets input was renamed
-# from nix-secrets to kleinbem-secrets, and while this list still said
-# "nix-secrets" it never matched, so nix-config's kleinbem-secrets pin stayed at
-# 2026-10-02 while local evals overrode it (found 2026-10-15).
+# Input name -> on-disk/GitHub repo name, where they differ. A name in
+# TOPOLOGICAL_ORDER that isn't an input never matches, and its pin silently
+# goes stale.
 REPO_DIR_OVERRIDES: dict[str, str] = {}
 
 
@@ -89,9 +86,8 @@ def rev_on_origin(path, rev):
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    # Two levels up from tools/: past nix/ itself, to the workspace root
-    # where every sub-flake actually lives as a flat sibling (not nested
-    # under nix/ — that assumption predates the 2026 flat-layout migration).
+    # Two levels up from tools/: the workspace root, where the sub-flakes are
+    # siblings of nix/.
     root_dir = os.path.dirname(os.path.dirname(script_dir))
 
     print(f"{BOLD}{CYAN}🔄 Topological Workspace Lockfile Sync...{RESET}")
@@ -150,9 +146,8 @@ def main():
                     f"  {YELLOW}Warning: Failed to parse flake.lock in {sub}: {e}{RESET}"
                 )
 
-        # No local sub-flake deps → nothing to re-pin → skip entirely.
-        # External inputs (ghostty, rust-overlay, openclaw, nixpkgs, …) are
-        # CI's responsibility — lockfile-autopilot opens PRs for those.
+        # No local sub-flake deps, nothing to re-pin. External inputs are
+        # bumped by CI PRs.
         if not local_deps:
             print(
                 f"  ⏭  {CYAN}No local sub-flake deps — skipping"
@@ -160,16 +155,10 @@ def main():
             )
             continue
 
-        # Pass local dep names as positional args so `nix flake update` only
-        # refreshes those specific inputs. External inputs keep their pins.
-        # Re-pin each local dep to a github: ref at its current HEAD rev —
-        # reproducible and committable (the old git+file:// form produced
-        # non-reproducible locks that CI couldn't resolve and that the
-        # flake-lock-no-file-url guard rejects). The actual local build still
-        # resolves unpushed work via the OVERRIDES --override-input flags, so
-        # the lock only needs to be the canonical github form. We require the
-        # dep's HEAD to be pushed (else a github:<rev> ref wouldn't resolve in
-        # a clean eval) — if it isn't, skip the re-pin and tell the user.
+        # Update only the local deps, pinning each to github:<its HEAD rev>:
+        # git+file:// locks don't resolve in CI and the flake checks reject
+        # them. Local builds still see unpushed work via OVERRIDES. The rev
+        # must be pushed or the github: ref won't resolve, so skip otherwise.
         cmd = (
             ["nix", "flake", "update"] + local_deps + ["--flake", f"./{repo_dir(sub)}"]
         )
@@ -204,11 +193,8 @@ def main():
         )
         if success and status.strip():
             print(f"  📝 {YELLOW}flake.lock updated. Staging (not committing).{RESET}")
-            # Stage only — the human commits via `just jj::save-all` or
-            # `jj describe` when convenient. Auto-committing here triggered
-            # one YubiKey touch per sub-flake during `just apply` (signing
-            # under non-interactive subprocess context), which is more
-            # friction than it's worth for purely-machine-generated commits.
+            # Stage only: committing here would need a YubiKey touch per
+            # sub-flake for signing.
             run_cmd(["git", "add", "flake.lock"], cwd=sub_path)
             print(f"  ✅ Staged in {BOLD}{sub}{RESET} (commit when ready)")
         else:
@@ -216,10 +202,6 @@ def main():
                 f"  🟢 {GREEN}Already in sync at {BOLD}{get_git_head(sub_path)}{RESET}"
             )
 
-    # The meta dir no longer has a flake.nix (deleted 2026-06-22 — nix-config
-    # is the root flake). Each sub-flake's lockfile is the source of truth
-    # for its own inputs; the topological sweep above already handles the
-    # cross-sub-flake propagation.
     print(f"\n✨ {BOLD}{GREEN}Topological lockfile sync complete!{RESET}")
     print("To save the updated state in the root repository, run:")
     print(f'  {BOLD}jj describe -m "chore: update flake lockfiles"{RESET}')

@@ -1,15 +1,12 @@
 #!/usr/bin/env bash
-# Write each host's rclone config (tofu output backup_r2_rclone_configs) into
-# kleinbem-secrets/nix/per-host/<host>.yaml as backup_r2_rclone_config — read
-# by nix-config/modules/nixos/backup.nix — and Caddy's DNS-01 token
-# (caddy_acme_dns_token) into core-pi.yaml as caddy_acme_cloudflare_token. Run after `tofu apply` in the same
-# state-env session (the Justfile's `apply` does).
+# Copy this root's outputs into kleinbem-secrets: per-host rclone configs,
+# core-pi's Caddy DNS-01 token, and the public cache CI and r2-budget tokens.
+# Run after `tofu apply` in the same state-env session (the Justfile's
+# `apply` and `sync` do).
 #
 # Values go in via stdin (never argv). --idempotent leaves an unchanged file
-# byte-identical, so re-runs don't churn ciphertext. A host without a
-# per-host file yet (nasbook) gets one created — encrypting needs only the
-# public recipients from .sops.yaml. Updating an existing file decrypts its
-# data key: expect a YubiKey touch per host.
+# byte-identical. A missing per-host file is created from .sops.yaml's public
+# recipients; updating an existing one needs a YubiKey touch per file.
 set -euo pipefail
 
 _here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

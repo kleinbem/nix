@@ -1,16 +1,7 @@
-# NetBird groups. Peers self-register (data plane); this root manages the group
-# objects AND their membership, resolved from peer NAMES via data lookups —
-# empty groups made the ssh policy cosmetic, so membership is now declarative.
-#
-# Schema reconciled against provider v0.0.9: group = name (required) + optional
-# peers (list of peer ids).
-
-# Peer NAMES per group come from nix-config/inventory.nix (`meshGroups`),
-# via local.{personal_device_peers,smart_home_peers,cache_peers} in
-# inventory.tf — set a `*_peers` var there to override for one apply. Same
-# contract as no_expiry_peers in peers.tf: the lookup FAILS on an absent or
-# ambiguous name, so a name must match a peer that CURRENTLY exists on the
-# mesh (`just list-peers` to check).
+# NetBird groups and their membership. Peers self-register; membership is
+# resolved from peer names in nix-config/inventory.nix `meshGroups` (see
+# inventory.tf). The lookup fails on an absent or ambiguous name, so each
+# name must match a peer on the mesh now (`just list-peers`).
 
 data "netbird_peer" "personal_devices" {
   for_each = toset(local.personal_device_peers)
@@ -27,10 +18,8 @@ data "netbird_peer" "cache" {
   name     = each.value
 }
 
-# sort(): the netbird provider returns `peers` sorted by peer id, but the
-# `for … : p.id` comprehension runs over a toset() (name-sorted), so without
-# sort() every `tofu plan` shows a spurious reorder and this root can never
-# report clean. Membership is a set semantically — order carries no meaning.
+# sort(): the provider returns `peers` sorted by id while the comprehension
+# runs in name order, so without it every plan shows a reorder.
 
 # Your trusted machines (workstation, laptop, phone) — the only peers allowed to
 # SSH into infrastructure.
@@ -52,25 +41,16 @@ resource "netbird_group" "cache" {
   peers = sort([for p in data.netbird_peer.cache : p.id])
 }
 
-# Hosted CI runners (GitHub Actions). They enroll per-run via the EPHEMERAL
-# setup key (see setup-keys.tf) and are auto-removed ~10 min after the run ends,
-# so this group's membership is transient by design. Isolating them in their own
-# group is what lets policy scope CI to ONLY the Attic cache peer — CI runners
-# must never land in personal-devices (which can SSH infrastructure). See the
-# `ci_to_attic` policy note in policies.tf.
+# GitHub Actions runners, enrolled per run by the ephemeral setup key
+# (setup-keys.tf) and removed ~10 min after. Their own group so ci_to_attic
+# (policies.tf) can limit them to the cache peer. Membership is unmanaged.
 resource "netbird_group" "ci_runners" {
   name = "ci-runners"
 }
 
-# Landing zone for hosts enrolling via the (planned) TF-managed persistent
-# setup key in setup-keys.tf. Deliberately NOT personal-devices: a newly
-# enrolled, not-yet-reviewed host should start with zero access, not
-# SSH-into-smart-home + cache-pull. No policy references this group, so
-# membership here grants nothing — promote a peer by adding it to
-# nix-config/inventory.nix `meshGroups.personal-devices` / `.smart-home`
-# once you've actually looked at it. Membership is left unmanaged (no
-# `peers` attribute) same as ci_runners, since it's
-# populated dynamically by the setup key's auto_groups, not a static list.
+# Landing zone for hosts enrolled with the `hosts` setup key (setup-keys.tf).
+# No policy references it, so a new host starts with no access; promote it
+# via inventory.nix `meshGroups` once reviewed. Membership is unmanaged.
 resource "netbird_group" "unclassified_hosts" {
   name = "unclassified-hosts"
 }

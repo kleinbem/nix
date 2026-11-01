@@ -3,15 +3,10 @@ import 'common.just'
 set working-directory := ".."
 
 # --- Meta-workspace maintenance ---
-# nix-config–specific recipes (check, check-hosts, apply*, sync-agent, impact,
-# lint-conventions, clean-launchers) moved to `nix-config/.just/maintenance.just`.
-# Invoke them from the meta root via root justfile [Main] shortcuts (apply,
-# apply-fast, apply-boot, check) or `cd {{ROOT}}/nix-config && just maintenance::X`.
+# nix-config's own recipes live in nix-config/.just/; the root [Main] shortcuts
+# (apply, check, switch) call into them.
 
-# Formats the whole workspace: each sub-flake via its own `nix fmt`, plus the
-# meta's own files (tools/) via nix-devshells' formatter-meta (the meta root
-# has no flake.nix post-2026-06-22-migration, so a plain `treefmt` / `nix fmt`
-# can't run here). repos.nix now lives in kleinbem/, formatted there.
+# Format each sub-flake with its own nix fmt, plus tools/ via formatter-meta (no flake here).
 [group("Formatting")]
 format-all:
     @echo "🎨 Formatting all Nix/Shell/Python code (sub-flakes + meta)..."
@@ -33,29 +28,16 @@ lint-all:
 # ============================================================================
 #  COMPREHENSIVE WORKSPACE AUDIT — 7-stage check-all
 # ============================================================================
-# Stage 1: Lints + format + Python tests (fail-fast — no point doing 2h builds
-#          if lint is broken). ~30s.
-# Stage 2: Flake evaluations across every sub-flake + root. ~6 min.
-# Stage 3: Audits (lockfile drift, flake-checker, devshell verify). ~1 min.
-# Stage 4: Build x86_64 host configurations (--keep-going). ~15-30 min.
-# Stage 5: Build every package in nix-packages. ~5-15 min.
-# Stage 6: NixOS VM integration tests (--keep-going). ~30-60 min.
-# Stage 7: Summary.
-#
-# Total: 60-110 minutes. Use `check-quick` (= stages 1-3 only) for fast feedback.
-#
-# aarch64 hosts (orin-nano, core-pi, hass-pi) are NOT built in stage 4 because
-# cross-compilation requires binfmt+qemu setup; deploy them via `colmena` or
-# `just deployment::orin-promote` instead.
+# Stages: 1 lints (fail-fast), 2 flake evals, 3 audits, 4 x86_64 host builds,
+# 5 nix-packages builds, 6 VM tests, 7 summary. Stage 4 skips aarch64 hosts,
+# which would need binfmt + qemu.
 
 [private]
 _check-lints:
     @echo
     @echo "▶ Stage 1/7: Lints + format + Python tests"
     @echo "  └─ nix fmt --fail-on-change per sub-flake (nixfmt, statix, deadnix, shellcheck, shfmt, ruff-format)"
-    @# The meta root has no flake.nix since the 2026-06-22 migration, so a single
-    @# `nix fmt` here aborts ("not part of a flake"). Each sub-flake carries the
-    @# shared formatter, so format-check them individually instead.
+    @# No flake.nix here, so `nix fmt` would abort; check each sub-flake instead.
     @for repo in {{REPOS}}; do \
         if [ "$repo" != "github-config" ] && [ -f "{{ROOT}}/$repo/flake.nix" ]; then \
             echo "    └─ $repo"; \
@@ -176,11 +158,7 @@ _check-vm-tests:
         echo "  ✅ Stage 6 OK"; \
     fi
 
-# Deep audit, default. Skips the host/package BUILD stages (4-5): CI's
-# build-all already builds every host toplevel + package and pushes them to
-# Attic, so rebuilding them locally is redundant. Runs lints + flake evals +
-# audits + VM tests. ~15-45 min (VM tests dominate). Use `check-full-all` when
-# you can't rely on CI/Attic (offline / pre-CI), or `check-quick` for 1-3 only.
+# Default audit: all stages except the builds (4-5), which CI already caches in Attic.
 [group("Linter")]
 check-all *args="--impure":
     @echo "═══════════════════════════════════════════════════════════════"
@@ -198,8 +176,7 @@ check-all *args="--impure":
     @echo "  ✅ AUDIT COMPLETED (builds offloaded to CI)"
     @echo "═══════════════════════════════════════════════════════════════"
 
-# Full local audit: everything including local host + package builds (Stages
-# 4-5). For offline / pre-CI validation when you can't rely on Attic. 60-110 min.
+# Full local audit, builds included, for when CI/Attic can't be relied on (60-110 min).
 [group("Linter")]
 check-full-all *args="--impure":
     @echo "═══════════════════════════════════════════════════════════════"
@@ -216,7 +193,7 @@ check-full-all *args="--impure":
     @echo "  ✅ ALL 7 STAGES COMPLETED"
     @echo "═══════════════════════════════════════════════════════════════"
 
-# Fast-feedback alias: stages 1-3 only (lints + flake evals + audits). ~10 min.
+# Quick check: stages 1-3 only (lints, flake evals, audits), ~10 min.
 [group("Linter")]
 check-quick *args="--impure":
     @echo "═══════════════════════════════════════════════════════════════"
@@ -243,8 +220,7 @@ ci:
 check-shells:
     @bash ./tools/verify-devshells.sh
 
-# Lint Python in the meta-workspace tools/ dir (workspace-mcp, ai-logs, etc).
-# nix-config has its own `just dev::lint-python` for its scripts.
+# Lint Python in tools/ (nix-config has its own dev::lint-python).
 [group("Linter")]
 lint-python *args="":
     @nix shell nixpkgs#ruff --command ruff check ./tools/ {{args}}
@@ -254,14 +230,12 @@ lint-python *args="":
 format-python *args="":
     @nix shell nixpkgs#ruff --command ruff format ./tools/ {{args}}
 
-# Verify the small set of scripts mirrored across nix-presets and nix-devshells
-# haven't drifted. nix-presets is the source of truth.
+# Check scripts mirrored from nix-presets into nix-devshells haven't drifted.
 [group("Linter")]
 check-mirrors:
     @bash ./tools/check-script-mirrors.sh
 
-# Verify infra/{personas,inventory}.json still match nix-config's canonical
-# Nix sources (personas.nix ⊕ contact.nix, inventory.nix). Fix: gen-iac-data.sh.
+# Check infra/{personas,inventory}.json match nix-config (fix: tools/gen-iac-data.sh).
 [group("Linter")]
 check-iac-data:
     @bash ./tools/check-iac-data.sh
@@ -304,9 +278,7 @@ build-history:
     @echo "📜 Rebuilding history index..."
     @python3 ./tools/rebuild_history.py --sync
 
-# Workspace-wide grep. Personal/OS recipes (Obsidian notes, Firefox
-# cleanup, fix-yubikey/fix-chrome) live in the home-manager justfile —
-# call them via `os <recipe>`.
+# Workspace-wide grep.
 [group("System")]
 find pattern:
     @grep -rnE "{{pattern}}" . --exclude-dir=.git
@@ -333,9 +305,7 @@ update-cached:
 update-local:
     @{{LOCK_CMD}} python3 ./tools/sync_locks.py
 
-# Bump Antigravity to latest (delegates to nix-packages' own justfile, which
-# owns the upstream URL and the script). Run `cd nix-packages && just --list`
-# to see the full updater set (update-antigravity, update-langfuse, …).
+# Bump Antigravity via nix-packages' justfile, which has the other updaters too.
 [group("Updates")]
 update-antigravity:
     @cd {{ROOT}}/nix-packages && just update-antigravity
@@ -347,9 +317,7 @@ update-container container_name:
     @echo "⏳ Update started in the background. Check logs with:"
     @echo "   journalctl -fu update-container@{{container_name}}.service"
 
-# Stage a container update — fetch new closure, register profile, swap symlink.
-# The running container keeps serving the OLD closure. Safe to run on attic
-# without breaking other containers' substituter access. Activate when ready.
+# Stage a container update without restarting it (safe even for attic).
 [group("Updates")]
 update-container-stage container_name:
     @echo "📦 Staging update for container '{{container_name}}' (no restart)..."
@@ -357,17 +325,13 @@ update-container-stage container_name:
     @echo "⏳ Stage logs: journalctl -fu update-container-stage@{{container_name}}.service"
     @echo "   Activate with: just maintenance::update-container-activate {{container_name}}"
 
-# Activate a previously-staged container update — restart the container so it
-# runs the staged closure. ~5-30s downtime per container.
+# Activate a staged container update (restarts it, ~5-30s downtime).
 [group("Updates")]
 update-container-activate container_name:
     @echo "🔄 Activating staged update for container '{{container_name}}' (restart)..."
     @sudo systemctl start update-container-activate@{{container_name}}.service
 
-# Smart bulk update of every container registered with `my.services.container-updater`:
-# stages all in parallel (no restarts) → activates non-attic in parallel → activates
-# attic last. Avoids the attic-eats-itself bootstrap window during the restart phase.
-# Same as the nightly 03:00 timer, on demand.
+# Update all registered containers: stage all, then restart attic last so the others can still pull.
 [group("Updates")]
 update-container-all:
     @echo "🚀 Triggering smart bulk update for ALL registered containers..."
@@ -381,9 +345,7 @@ update-container-all:
 audit-locks-all:
     @bash ./tools/audit-locks.sh
 
-# Lint flake.lock for staleness, EOL inputs, security issues (DeterminateSystems'
-# flake-checker). Complements `audit-locks` (which compares your local sub-flake
-# HEADs against the lock); this one checks upstream health of every input.
+# Run flake-checker on flake.lock (stale, EOL or insecure inputs).
 [group("Audit")]
 check-flakes:
     @echo "🩺 Running flake-checker (input freshness, security, EOL…)"

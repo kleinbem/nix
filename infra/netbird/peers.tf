@@ -1,22 +1,11 @@
-# Peer FLAGS, managed as code. Peers themselves still self-register (data
-# plane — `netbird up`; see the boundary note in main.tf), and this resource
-# cannot create one: it adopts an existing peer by id and manages its mutable
-# control-plane flags only.
+# Peer flags. This resource can't create peers (they self-register); it
+# adopts an existing one by id and sets its control-plane flags.
 #
-# Why this exists: login expiration applies to SSO-enrolled peers, and a
-# headless server cannot "log in once more" without a human and a browser.
-# That is exactly how core-pi silently dropped off the mesh (2026-07-05:
-# expired peer login → attic container unreachable → cache.kleinbem.dev 502 +
-# CI pushes dead). Setup-key re-enrollment is REFUSED for an already-registered
-# peer, so recovery needed an interactive `netbird up` device-code login on the
-# host. Infrastructure peers therefore get login (and inactivity) expiration
-# turned OFF here, so `tofu plan` flags any console drift.
-#
-# Schema reconciled against provider v0.0.9: resource `netbird_peer` takes a
-# required `id` plus optional flags; data source `netbird_peer` looks up by
-# `name`. The lookup FAILS if the name is absent or ambiguous — dns labels like
-# nixos-nvme-212-232 hint at past name collisions, so if plan errors here run
-# `just list-peers` / `just prune-peers` and reconcile first.
+# SSO-enrolled peers expire, and a headless server can't log in again without
+# a browser; setup-key re-enrollment is refused for a registered peer. So
+# infrastructure peers get login and inactivity expiration turned off here.
+# The name lookup fails on absent or duplicate names: run `just list-peers` /
+# `just prune-peers` first if plan errors here.
 
 variable "no_expiry_peers" {
   type        = list(string)

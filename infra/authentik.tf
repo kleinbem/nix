@@ -1,30 +1,11 @@
-# Authentik runtime config — kleinbem.dev visitor login, Phase 2 of the
-# kleinbem-auth -> Authentik migration (Phase 1: nix-config enables the
-# container itself; see hosts/core-pi/default.nix).
+# Authentik runtime config. The container itself is NixOS (nix-config
+# hosts/core-pi); its Providers, Applications, Flows and Sources live in
+# Authentik's own database, so they are managed here.
 #
-# Authentik's own objects (Providers, Applications, Flows, Sources) live in
-# ITS OWN database, not in NixOS config — this is genuinely Terraform's job,
-# same reasoning as every other *.tf file in this directory.
-#
-# confidential client (has a client_secret): kleinbem-site turned out to
-# already run Cloudflare Pages Functions server-side (functions/api/*.ts,
-# used for the contact form's Resend/Turnstile secrets) — discovered while
-# building Phase 3, contradicting this file's original "browser-only SPA,
-# no backend" assumption (hence "public" client_type on first apply). With
-# a real backend available, the token exchange happens server-side with
-# the client_secret (PKCE stays on too, defense in depth) instead of
-# purely client-side — see kleinbem-site's functions/auth/callback.ts.
-#
-# redirect_uris point at the callback route Phase 3 actually implements.
-#
-# property_mappings: the first apply omitted these, so the issued ID token
-# carried only `sub` (confirmed live via the OIDC discovery doc —
-# scopes_supported was just ["openid"], claims_supported had no
-# name/email). Attaching openid+email+profile so the token actually
-# carries something kleinbem-site's session can show. Deliberately no
-# offline_access/refresh token — kleinbem-site mints its own longer-lived
-# session cookie after the initial OIDC exchange rather than relying on
-# Authentik token refresh, so there's no need to request it.
+# kleinbem-site is a confidential client: it exchanges the code server-side
+# (src/routes/auth/callback) with the client_secret, PKCE on as well.
+# Without the openid/email/profile mappings the ID token carries only `sub`.
+# No offline_access: kleinbem-site issues its own session cookie instead.
 
 provider "authentik" {
   url   = "https://auth.kleinbem.dev"
@@ -66,38 +47,17 @@ data "authentik_property_mapping_provider_scope" "profile" {
 }
 
 locals {
-  # Authentik's system certificate keypair UUID used for signing OIDC tokens / JWKS.
-  # Pinning the UUID directly ensures providers advertise RS256 and publish public keys
-  # in their /jwks/ endpoints (which Cloudflare Access strictly requires for OIDC IdP validation),
-  # avoiding fragile name-based data source queries.
+  # Authentik's system keypair. With a signing key set, providers use RS256
+  # and publish keys at /jwks/, which Cloudflare Access requires.
   authentik_jwt_cert_id = "5d46e643-75cf-45a9-b623-46f8dd95e5ee"
 }
 
 # --- Self-registration for kleinbem.dev visitors ---
 #
-# First attempt at this pointed enrollment_flow (below) at Authentik's
-# built-in default-source-enrollment flow, on the assumption that it was
-# a general-purpose "create a local account" flow. Wrong: it carries a
-# policy (default-source-enrollment-if-sso, expression `return
-# ak_is_sso_flow`) that only lets it run when arriving via an external
-# Source (Google/GitHub sign-in creating a matching local account) — used
-# directly, every attempt hits "Request has been denied" (confirmed live
-# 2026-09-21). Its own prompt stage only asks for a username, since an
-# SSO login already supplies email/name — not reusable for real email
-# +password registration either. This instance genuinely doesn't ship a
-# general-purpose enrollment flow out of the box, so one is built here
-# instead of adopted.
-#
-# user_write/user_login stages are dedicated, Terraform-owned copies
-# rather than reusing default-source-enrollment's — its user_write config
-# happened to already be generic enough to share (checked live), but
-# owning independent copies means a future change to the SSO flow can
-# never silently affect this one, and vice versa.
-#
-# No email-verification stage: that needs a working EmailStage + SMTP
-# transport, which isn't configured on this instance (the same gap
-# already noted above for the missing recovery/forgot-password flow) — a
-# self-registered address is trusted as entered for now.
+# Not the built-in default-source-enrollment: its if-sso policy denies it
+# outside a Source login, and it only prompts for a username. Own stages
+# too, so changes to the SSO flow can't leak into this one.
+# No email verification: there is no SMTP transport configured.
 resource "authentik_flow" "kleinbem_site_enrollment" {
   name        = "kleinbem-site-enrollment"
   slug        = "kleinbem-site-enrollment"
@@ -132,10 +92,8 @@ resource "authentik_stage_prompt_field" "enrollment_email" {
   order     = 120
 }
 
-# field_key/type/order here match default-password-change's own password
-# fields exactly (checked live) — that's the pairing Authentik's prompt
-# stage actually knows how to cross-validate as "these two must match",
-# not something configurable elsewhere.
+# password/password_repeat keys match default-password-change: that pair is
+# what the prompt stage checks as "must match".
 resource "authentik_stage_prompt_field" "enrollment_password" {
   name      = "kleinbem-site-enrollment-field-password"
   field_key = "password"
@@ -154,9 +112,7 @@ resource "authentik_stage_prompt_field" "enrollment_password_repeat" {
   order     = 301
 }
 
-# Same thresholds as default-password-change-password-policy (checked
-# live) — not stricter, not looser, just consistent with what this
-# instance already enforces everywhere else a password gets set.
+# Same thresholds as default-password-change-password-policy.
 resource "authentik_policy_password" "enrollment_password_policy" {
   name           = "kleinbem-site-enrollment-password-policy"
   password_field = "password"
@@ -206,33 +162,18 @@ resource "authentik_flow_stage_binding" "enrollment_login" {
   order  = 30
 }
 
-# Adopts Authentik's own built-in identification stage (the "Email or
-# Username" screen on the login page) rather than creating a duplicate —
-# see the import block below. Every field here matches its current live
-# value (checked via GET /api/v3/stages/identification/<pk>/ before
-# writing this) except enrollment_flow, so adopting it doesn't reset
-# anything else. None of this resource's fields are marked `computed` in
-# the provider schema (unlike grant_types on the OAuth2 provider above)
-# — an omitted field here really does mean "false/null/empty", not
-# "leave whatever's live alone", so every non-default current value has
-# to be listed explicitly or this apply would silently disable it (e.g.
-# dropping `user_fields` back to empty would stop matching visitors by
-# email/username at all).
+# Adopts the built-in identification stage (the login screen) via import.
+# No field here is computed, so an omitted one resets to empty on apply:
+# list every live value, not just the ones we change.
 resource "authentik_stage_identification" "default_authentication_identification" {
   name                      = "default-authentication-identification"
   user_fields               = ["email", "username"]
   case_insensitive_matching = true
   show_matched_user         = true
   pretend_user_exists       = true
-  # "Forgot password" stays unavailable for a different reason: Authentik
-  # has no recovery-designation flow at all yet (confirmed live — GET
-  # .../flows/instances/?designation=recovery returns zero results),
-  # because that needs working outbound email, which isn't configured.
+  # No recovery flow ("forgot password"): it needs outbound email.
   enrollment_flow = authentik_flow.kleinbem_site_enrollment.uuid
-  # Shows the "Sign in with Google" button on the login page — same
-  # `.uuid`-not-`.id` gotcha as authentik_flow above (source_oauth also
-  # has a `slug` field, so its `id` is the slug too, not the real UUID
-  # foreign-key references need).
+  # `.uuid`, not `.id`: for slugged objects `id` is the slug.
   sources = [authentik_source_oauth.google.uuid]
 }
 
@@ -241,32 +182,13 @@ import {
   id = "382698eb-4661-46b5-9c29-a9437788e70e"
 }
 
-# --- Google sign-in ("cannot see that" — user noticed it was missing,
-# confirmed 2026-09-21 it worked on kleinbem-auth before) ---
+# --- Google sign-in ---
 #
-# Reuses kleinbem-auth's own Google OAuth 2.0 Web Client (still a real,
-# populated credential on core-pi, confirmed live — not a new one, since
-# no fresh Google Cloud Console access was needed for this). That client's
-# "Authorized redirect URIs" list in Google Cloud Console needs a SECOND
-# entry added by hand (can't be done via this Terraform — Google Cloud
-# Console, not something with an API token available here): Authentik's
-# own callback path, output below as google_source_callback_uri once
-# applied. The existing entry (kleinbem-auth's
-# https://login.kleinbem.dev/api/auth/callback/google) stays — it's
-# additive, not a replacement, so kleinbem-auth's own Google login keeps
-# working until Phase 4 decommissions it.
-#
-# authentication_flow/enrollment_flow: default-source-authentication and
-# default-source-enrollment are EXACTLY what these two are for — unlike
-# the identification stage's own enrollment_flow (built standalone above
-# because default-source-enrollment's own if-sso policy blocks direct
-# use), a Source is precisely the "arriving via SSO" context that policy
-# is checking for.
-#
-# No property_mappings: this instance has zero source-oauth property
-# mappings at all (confirmed live — GET .../propertymappings/source/
-# oauth/ returns zero results), so there's nothing to attach; Authentik's
-# built-in provider_type="google" handling still maps name/email itself.
+# Uses the existing kleinbem-auth Google OAuth client. Its redirect URIs in
+# Google Cloud Console are set by hand: add google_source_callback_uri there.
+# The default-source-* flows fit here, since a Source is the SSO context
+# their policy expects. No property mappings needed: provider_type google
+# maps name/email itself.
 data "authentik_flow" "default_source_authentication" {
   slug = "default-source-authentication"
 }
@@ -302,15 +224,9 @@ resource "authentik_provider_oauth2" "kleinbem_site" {
   name        = "kleinbem-site"
   client_id   = "kleinbem-site"
   client_type = "confidential"
-  # Explicit, not left to the provider's computed default: switching
-  # client_type from public to confidential (above) silently reset this
-  # to [] server-side — confirmed live 2026-09-21 via the API (GET
-  # /api/v3/providers/oauth2/1/), which is why every authorize request
-  # started failing with Authentik's generic "invalid_request / the
-  # request is otherwise malformed" regardless of what else was in it.
-  # grant_types is `Optional + Computed` in the provider schema, so
-  # `tofu plan` never flagged this as a pending change — leaving it
-  # unset let Authentik's own reset silently stick.
+  # Pinned: grant_types is Optional+Computed, so a server-side reset to []
+  # never shows in the plan, and every authorize request then fails with
+  # "invalid_request".
   grant_types = ["authorization_code"]
 
   authorization_flow = data.authentik_flow.default_authorization_flow.id
@@ -358,99 +274,31 @@ output "kleinbem_site_oidc_client_secret" {
 
 # --- Branding: make auth.kleinbem.dev look like part of kleinbem.dev ---
 #
-# User feedback 2026-09-21: the hosted login/signup page "looks like a
-# different website" (stock authentik title, mountain-photo flow
-# background). Considered embedding the flow executor as native Svelte
-# components on kleinbem-site itself, but authentik sends no CORS headers
-# on the flow-executor API (confirmed live) — the only way to make that
-# same-origin would be a session-cookie-translating reverse proxy in front
-# of the IdP, which is a lot of new attack surface for what is fundamentally
-# a cosmetic ask. This — a scoped Brand with custom CSS — gets the same
-# visual outcome (matches kleinbem-site's palette, no more stock imagery)
-# with zero new runtime code and zero risk to the login flow itself.
-#
-# A NEW Brand scoped to the real hostname, not an import/edit of the
-# existing default (`domain = "authentik-default", default = true`) —
-# authentik matches brands by exact request domain first, falling back to
-# the default one, so this one taking effect for auth.kleinbem.dev needs no
-# import block and can't affect any other domain/tenant on this instance.
-#
-# First pass used authentik's documented semantic --ak-color-* variables
-# (website/docs/customize/branding/custom-css.mdx) — applied cleanly
-# (confirmed live: the brand's custom CSS IS adopted into every managed
-# shadow root, e.g. ak-flow-executor, ak-message-container, ak-flow-card —
-# checked via el.shadowRoot.adoptedStyleSheets from the browser console),
-# but had ZERO visual effect. Root cause, found by inspecting the actual
-# rendered DOM live: this version's login page (v2026.8.0) renders classic
-# PatternFly 4 markup (.pf-c-login, .pf-c-button.pf-m-primary, …), which
-# doesn't consume the --ak-color-* bridge at all — that variable set
-# appears to be for authentik's newer/other UI surfaces, not this one. A
-# second bug compounded it: the CSS used `:root { ... }` selectors, which
-# adopted-into-a-shadow-root stylesheets can never match (no element
-# inside a shadow tree is ever the document root) — so even a variable
-# this page DOES read would never have been set. Confirmed by testing
-# direct PatternFly class overrides live (script-injected adoptedStyleSheets
-# via the browser console before writing this) — that's what actually
-# moves pixels, hence the plain selectors below instead of the CSS-variable
-# approach the docs recommend as the primary path.
-#
-# --ak-global--background-image is the one variable that DOES work here —
-# unrelated to the shadow-root adoption above, it's set by a plain
-# (non-shadow) <style> tag in authentik's own flow.html
-# (authentik/flows/templates/if/flow.html), so a :root override at the
-# top-level document genuinely reaches it.
-#
-# Known minor gap: the "Continue with Google" button's "G" icon is
-# authentik's static asset (/static/authentik/sources/google.svg, an
-# actual image, not an inline SVG using fill:currentColor) — white-on-
-# transparent by design for a dark button. Gave the button an accent-blue
-# pill background so it stays visible against the new light page; a
-# perfect-contrast fix would need a different icon asset, not reachable
-# via this provider — not worth chasing further for one small icon.
-#
-# Values pulled straight from kleinbem-site/src/styles/global.css's
-# --color-* tokens, so a future palette change there should be mirrored
-# here too.
+# A Brand scoped to the hostname; Authentik matches brands by exact domain,
+# so the default brand and other domains are untouched.
+# The login page renders PatternFly 4 markup that ignores the documented
+# --ak-color-* variables, and `:root` never matches inside the shadow roots
+# the CSS is adopted into, so the CSS overrides .pf-c-* classes directly.
+# --ak-global--background-image is the exception: it is set in flow.html's
+# top-level <style>, so `:root` reaches it.
+# The Google "G" icon is white, hence the blue pill on .source-button.
+# Colors mirror kleinbem-site/src/styles/global.css; keep them in sync.
 resource "authentik_brand" "kleinbem_site" {
   domain         = "auth.kleinbem.dev"
   default        = false
   branding_title = "kleinbem.dev"
 
-  # Real bug, found live 2026-09-22: authentik matches Brands by exact
-  # request domain, so once this Brand existed, EVERY request to
-  # auth.kleinbem.dev started resolving its flow_* fields from here instead
-  # of falling back to authentik-default's (which has real flows
-  # configured) — and this Brand only ever set branding_*/attributes,
-  # leaving flow_authentication/flow_invalidation/flow_user_settings all
-  # null. Login itself kept working (the flow executor resolves slugs
-  # straight from the URL, not the Brand), but the "My Applications"
-  # launcher (/if/user/) needs flow_user_settings specifically and
-  # 403'd — reproduced live, confirmed via GET .../core/brands/: this
-  # Brand's flow_user_settings was None while authentik-default's wasn't.
-  # Mirroring authentik-default's own values exactly, not inventing new
-  # flows — this Brand exists for branding, not to diverge behavior.
+  # This Brand replaces the default's flow_* fields for this domain too, so
+  # copy the default's values. Without flow_user_settings, /if/user/ 403s.
   flow_authentication = data.authentik_flow.default_authentication_flow.id
   flow_invalidation   = data.authentik_flow.default_invalidation_flow_brand.id
   flow_user_settings  = data.authentik_flow.default_user_settings_flow.id
-  # kleinbem-site's own mark (public/favicon.svg — a plain 32x32 "K"
-  # monogram, already served at kleinbem.dev/favicon.svg) instead of the
-  # stock authentik wordmark. branding_favicon reuses the same asset — no
-  # separate favicon exists for this narrower purpose, and reusing it here
-  # means one source of truth if the mark ever changes.
+  # kleinbem-site's "K" mark (public/favicon.svg) as logo and favicon.
   branding_logo    = "https://kleinbem.dev/favicon.svg"
   branding_favicon = "https://kleinbem.dev/favicon.svg"
 
-  # Forces the actual theme, rather than fighting authentik's automatic
-  # (system-preference-driven) dark mode purely with CSS !important —
-  # matches kleinbem-site's own explicit design (src/styles/global.css:
-  # "This is a LIGHT site by design — no dark scheme"). Confirmed live
-  # 2026-09-22 that a visitor's dark OS preference otherwise DOES flip
-  # authentik into its real dark theme (populated --ak-dark-background
-  # etc., not a placeholder), so this isn't defensive — without it the
-  # page would only look right for light-preference visitors even with
-  # the CSS below in place. Documented mechanism: goauthentik/authentik
-  # website/docs/customize/branding/custom-css.mdx, "Enforce a specific
-  # color scheme".
+  # Force light: kleinbem-site has no dark scheme, and a dark OS preference
+  # otherwise switches Authentik to its dark theme under the CSS below.
   attributes = jsonencode({
     settings = {
       theme = {
@@ -502,46 +350,14 @@ resource "authentik_brand" "kleinbem_site" {
   )
 }
 
-# --- Fleet forward-auth (Authelia migration, step 1 of the plan) ---
+# --- Fleet forward-auth ---
 #
-# Authelia currently gates 6 services on core-pi via a shared Caddy
-# forward_auth block (nix-presets/containers/caddy/helpers.nix), keyed off
-# one `auth = true` flag per inventory.nix node. Consolidating onto
-# Authentik instead of running two identity systems — see kleinbem_site's
-# own header comment for the same reasoning.
-#
-# authentik's EMBEDDED outpost (already running as part of the existing
-# `authentik` container on core-pi, port 9000 — no separate
-# outpost deployment) handles Proxy-Provider forward-auth natively at
-# /outpost.goauthentik.io/auth/caddy. `mode = "forward_domain"` +
-# cookie_domain covers every *.kleinbem.dev subdomain with ONE
-# Provider+Application and a shared session cookie — confirmed via the
-# provider's own resource docs, not one Provider per protected service.
-#
-# Scope: code-server, monitoring's alertmanager, syncthing, frigate,
-# paperless, and n8n's UI (n8n's own /webhook*/webhook-test* paths are
-# carved out at the Caddy layer instead — see
-# nix-presets/containers/caddy/helpers.nix's authExcludePaths and
-# inventory.nix's n8n node — external webhook callers can't complete an
-# interactive Authentik login). NOT Grafana — it gets native OIDC below
-# instead of forward-auth, since it has first-class support for that and
-# shouldn't sit behind a second auth layer on top of its own login.
-#
-# One Provider+Application PER service (forward_single), not one shared
-# forward_domain Provider — a deliberate switch 2026-09-22 after the
-# shared version shipped: martin wanted distinct tiles in /if/user/ ("My
-# Applications") instead of one generic "Fleet internal services" tile
-# covering all 6 with no way to tell them apart or launch a specific one.
-# Side benefit, not the original motivation: independent per-service
-# cookies and policy bindings instead of one shared cookie_domain session
-# — a compromised cookie for one service no longer implies the others,
-# and different services could get different access policies later if
-# ever needed (all bound to the same "staff" group for now, unchanged).
-# Caddy's config needs ZERO changes for this — every `auth = true` node
-# already calls the same generic outpost endpoint
-# (10.85.48.142:9000/outpost.goauthentik.io/auth/caddy); the outpost
-# itself routes by Host header to whichever of these Providers matches,
-# same as it already did with one Provider matching a wider domain set.
+# Caddy's forward_auth (nix-presets containers/caddy/helpers.nix) sends every
+# `auth = true` inventory node to the embedded outpost on core-pi, which picks
+# the Provider by Host header. n8n's webhook paths are excluded in Caddy
+# (authExcludePaths). Services with native OIDC go in oidc_apps instead.
+# One forward_single Provider per service gives each its own launcher tile,
+# cookie and policy binding.
 locals {
   fleet_services = {
     code-server = {
@@ -593,37 +409,19 @@ resource "authentik_application" "fleet" {
   slug              = "fleet-${each.key}"
   protocol_provider = authentik_provider_proxy.fleet[each.key].id
   meta_description  = each.value.desc
-  # Each tile now launches its own real service directly — the previous
-  # shared Application had no single sensible target (it covered 6
-  # different domains) and pointed at the fleet dashboard instead.
-  meta_launch_url = "https://${each.value.domain}"
+  meta_launch_url   = "https://${each.value.domain}"
 }
 
-# Creating a Provider does NOT attach it to anything — outposts have their
-# OWN explicit provider list, and this instance's embedded outpost had zero
-# providers before this (confirmed live via GET /api/v3/outposts/instances/
-# 2026-09-22: "providers": []). Without this, Caddy's calls to
-# /outpost.goauthentik.io/auth/caddy 404 unconditionally — the outpost has
-# no idea what it's supposed to be protecting. Adopts the existing
-# "authentik Embedded Outpost" (real UUID, not the container.nix-scoped
-# one — checked live) rather than creating a competing outpost, same
-# import-block pattern as default_authentication_identification above.
+# Providers only serve once listed on an outpost; otherwise Caddy's
+# /outpost.goauthentik.io/auth/caddy calls 404. Adopts the existing
+# embedded outpost via import rather than creating a second one.
 resource "authentik_outpost" "embedded" {
   name               = "authentik Embedded Outpost"
   protocol_providers = [for p in authentik_provider_proxy.fleet : p.id]
 
-  # Real bug, found live 2026-09-22: authentik_host/authentik_host_browser
-  # were both "" (confirmed via GET .../outposts/instances/<uuid>/), so the
-  # outpost fell back to constructing http://localhost/... for the
-  # internal authorize-continuation redirect during forward-auth — a real
-  # browser hitting that gets ERR_CONNECTION_REFUSED trying to reach its
-  # own machine. Invisible for 5 of the 6 fleet services (mesh-only,
-  # 404 at the Cloudflare edge before ever reaching the outpost) but broke
-  # n8n's completion (public tunnel, so it got far enough to hit this).
-  # Every other key below is `config`'s own existing default — listed
-  # explicitly because this field is Generated/Computed, same reasoning as
-  # every other adopted-object field in this file: an omitted key here
-  # means "reset to schema default", not "leave whatever's live alone".
+  # authentik_host*: left empty, the outpost redirects browsers to
+  # http://localhost/ after login. The other keys are the defaults, listed
+  # because an omitted key resets on apply.
   config = jsonencode({
     log_level                        = "info"
     docker_labels                    = null
@@ -656,24 +454,12 @@ import {
   id = "1bf3fce7-cdc2-49ac-983b-beab8401f24e"
 }
 
-# --- Grafana: native OIDC, not forward-auth ---
+# --- Native OIDC services ---
 #
-# Same authentik_provider_oauth2 pattern as kleinbem_site above (not
-# authentik_provider_proxy) — Grafana authenticates visitors itself via
-# services.grafana.settings.auth.generic_oauth rather than sitting behind
-# the shared forward-auth gate. grant_types set explicitly even though
-# this is a fresh resource (not a public->confidential switch like
-# kleinbem_site hit) — same defensive reasoning: it's Optional+Computed in
-# the provider schema, cheap to pin, expensive to silently lose.
-# --- Option A: Native OIDC Services (Plug-and-Play) ---
-# Services with first-class OAuth2 / OpenID Connect support (Grafana, Open WebUI,
-# etc.). Unlike Option B (forward-auth), these do not sit behind Caddy's gate,
-# preserving direct Bearer token API access for Chrome extensions (Page Assist),
-# agents, and mobile clients while authenticating web users natively through Authentik.
-#
-# To onboard a new OIDC service: simply add an entry to local.oidc_apps below.
-# OpenTofu automatically provisions the Provider, Application, launch tile,
-# and staff-only access policy.
+# Apps with their own OIDC login stay out of Caddy's forward-auth, so API
+# clients (extensions, agents, mobile apps) keep direct token access.
+# An entry here gets a Provider, Application, tile and staff-only binding.
+# grant_types is pinned for the same reason as on kleinbem_site.
 locals {
   oidc_apps = {
     grafana = {
@@ -823,26 +609,13 @@ output "open_webui_oidc_client_secret" {
 
 # --- Access scoping: internal infra is NOT for kleinbem.dev visitors ---
 #
-# Both Applications above and kleinbem_site's own Application live on the
-# SAME authentik instance/user directory as kleinbem.dev's public
-# self-registration flow — without an explicit access policy, anyone who
-# signs up on kleinbem.dev could also authenticate into Grafana, Paperless,
-# code-server, etc. Scoping internal infra to a "staff" group (currently:
-# just martin, the existing user — decided explicitly, not everyone the
-# directory happens to contain) is what actually enforces that boundary;
-# the two authentik_application resources above have no access
-# restriction of their own.
+# Visitors self-register in the same user directory, so every fleet and OIDC
+# app is bound to the "staff" group; the Applications have no restriction
+# of their own.
 #
-# Adopted (import block below) rather than left as a data source — a real
-# bug needed a real field changed. Google-source sign-in creates accounts
-# as type="external" by default (confirmed live via GET
-# /api/v3/core/users/7/), and authentik restricts /if/user/ ("My
-# Applications") to type="internal" only: "Request has been denied.
-# Interface can only be accessed by internal users." — reproduced live
-# 2026-09-22, martin's own account, in both a normal and an incognito
-# session (ruling out cookies/cache). Every other field below matches the
-# live account exactly — same discipline as the identification-stage
-# adoption above, so this apply only changes `type`, nothing else.
+# martin is imported to set type = internal: Google sign-in creates
+# "external" users, and only internal users may open /if/user/. The other
+# fields mirror the live account.
 resource "authentik_user" "martin" {
   username  = "martin.kleinberger@gmail.com"
   name      = "Martin Kleinberger"
@@ -850,11 +623,8 @@ resource "authentik_user" "martin" {
   is_active = true
   path      = "goauthentik.io/sources/google"
   type      = "internal"
-  # Group membership stays owned by authentik_group.staff's `users` field
-  # below, not mirrored here too — both sides are the same underlying M2M
-  # relationship (each schema doc marks its own field "Generated"), and
-  # setting it on both would make these two resources depend on each
-  # other circularly.
+  # Membership is set on authentik_group.staff only; setting it on both
+  # sides makes the two resources depend on each other.
   attributes = jsonencode({
     "goauthentik.io/user/sources" = ["Google"]
   })

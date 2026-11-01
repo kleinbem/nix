@@ -1,22 +1,8 @@
-# Adopt the existing NetBird console objects into state instead of duplicating
-# them. The `personal-devices` / `smart-home` groups and the
-# `ssh-personal-to-smart-home` policy were created by hand in the console before
-# this root existed; these import blocks bind those live objects to the
-# resources declared in groups.tf / policies.tf so the FIRST apply ADOPTS them
-# (no duplicate "personal-devices" group, no second SSH policy).
-#
-# Workflow:
-#   1. `just ids`  -> prints the live group/policy ids as ready-to-paste tfvars.
-#   2. Save the output into `imports.auto.tfvars` (gitignored — the ids aren't
-#      secret but are tenant-specific and would churn the repo).
-#   3. `just plan` -> expect "N to import, 0 to add". If you see anything "to
-#      add", an id is wrong or empty and Tofu would DUPLICATE the object — stop
-#      and fix the tfvars before applying.
-#
-# Leaving an id empty disables that import (the resource is created fresh on
-# apply). The for_each toggle requires OpenTofu >= 1.7 (for_each in import
-# blocks); the workspace ships a newer tofu, but pin awareness here in case the
-# bootstrap shell lags.
+# Adopts the hand-made groups and SSH policy instead of creating duplicates.
+#   1. `just ids` prints the live ids as tfvars; save them to imports.auto.tfvars.
+#   2. `just plan` must show "N to import, 0 to add". Anything "to add" means a
+#      wrong or empty id would duplicate an object: fix the tfvars first.
+# An empty id skips that import and creates the object fresh.
 
 variable "personal_devices_group_id" {
   type        = string
