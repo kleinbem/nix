@@ -1,22 +1,9 @@
 #!/usr/bin/env bash
-# Workspace Hub — a linutil-style, fleet-aware browser over `just` recipes.
-#
-# This is a READ-ONLY OVERLAY. It never moves or redefines recipes: the
-# multi-justfile layout is deliberate (each repo owns the recipes relevant to
-# it). The hub discovers recipes in place via `just --summary` and dispatches
-# them back to the repo where they live:
-#   - meta-root recipes      →  just <recipe>
-#   - nix-config recipes     →  just in nix-config <recipe>
-#
-# Navigation is a two-level tree (linutil-like):
-#   Level 1: categories  (⭐ Common, 🚢 By Host, then one per module prefix)
-#   Level 2: the recipes inside the chosen category, with a ⬅ back entry.
-#
-# fzf preview/edit re-exec THIS script with a --preview-*/--edit-recipe
-# subcommand, inheriting the built index via the exported $INDEX env var, so
-# no per-keystroke rebuild and no dependence on exported shell functions.
-#
-# Requires: fzf, just. Runs from the meta-workspace root.
+# fzf browser over the `just` recipes of this repo and nix-config. It reads the
+# recipes without copying them; picking one runs it in its own repo, so it can
+# change state.
+# fzf preview/edit re-exec this script, reading the index from exported $INDEX,
+# so nothing is rebuilt per keystroke. Requires fzf and just.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

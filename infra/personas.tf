@@ -1,11 +1,6 @@
-# Personas manifest — the Nix ⇄ OpenTofu bridge. personas.json is generated
-# from nix-config/personas.nix ⊕ kleinbem-secrets/personas/contact.nix by
-# `../tools/gen-iac-data.sh` (projection logic: nix-config/iac/data.nix).
-# Re-run that script after editing personas.nix; `../tools/check-iac-data.sh`
-# (and the `iac-data` flake check in nix-config) fail on drift.
-#
-# Used by cloudflare-dns.tf (per-persona DKIM CNAMEs) and aws-ses.tf
-# (per-persona SES identity if you want isolated reputation tracking).
+# personas.json is generated from nix-config/personas.nix (logic in
+# nix-config/iac/data.nix). Re-run ../tools/gen-iac-data.sh after editing it;
+# ../tools/check-iac-data.sh fails on drift.
 
 locals {
   personas_json_path = "${path.module}/personas.json"

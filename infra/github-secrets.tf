@@ -1,18 +1,11 @@
 # ---------------------------------------------------------------------------
-# Actions-secret distribution for the nix CI repos. This is the ONLY GitHub
-# resource managed from the nix workspace — the values come from sops (exported
-# as TF_VAR_* by scripts/tf-apply.sh), which is why it lives here rather than in
-# the github-config repo. Secrets are write-only (no drift detection needed).
+# Actions/Dependabot secrets and variables for the CI repos. They live here,
+# not in github-config (which owns settings/rulesets/labels), because the
+# values come from sops via TF_VAR_* in tools/tf-apply.sh.
 #
-# All repo *settings/rulesets/labels* are owned by the github-config repo.
-#
-# Auth strategy: workflows that need to write back to GitHub (PRs, Contents
-# API pushes, auto-merge) mint a short-lived installation token via
-# actions/create-github-app-token using APP_ID + APP_PRIVATE_KEY. The long-lived
-# GH_PAT has been retired — see git history if you need to resurrect it.
-# github-config additionally gets APP_INSTALLATION_ID: its tofu provider uses
-# `app_auth {}` directly (no create-github-app-token step) and that needs the
-# installation ID explicitly.
+# Workflows that write to GitHub mint a short-lived App token from APP_ID +
+# APP_PRIVATE_KEY. github-config also gets APP_INSTALLATION_ID because its
+# provider's `app_auth {}` needs it explicitly.
 # ---------------------------------------------------------------------------
 
 locals {
@@ -45,22 +38,9 @@ locals {
     # NTFY_ALERT_TOPIC: the scheduled drift-detection plan (terraform-plan.yaml)
     # pings this human topic when GitHub config no longer matches Terraform.
     "github-config" = ["APP_ID", "APP_PRIVATE_KEY", "APP_INSTALLATION_ID", "APP_ORG_INSTALLATION_ID", "NTFY_ALERT_TOPIC", "CLOUDFLARE_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]
-    # wrangler pages deploy — see cloudflare-pages.tf for the project/domain
-    # resources and why this token is deliberately narrower than the one
-    # this whole Terraform root itself uses.
-    #
-    # AUTHENTIK_CLIENT_SECRET/AUTH_SESSION_SECRET/TURNSTILE_SECRET_KEY: NOT
-    # injected via cloudflare_pages_project's deployment_configs (see
-    # cloudflare-pages.tf's header comment for why that stopped working once
-    # kleinbem-site started shipping a wrangler.jsonc). Consumed instead by
-    # a `wrangler pages secret put` step in kleinbem-site's own ci.yaml, run
-    # every deploy, right before `wrangler pages deploy` — that's the only
-    # reliable delivery path for a Wrangler-config-managed Pages project.
-    #
-    # RESEND_API_KEY deliberately NOT included — the contact form's email
-    # send is going out unconfigured for now (fails gracefully, returns a
-    # JSON error, doesn't break anything else); add it here + to ci.yaml's
-    # secret-put step if/when a Resend (or replacement) key exists.
+    # Deploy token plus the Pages secrets kleinbem-site's ci.yaml sets with
+    # `wrangler pages secret put` before each deploy (see cloudflare-pages.tf).
+    # No RESEND_API_KEY yet: the contact form's mail send fails gracefully.
     "kleinbem-site" = [
       "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_PAGES_DEPLOY_TOKEN",
       "AUTHENTIK_CLIENT_SECRET", "AUTH_SESSION_SECRET", "TURNSTILE_SECRET_KEY",
@@ -141,7 +121,7 @@ resource "github_actions_secret" "org_ci" {
   value       = local.secret_values[each.value.secret]
 }
 
-# nix-gantry moved to the org on 2026-10-29; its secrets travelled with the
+# nix-gantry moved to the org; its secrets travelled with the
 # repo, so the state entries move too instead of being recreated.
 moved {
   from = github_actions_secret.ci["nix-gantry/ATTIC_PULL_TOKEN"]

@@ -1,20 +1,8 @@
-# Mesh-internal DNS for the binary-cache entrypoint.
-#
-# cache.kleinbem.dev must resolve to core-pi's mesh IP for every NetBird peer
-# (fleet hosts + ephemeral CI runners) so pulls and pushes traverse WireGuard
-# instead of the public Cloudflare tunnel (whose 100 MiB per-NAR cap 413s big
-# closures). History: this pointer was copy-pasted as /etc/hosts entries in
-# three places (attic-pull.nix default, per-host overrides, the CI
-# nix-fleet-setup action) — the caddy move to core-pi on 2026-07-06 left them
-# all stale and took the cache offline fleet-wide (2026-07-07). This record is
-# the single mesh-wide source of truth. The /etc/hosts entries stay in place
-# as overrides until every peer is confirmed resolving via NetBird DNS
-# (hosts files always win over DNS, so the rollout is safe in both
-# directions); retire them after that.
-#
-# ZONE SCOPE is deliberately the single FQDN, NOT kleinbem.dev: NetBird
-# answers its custom zones authoritatively, so a domain-wide zone would
-# shadow the PUBLIC kleinbem.dev records (code., home., …) for mesh peers.
+# cache.kleinbem.dev resolves to the cache entrypoint's mesh IP for every peer,
+# CI runners included, so cache traffic skips the Cloudflare tunnel and its
+# 100 MiB per-NAR cap. /etc/hosts pins (attic-pull.nix) still override it.
+# Each zone is a single FQDN, not kleinbem.dev: NetBird answers its zones
+# authoritatively, so a domain-wide zone would hide the public records.
 
 data "netbird_group" "all" {
   # NetBird's built-in group containing every peer.
@@ -38,25 +26,18 @@ resource "netbird_dns_record" "cache" {
   # Root of the single-FQDN zone.
   name = local.cache_fqdn
   type = "A"
-  # The cache/caddy entrypoint peer, from nix-config/inventory.nix
-  # (`meshGroups.cache`, the single `central` host) via inventory.tf.
-  # Reuses the no_expiry data source (that peer must also be in
-  # var.no_expiry_peers — it is: infra peers never expire).
+  # The entrypoint peer (inventory.tf) must be in var.no_expiry_peers, since its
+  # IP comes through that data source.
   content = data.netbird_peer.no_expiry[local.cache_entrypoint].ip
   ttl     = 300
 }
 
 # ---------------------------------------------------------------------------
-# Mesh-only browser tools. These names are OFF the public Cloudflare tunnel
-# (see nix-config modules/nixos/services/cloudflare-tunnel.nix) — mesh peers
-# must resolve them to core-pi's mesh IP, which DNATs :443 -> the caddy
-# container. Same single-FQDN zone pattern as `cache` above: NetBird only
-# shadows these exact names, the rest of kleinbem.dev stays public.
+# Mesh-only vhosts are not on the public tunnel, so peers resolve them to the
+# entrypoint's mesh IP, which DNATs :443 to caddy. Same single-FQDN zones as above.
 # ---------------------------------------------------------------------------
 locals {
-  # nix-config inventory.nix nodes with `meshOnly = true` (domain +
-  # extraDomains), via inventory.json. cache.kleinbem.dev is one of them but
-  # keeps its own zone above.
+  # inventory.nix nodes with `meshOnly = true`; the cache keeps its own zone above.
   mesh_only_fqdns = [for d in local.inventory.mesh_only_fqdns : d if d != local.cache_fqdn]
 }
 

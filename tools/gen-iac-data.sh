@@ -6,14 +6,12 @@
 #   nix-config/inventory.nix  (its `meshGroups` attr)
 #            │
 #            ▼  projection logic: nix-config/iac/data.nix
-#   infra/personas.json    → personas.tf, cloudflare-dns.tf
-#   infra/inventory.json   → netbird/{inventory,groups}.tf
+#   infra/personas.json    → personas.tf
+#   infra/inventory.json   → netbird/inventory.tf (and dns.tf, groups.tf)
 #
-# Idempotent — overwrites both files each run. Byte-identical to what
-# `nix build nix-config#iac-data` and the `iac-data` flake check emit (all
-# three call iac/data.nix and pipe through `jq -S`). Replaces the old
-# export-personas.sh (personas only) plus the hand-maintained peer-list
-# duplicates in netbird/{groups,peers}.tf.
+# Plus heartbeats.json and backup-hosts.json from nix-config's flake outputs
+# (below). Output matches `nix build nix-config#iac-data` and the `iac-data`
+# flake check byte for byte: all call iac/data.nix and `jq -S`.
 #
 # Usage: gen-iac-data.sh [DEST_DIR]   (default: nix/infra)
 #   check-iac-data.sh calls it with a tempdir to diff against the committed copy.

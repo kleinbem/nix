@@ -3,9 +3,7 @@
 # Verifies all defined devshells by attempting to build their derivations.
 # This catches evaluation errors and missing dependencies.
 #
-# NOTE: deliberately no `set -e` — the script's contract is to run EVERY
-# shell's build attempt and report success/failure per shell. Bailing on
-# the first failure would defeat its purpose.
+# No `set -e`: every shell is built and reported, even after a failure.
 
 # Shells to verify, keyed by flake. All shells live in nix-devshells.
 META_SHELLS=("workspace" "ultimate")

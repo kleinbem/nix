@@ -10,10 +10,8 @@
 set -euo pipefail
 
 _here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# r2_state_*/tofu_state_passphrase/netbird_api_token live in the infra/*
-# scope (kleinbem-secrets, cutover 2026-08-08); cloudflare_account_id is
-# core-pi's own (it owns the Cloudflare Tunnel) — not duplicated into
-# infra/terraform.yaml since nothing else there needs it.
+# cloudflare_account_id comes from core-pi's file (it owns the Tunnel); the
+# rest from infra/terraform.yaml.
 _yaml="$(sops -d "${_here}/../../../kleinbem-secrets/infra/terraform.yaml")"
 _corepi_yaml="$(sops -d "${_here}/../../../kleinbem-secrets/nix/per-host/core-pi.yaml")"
 

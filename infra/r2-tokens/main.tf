@@ -11,15 +11,11 @@
 #   - r2-budget.tf: the R2 budget watchdog's token (kleinbem/nix's r2-budget
 #     workflow), synced into kleinbem-secrets/infra/terraform.yaml.
 #
-# Why a separate root: minting API tokens needs "API Tokens: Edit", which is
-# effectively account-admin (it can mint a token with any permission). Only
-# this root holds that credential (cloudflare_token_minter_token) — the main
-# infra/ root and its cloudflare_api_token never see it, and it's only
-# decrypted when the backup-host list or a minted token's scope changes.
+# A separate root because "API Tokens: Edit" is effectively account-admin;
+# only this root holds that credential (cloudflare_token_minter_token).
 #
 # Fails closed: the minter token has no default and must be non-empty, so a
-# missing secret stops the run instead of planning to destroy every host's
-# token (which would silently break all backups).
+# missing secret stops the run instead of planning to destroy every token.
 terraform {
   required_providers {
     cloudflare = {

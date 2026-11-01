@@ -1,16 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage: tf-apply.sh [--plan-only | --migrate-tunnel | --migrate-state]
-#   --plan-only       Run `tofu plan` and exit without applying.
-#   --migrate-tunnel  One-shot: rebind tunnel state from the deprecated
-#                     `cloudflare_tunnel.nixos_nvme` address to
-#                     `cloudflare_zero_trust_tunnel_cloudflared.nixos_nvme`
-#                     via `tofu state rm` + `tofu import`. Idempotent: skips
-#                     cleanly if state is already at the new address.
-#   --migrate-state   One-shot: copy local terraform.tfstate into the R2
-#                     backend (backend.tf) via `tofu init -migrate-state`.
-#                     The local tfstate files stay behind as a fallback copy.
+# Decrypts sops, runs tofu in infra/ and writes outputs back to kleinbem-secrets.
+# Modes: see --help.
 # Ensure we have the required tools
 if ! command -v tofu &>/dev/null || ! command -v sops &>/dev/null || ! command -v jq &>/dev/null || ! command -v yq &>/dev/null; then
   echo "📦 Launching in nix shell with opentofu, sops, jq, and yq..."
@@ -78,29 +70,21 @@ RESET="\033[0m"
 echo -e "${BOLD}${GREEN}🌐 Enterprise Cloudflare OpenTofu Setup${RESET}"
 echo -e "=================================================="
 
-# Refresh the Nix→JSON bridge (infra/personas.json + infra/inventory.json)
-# from nix-config so this apply can't run against a stale projection.
-# Soft-fail: a missing nix-config checkout shouldn't block a creds-only apply.
+# Refresh infra/*.json from nix-config; soft-fail so a missing checkout
+# doesn't block a creds-only apply.
 "$(dirname "${BASH_SOURCE[0]}")/gen-iac-data.sh" || \
   echo -e "${YELLOW}⚠️  gen-iac-data.sh failed — proceeding with the committed infra/*.json${RESET}"
 
-# kleinbem-secrets (cutover 2026-08-08, replaces nix-secrets) scopes
-# credentials per-consumer, so this script reads from several files rather
-# than one flat secrets.yaml. kleinbem-secrets is a flat sibling of nix/,
-# not nested under it, so resolve from this script's own location rather
-# than assuming the caller's cwd.
+# kleinbem-secrets scopes secrets per consumer, so several files are read.
+# It's a sibling of nix/, resolved from this script's location, not the cwd.
 SECRETS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/kleinbem-secrets"
 TERRAFORM_FILE="$SECRETS_ROOT/infra/terraform.yaml"
 SHARED_FILE="$SECRETS_ROOT/nix/shared.yaml"
 COREPI_FILE="$SECRETS_ROOT/nix/per-host/core-pi.yaml"
 ORIN_FILE="$SECRETS_ROOT/nix/per-host/orin-nano.yaml"
-# Same bootstrap API token the NixOS deployment uses (authentik.nix,
-# AUTHENTIK_BOOTSTRAP_TOKEN) — read directly from its one source of truth
-# rather than duplicating the value into infra/terraform.yaml.
+# Read from their single source rather than copied into infra/terraform.yaml.
 AUTHENTIK_FILE="$SECRETS_ROOT/nix/per-container/authentik.yaml"
-# kleinbem-auth's own Google OAuth client is reused for Authentik's Google
-# Source (authentik.tf) rather than minting a new one — same reasoning as
-# AUTHENTIK_FILE above, read from its one source of truth.
+# Holds the Google OAuth client Authentik uses (see infra/google.tf).
 KLEINBEM_AUTH_FILE="$SECRETS_ROOT/nix/per-container/kleinbem-auth.yaml"
 for f in "$TERRAFORM_FILE" "$SHARED_FILE" "$COREPI_FILE" "$ORIN_FILE" "$AUTHENTIK_FILE" "$KLEINBEM_AUTH_FILE"; do
   if [ ! -f "$f" ]; then
@@ -124,9 +108,8 @@ GOOGLE_CLIENT_SECRET=$(echo "$KLEINBEM_AUTH_YAML" | yq '.google_client_secret')
 # Check if we have api token and account id
 API_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.cloudflare_api_token')
 ACCOUNT_ID=$(echo "$COREPI_YAML" | yq '.cloudflare_account_id')
-# Narrowly-scoped (Cloudflare Pages: Edit only) token for kleinbem-site's own
-# CI to run `wrangler pages deploy` — see nix/infra/cloudflare-pages.tf.
-# Deliberately not the same value as cloudflare_api_token above.
+# Pages-only token for kleinbem-site's CI (cloudflare-pages.tf), kept separate
+# from cloudflare_api_token.
 PAGES_DEPLOY_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.cloudflare_pages_deploy_token')
 
 if [ "$API_TOKEN" = "null" ] || [ -z "$API_TOKEN" ] || [ "$ACCOUNT_ID" = "null" ] || [ -z "$ACCOUNT_ID" ]; then
@@ -145,9 +128,7 @@ if [ "$PAGES_DEPLOY_TOKEN" = "null" ] || [ -z "$PAGES_DEPLOY_TOKEN" ]; then
   exit 1
 fi
 
-# Generate tunnel secret if missing. Lives in core-pi's own scope — it's the
-# host that runs the tunnel, same file hosts/core-pi/secrets.nix reads
-# cloudflare_tunnel_secret from.
+# Generate the tunnel secret if missing, in core-pi's file (it runs the tunnel).
 TUNNEL_SECRET=$(echo "$COREPI_YAML" | yq '.cloudflare_tunnel_secret')
 if [ "$TUNNEL_SECRET" = "null" ] || [ -z "$TUNNEL_SECRET" ]; then
   echo -e "${YELLOW}Generating new 32-byte base64 tunnel secret...${RESET}"
@@ -158,10 +139,8 @@ if [ "$TUNNEL_SECRET" = "null" ] || [ -z "$TUNNEL_SECRET" ]; then
   COREPI_YAML=$(sops -d "$COREPI_FILE")
 fi
 
-# Generate kleinbem-site's session-signing secret if missing — same
-# lives-in-the-shared-terraform-file scope as cloudflare_pages_deploy_token
-# above, not per-host like the tunnel secret (nothing host-specific about
-# it; kleinbem-site's Pages Functions are the only consumer).
+# Generate kleinbem-site's session secret if missing; only its Pages Functions
+# use it, so it lives in infra/terraform.yaml.
 SESSION_SECRET=$(echo "$DECRYPTED_YAML" | yq '.kleinbem_site_session_secret')
 if [ "$SESSION_SECRET" = "null" ] || [ -z "$SESSION_SECRET" ]; then
   echo -e "${YELLOW}Generating new kleinbem-site session-signing secret...${RESET}"
@@ -194,67 +173,48 @@ curl -s -H "Authorization: Bearer $AUTHENTIK_API_TOKEN" "https://auth.kleinbem.d
 
 
 # --- GitHub provider inputs (sourced from sops) ---
-# `github_app_id` + `github_app_installation_id` + `github_app_private_key` are
-# what the github provider authenticates with (app_auth in infra/main.tf; the
-# old github_tf_token PAT is gone), and the credentials distributed to CI repos as APP_ID /
-# APP_INSTALLATION_ID / APP_PRIVATE_KEY (replaces the retired long-lived GH_PAT).
-# Most repos mint short-lived tokens via actions/create-github-app-token at
-# runtime (installation ID auto-derived from owner); github-config's tofu
-# provider uses `app_auth {}` directly and needs APP_INSTALLATION_ID too. All
-# three live in nix/shared.yaml (every NixOS host's scope), not
-# infra/terraform.yaml.
-# `attic_ci_push_token` (infra/terraform.yaml) becomes the ATTIC_PUSH_TOKEN
-# secret: CI's own token (sub github-ci), separate from orin-nano's since the
-# 2026-10 rotation. Falls back to orin-nano's attic_push_token until then.
+# The GitHub App credentials (nix/shared.yaml) authenticate the github provider
+# and are also handed to CI repos as APP_ID / APP_INSTALLATION_ID / APP_PRIVATE_KEY.
+# attic_ci_push_token becomes ATTIC_PUSH_TOKEN; it falls back to orin-nano's
+# attic_push_token when unset.
 GH_APP_ID=$(echo "$SHARED_YAML" | yq '.github_app_id')
 GH_APP_INSTALLATION_ID=$(echo "$SHARED_YAML" | yq '.github_app_installation_id')
 GH_APP_ORG_INSTALLATION_ID=$(echo "$SHARED_YAML" | yq '.github_app_org_installation_id')
 GH_APP_PRIVATE_KEY=$(echo "$SHARED_YAML" | yq '.github_app_private_key')
 ATTIC_PUSH=$(echo "$DECRYPTED_YAML" | yq '.attic_ci_push_token')
 [ "$ATTIC_PUSH" = "null" ] && ATTIC_PUSH=$(echo "$ORIN_YAML" | yq '.attic_push_token')
-# `attic_ci_pull_token` (infra/terraform.yaml) becomes ATTIC_PULL_TOKEN: pull
-# only, for CI jobs that only read the cache (PR builds). Mint it with
+# attic_ci_pull_token becomes ATTIC_PULL_TOKEN (pull-only, for PR builds). Mint with
 # `just nixos::attic-mint infra/terraform.yaml attic_ci_pull_token --sub github-ci-pull --pull system`.
 ATTIC_PULL=$(echo "$DECRYPTED_YAML" | yq '.attic_ci_pull_token')
 if [ "$ATTIC_PULL" = "null" ]; then
   echo -e "${RED}❌ attic_ci_pull_token missing in $TERRAFORM_FILE; mint it first (see above).${RESET}" >&2
   exit 1
 fi
-# `cachix_auth_token` (infra/terraform.yaml): write token for the public
-# kleinbem-nixpkgs-review Cachix cache → nixpkgs-review-gha's CACHIX_AUTH_TOKEN. Optional.
+# Optional: write token for the kleinbem-nixpkgs-review Cachix cache.
 CACHIX_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.cachix_auth_token')
-# The public cache, cache.kleinbem.dev (infra/terraform.yaml): S3 credentials
-# from r2-tokens/sync-secrets.sh and the hand-made signing key → the CACHE_*
-# secrets of each project on it. Optional.
+# Optional: public cache S3 credentials (from r2-tokens/sync-secrets.sh) and the
+# hand-made signing key.
 PUBLIC_CACHE_KEY_ID=$(echo "$DECRYPTED_YAML" | yq '.public_cache_access_key_id')
 PUBLIC_CACHE_SECRET=$(echo "$DECRYPTED_YAML" | yq '.public_cache_secret_access_key')
 PUBLIC_CACHE_SIGNING_KEY=$(echo "$DECRYPTED_YAML" | yq '.public_cache_signing_key')
-# `r2_budget_token` (infra/terraform.yaml): the R2 budget watchdog's token from
-# r2-tokens/sync-secrets.sh → kleinbem/nix's R2_BUDGET_TOKEN. Optional.
+# Optional: the R2 budget watchdog's token (from r2-tokens/sync-secrets.sh).
 R2_BUDGET_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.r2_budget_token')
 NETBIRD_KEY=$(echo "$SHARED_YAML" | yq '.netbird_setup_key')
 NETBIRD_KEY_EPHEMERAL=$(echo "$DECRYPTED_YAML" | yq '.netbird_setup_key_ephemeral')
 NTFY_DEPLOY_TOPIC=$(echo "$SHARED_YAML" | yq '.ntfy_deploy_topic')
-# Human-facing alert topic. Lives in nix/shared.yaml (moved 2026-09-26 from
-# infra/terraform.yaml) because hosts post to it too — the backup engine's
-# failure/staleness alerts — and hosts can't decrypt infra/*. Single source
-# for both CI (NTFY_ALERT_TOPIC Actions secret) and hosts.
+# In nix/shared.yaml because hosts post alerts to it too and can't decrypt infra/*.
 NTFY_ALERT_TOPIC=$(echo "$SHARED_YAML" | yq '.ntfy_alert_topic')
 # CI's ntfy bearer token (NTFY_CI_TOKEN). Optional until ntfy.kleinbem.dev
 # runs with auth (nix-presets ntfy.secretsFile); empty means "no header".
 NTFY_CI_TOKEN=$(echo "$SHARED_YAML" | yq '.ntfy_ci_token')
 [ "$NTFY_CI_TOKEN" = "null" ] && NTFY_CI_TOKEN=""
-# CI's ntfy bearer token (NTFY_CI_TOKEN). Optional until ntfy.kleinbem.dev
-# runs with auth (nix-presets ntfy.secretsFile); empty means "no header".
 NTFY_CI_TOKEN=$(echo "$SHARED_YAML" | yq '.ntfy_ci_token')
 [ "$NTFY_CI_TOKEN" = "null" ] && NTFY_CI_TOKEN=""
 
 # --- Google Cloud (infra/google.tf) ---
-# Bootstrap service-account key (base64 JSON), manually created via gcloud —
-# see infra/google.tf's header comment. Not itself Terraform-managed.
+# Hand-made bootstrap service-account key (base64 JSON), see infra/google.tf.
 GOOGLE_SA_KEY=$(echo "$DECRYPTED_YAML" | yq '.google_service_account_key')
-# healthchecks.io read-write API key (infra/healthchecks.tf). Empty/missing
-# → that root manages no checks (pre-bootstrap state).
+# healthchecks.io API key; empty means healthchecks.tf manages no checks.
 HEALTHCHECKS_API_KEY=$(echo "$DECRYPTED_YAML" | yq '.healthchecks_api_key')
 
 # Normalise missing keys ("null") to empty strings
@@ -316,12 +276,8 @@ export TF_VAR_healthchecks_api_key="$HEALTHCHECKS_API_KEY"
 echo -e "\n${BOLD}[2/4] Initializing OpenTofu...${RESET}"
 
 # --- R2 state backend config (see infra/backend.tf) ---
-# Backend blocks can't reference variables, so the endpoint + R2 access key are
-# fed via a generated, gitignored backend-config file. Credentials come from
-# sops (r2_state_access_key_id / r2_state_secret_access_key), falling back to
-# AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY env. They are deliberately NOT
-# exported as env vars: the aws provider (aws-ses.tf) authenticates to real AWS
-# via ambient env and must not pick up R2 keys.
+# R2 keys from sops, falling back to AWS_* env. They go into the backend-config
+# file below, never exported as AWS_*, so the aws provider can't pick them up.
 R2_KEY_ID=$(echo "$DECRYPTED_YAML" | yq '.r2_state_access_key_id')
 R2_KEY_SECRET=$(echo "$DECRYPTED_YAML" | yq '.r2_state_secret_access_key')
 [ "$R2_KEY_ID" = "null" ] && R2_KEY_ID="${AWS_ACCESS_KEY_ID:-}"
@@ -356,13 +312,9 @@ if [ -z "$R2_KEY_ID" ] || [ -z "$R2_KEY_SECRET" ]; then
   exit 1
 fi
 
-# Relative to this script, not the caller's cwd (same as SECRETS_ROOT above) —
-# a plain `cd infra` failed when run from anywhere but nix/.
 cd "$(dirname "${BASH_SOURCE[0]}")/../infra"
-# The R2 keys only exist on disk for the length of this run: the backend
-# config goes to tmpfs, and `tofu init` also caches them in
-# .terraform/terraform.tfstate, so both are wiped on exit. The next run
-# re-inits with -reconfigure.
+# R2 keys stay on disk only for this run: the backend config is on tmpfs, and
+# the copy `tofu init` caches in .terraform/terraform.tfstate is blanked on exit.
 rm -f .r2-backend.hcl # older runs left it here
 BACKEND_CFG=$(mktemp -p "${XDG_RUNTIME_DIR:-/tmp}" r2-backend.XXXXXX.hcl)
 cleanup_backend() {
@@ -462,16 +414,8 @@ else
 fi
 
 # 3. Capture Output
-# Both paths fall through to the same capture logic now — a targeted/
-# passthrough apply used to skip this entirely (comment used to live here:
-# "tofu output -raw tunnel_id would error out if the tunnel wasn't part of
-# the apply set"), which meant OTHER outputs from a targeted apply (e.g.
-# juan_gemini_api_key from a Google-only -target run) never got captured
-# either. Fixed by making every capture graceful instead of skipping the
-# whole step — read with `|| echo ""`, only act if non-empty. A first-ever
-# apply narrowly targeted away from the tunnel just silently skips writing
-# tunnel_id back, exactly like the Gemini capture already did for a targeted
-# apply that didn't include it.
+# Every capture tolerates a missing output, so a -target apply still writes
+# back whatever it did produce.
 echo -e "\n${BOLD}[3/4] Capturing outputs...${RESET}"
 TUNNEL_ID=$(tofu output -raw tunnel_id 2>/dev/null || echo "")
 GEMINI_API_KEY_JUAN=$(tofu output -raw juan_gemini_api_key 2>/dev/null || echo "")
@@ -483,9 +427,7 @@ if [ -z "$TUNNEL_ID" ]; then
 else
   echo -e "🟢 Tunnel ID: ${BOLD}$TUNNEL_ID${RESET}"
 
-  # Write Tunnel ID to core-pi's own scope (if it changed) — same file
-  # cloudflare_tunnel_secret above lives in, and what hosts/core-pi/secrets.nix
-  # reads cloudflare_tunnel_id from.
+  # core-pi's secrets.nix reads cloudflare_tunnel_id from this file.
   CURRENT_TUNNEL_ID=$(echo "$COREPI_YAML" | yq '.cloudflare_tunnel_id')
   if [ "$CURRENT_TUNNEL_ID" != "$TUNNEL_ID" ]; then
     echo -e "Updating cloudflare_tunnel_id in nix/per-host/core-pi.yaml..."
@@ -494,21 +436,15 @@ else
   fi
 fi
 
-# Write juan's Gemini API key as a keyed value in kleinbem-secrets'
-# one-YAML-per-persona file (cutover 2026-08-08 — was its own binary-mode
-# sopsFile under the old nix-secrets/personas/<name>/<key> layout; matches
-# how hosts/mac-mini/secrets.nix's juan_gemini_api_key sopsFile+key already
-# expects it). If more personas get their own google_apikeys_key in
-# infra/google.tf, repeat this block per persona — don't try to generalize
-# into a loop until there's a 3rd one.
+# Write juan's Gemini key into his persona file (gemini_api_key). Repeat this
+# block for each persona that gets a google_apikeys_key.
 if [ -n "$GEMINI_API_KEY_JUAN" ]; then
   JUAN_YAML="$SECRETS_ROOT/personas/juan-gonzalez.yaml"
   GEMINI_WORK="$(mktemp -d /dev/shm/tf-apply-gemini-XXXXXX)"
   trap 'cleanup_backend; find "$GEMINI_WORK" -type f -exec shred -u {} \; 2>/dev/null; rm -rf "$GEMINI_WORK"' EXIT
   sops -d "$JUAN_YAML" >"$GEMINI_WORK/juan.yaml"
-  # Only re-encrypt when the key actually changed: sops re-encryption rewrites
-  # every ciphertext line, so an unconditional write left kleinbem-secrets
-  # dirty after every apply even with an identical key.
+  # Only re-encrypt on change: sops rewrites every ciphertext line, which would
+  # dirty kleinbem-secrets on every apply.
   if [ "$(yq '.gemini_api_key' "$GEMINI_WORK/juan.yaml")" = "$GEMINI_API_KEY_JUAN" ]; then
     echo -e "🟢 juan's Gemini API key unchanged — kleinbem-secrets left untouched"
   else

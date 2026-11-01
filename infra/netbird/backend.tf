@@ -1,15 +1,9 @@
 # State backend: Cloudflare R2 (s3-compatible), same bucket as root infra/
 # (`kleinbem-tofu-state`), key `netbird.tfstate`.
 #
-# Migrated off interim local state 2026-07-16, once the bucket + scoped R2
-# access key + encryption passphrase all existed in sops (root infra/ proved
-# the pattern first). Endpoint + credentials can't live here (backend blocks
-# take no variables); `just init` generates `.r2-backend.hcl` (gitignored)
-# from sops and passes it via `-backend-config`. State is client-side
-# encrypted (see encryption.tf) — R2 only ever sees AES-GCM ciphertext.
-#
-# One-shot migration off local state: `just migrate-state` (the pre-migration
-# terraform.tfstate* files stay behind, gitignored, as a fallback copy).
+# Backend blocks take no variables, so state-env.sh writes endpoint +
+# credentials from sops into `.r2-backend.hcl` (gitignored), passed via
+# `-backend-config`. State is client-side encrypted (encryption.tf).
 terraform {
   backend "s3" {
     bucket = "kleinbem-tofu-state"

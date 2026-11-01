@@ -1,22 +1,9 @@
-# Mail-routing DNS for `kleinbem.dev` (the primary persona email domain).
-#
-# Apex CNAME (`@`) already points at the cloudflared tunnel (main.tf:65).
-# Cloudflare's CNAME flattening means we can serve mail off the same apex
-# by declaring an MX that points at `mail.kleinbem.dev` (a separate
-# A record, deliberately NOT declared here — see below).
-#
-# These records support the Stalwart container + AWS SES outbound relay
-# established in nix-presets/containers/stalwart.nix.
+# Mail DNS for kleinbem.dev (Stalwart). The apex CNAME points at the tunnel
+# (main.tf), so the MX points at mail.kleinbem.dev instead.
 
 # --- A: mail.kleinbem.dev → host running Stalwart ---
-# NOT Terraform-managed. The mail host sits behind Digiweb's dynamic PPPoE
-# IP (confirmed reachable + unblocked on port 25, 2026-09-24), so this
-# record's source of truth is live network state, not a Tofu input — a
-# value that changes on its own would just fight `tofu apply` on every
-# run. `services.cloudflare-dyndns` on mac-mini (nix-config/hosts/mac-mini/
-# default.nix) owns this record instead: creates it on first run, keeps it
-# current on a 5-minute timer. If the mail host ever moves to a real static
-# IP, this is the natural place to bring it back under Terraform.
+# Not managed here: the mail host has a dynamic WAN IP, which would fight every
+# apply. services.cloudflare-dyndns on mac-mini (nix-config) owns this record.
 
 # --- MX: route inbound mail for kleinbem.dev → mail.kleinbem.dev ---
 resource "cloudflare_record" "mail_mx" {
@@ -65,10 +52,8 @@ resource "cloudflare_record" "mail_tlsrpt" {
 }
 
 # --- DKIM (per-persona) ---
-# Stalwart generates one DKIM key per domain by default; if you want
-# per-persona keys (selective revocation, finer audit), wire each
-# persona's `dkim_pubkey_b64` into personas.nix and uncomment the block
-# below. For Phase 1 the domain-level DKIM is enough — leave commented.
+# For per-persona keys, add `dkim_pubkey_b64` to each persona in personas.nix
+# and uncomment the block below. The domain-level key is enough for now.
 #
 # resource "cloudflare_record" "persona_dkim" {
 #   for_each = { for k, v in local.personas : k => v if can(v.dkim_pubkey_b64) }
@@ -96,13 +81,9 @@ resource "cloudflare_record" "stalwart_dkim" {
 }
 
 # --- Google Search Console: domain-property ownership verification ---
-# Verifies the `sc-domain:kleinbem.dev` property (covers every subdomain,
-# incl. vault.kleinbem.dev). Needed to see the Security Issues report and to
-# request faster Safe Browsing reviews when Google false-flags a subdomain.
-# Apex TXT; coexists with the SPF TXT above (Cloudflare allows multiple TXT
-# at the same name). Value is issued per-property by Search Console — if the
-# property is ever removed and re-added, Google mints a new token and this
-# must be updated.
+# Covers every subdomain; needed for the Security Issues report and Safe
+# Browsing reviews. If the property is removed and re-added, Google issues a
+# new token and this value must change.
 resource "cloudflare_record" "google_search_console" {
   zone_id = data.cloudflare_zone.main.id
   name    = "@"

@@ -1,16 +1,10 @@
 #!/usr/bin/env bash
-# R2 budget watchdog: R2 has no spending cap, so this is ours. Estimates the
-# month's R2 bill from Cloudflare's analytics (all buckets), alerts via ntfy
-# from ALERT_EUR, and from OFFLINE_EUR takes the public cache offline
-# (disables its custom domain). The cache is the only bucket strangers can
-# read from; with it offline, users just build locally.
-#
-# Bring it back after checking the cause: `r2-budget.sh --online`, or the
-# r2-budget workflow run by hand with "online" ticked.
-#
-# Env: CLOUDFLARE_ACCOUNT_ID, R2_BUDGET_TOKEN (Account Analytics Read +
-# Workers R2 Storage Write), NTFY_ALERT_TOPIC (optional), DRY_RUN=1 to only
-# report.
+# R2 has no spending cap, so this is ours: estimates the month's bill, alerts
+# via ntfy from ALERT_EUR and takes the public cache's domain offline from
+# OFFLINE_EUR (the only bucket strangers can read). Bring it back after checking
+# the cause with `r2-budget.sh --online` or the r2-budget workflow's "online".
+# Env: CLOUDFLARE_ACCOUNT_ID, R2_BUDGET_TOKEN (Account Analytics Read + Workers
+# R2 Storage Write), NTFY_ALERT_TOPIC (optional), DRY_RUN=1 to only report.
 set -euo pipefail
 
 ALERT_EUR=${ALERT_EUR:-5}

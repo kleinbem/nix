@@ -1,15 +1,7 @@
-# DNS-01 token for Caddy on core-pi (nix-presets containers/caddy, nodes with
-# `publicCert = true` in nix-config/inventory.nix). Lets Caddy get publicly
-# trusted Let's Encrypt certificates for mesh-only names such as
-# buzz.kleinbem.dev without exposing them: the challenge is a TXT record, the
-# name itself only resolves over NetBird (../netbird/dns.tf).
-#
-# Needed because some clients trust only the public CA list, not the fleet's
-# Caddy local CA: Buzz 1.0 joins communities only over TLS and its websocket
-# uses webpki-roots (block/buzz-app src-tauri/Cargo.toml).
-#
-# Scope: DNS edit + zone read on kleinbem.dev only. Zone read is what
-# caddy-dns/cloudflare needs to find the zone id.
+# DNS-01 token so core-pi's Caddy gets Let's Encrypt certs for mesh-only names
+# (inventory `publicCert = true`), for clients that only trust public CAs, like
+# Buzz. The names still resolve only over NetBird.
+# Zone Read is needed by caddy-dns/cloudflare to find the zone id.
 resource "cloudflare_api_token" "caddy_acme_dns" {
   name = "caddy-acme-dns-core-pi"
 

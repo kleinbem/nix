@@ -1,16 +1,9 @@
 # Fleet inventory bridge.
 #
-# nix-config/inventory.nix is the single source of truth for mesh group
-# membership (its `meshGroups` attr). It's projected to JSON by
-# nix-config/iac/data.nix and copied here by `../../tools/gen-iac-data.sh`
-# (drift-guarded by `../../tools/check-iac-data.sh` + the `iac-data` flake
-# check). Until 2026-09-07 these lists were hand-maintained `variable`
-# defaults in groups.tf/peers.tf and silently drifted from the fleet.
-#
-# The `*_peers` variables below stay as explicit escape hatches (same
-# pattern as imports.tf's id toggles) — set one to override the
-# inventory-derived membership for a single apply; leave it null to track
-# inventory.
+# Mesh group membership comes from nix-config/inventory.nix `meshGroups`,
+# projected by nix-config/iac/data.nix and copied by ../../tools/gen-iac-data.sh
+# (drift-checked by ../../tools/check-iac-data.sh). Set a `*_peers` variable
+# to override one group for a single apply; null tracks inventory.
 
 locals {
   inventory = jsondecode(file("${path.module}/../inventory.json"))

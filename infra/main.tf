@@ -31,12 +31,9 @@ provider "cloudflare" {
   api_token = var.cloudflare_api_token
 }
 
-# Only used here to DISTRIBUTE Actions secrets to the nix CI repos (values come
-# from sops). Repo settings/rulesets/labels are owned by the github-config repo.
-# Authenticates as the kleinbem GitHub App (the same one github-config uses),
-# not a fine-grained PAT: the PAT had to list every repo by hand, and a repo
-# missing from that list failed the apply with a 403 (nix-gantry, 2026-10-25).
-# The App is installed account-wide, so a new repo needs no token change.
+# Only distributes Actions secrets to the CI repos; repo settings belong to
+# github-config. Uses the account-wide kleinbem GitHub App, so a new repo needs
+# no token change.
 provider "github" {
   owner = "kleinbem"
   app_auth {
@@ -62,36 +59,22 @@ data "cloudflare_zone" "main" {
   name = "kleinbem.dev"
 }
 
-# Create the Zero Trust Tunnel (renamed from the deprecated `cloudflare_tunnel`
-# resource type — same underlying API object, same schema, just the v4.x rename
-# from "tunnel" to "zero_trust_tunnel_cloudflared" namespace).
 resource "cloudflare_zero_trust_tunnel_cloudflared" "core_pi" {
   account_id = var.cloudflare_account_id
   name       = "core-pi"
   secret     = var.cloudflare_tunnel_secret
 
-  # The Cloudflare API doesn't return the tunnel secret on read, so after
-  # `tofu import` the state has `secret = null` while the config has the sops
-  # value. Without ignore_changes, every plan would mark the resource as
-  # "ForceNew on secret" and propose destroying + recreating the live tunnel.
-  # We trust the existing secret in Cloudflare; if it ever needs rotation,
-  # remove this ignore_changes briefly to apply the new value.
+  # The API never returns the secret, so without this every plan would replace
+  # the live tunnel. To rotate, drop ignore_changes for one apply.
   lifecycle {
     ignore_changes = [secret]
   }
 }
 
-# Note: `moved {}` blocks don't work for this rename because the cloudflare
-# provider v4.x explicitly refuses cross-type state moves. The state was
-# migrated via `tofu state rm` + `tofu import` (run via
-# `scripts/tf-apply.sh --migrate-tunnel`) — one-shot operation, no live
-# tunnel touch.
-
 # Route wildcard domain to the argo tunnel CNAME
 resource "cloudflare_record" "wildcard" {
   zone_id = data.cloudflare_zone.main.id
   name    = "*"
-  # `content` replaces the deprecated `value` argument (provider v4.x).
   content = "${cloudflare_zero_trust_tunnel_cloudflared.core_pi.id}.cfargotunnel.com"
   type    = "CNAME"
   proxied = true
@@ -115,20 +98,12 @@ moved {
   to   = cloudflare_zero_trust_tunnel_cloudflared.core_pi
 }
 
-# R2 bucket that holds tofu remote state: github-config's AND (since the
-# backend.tf migration) this root's own `infra.tfstate`. Originally provisioned
-# from local state to dodge the chicken-and-egg of a config storing state in a
-# bucket it creates. Requires the cloudflare_api_token to have "Workers R2
-# Storage: Edit" permission.
-# The bucket was created MANUALLY in the dashboard (R2 activation + bucket +
-# scoped API token are a hand-bootstrap: this root's own backend lives in the
-# bucket, so tofu couldn't create it first). This import block adopts it into
-# state on the first apply after migration; once adopted it's a no-op.
+# Bucket holding tofu state for this root, the sub-roots and github-config. Made by hand in the
+# dashboard (this root's backend lives in it, so tofu can't create it) and
+# adopted by the import block. Needs "Workers R2 Storage: Edit" on the token.
 import {
   to = cloudflare_r2_bucket.tofu_state
-  # nonsensitive(): import ids may not be sensitive, and the account id's
-  # sensitivity taints the whole interpolation. The id never appears in
-  # committed files — only in plan output on this machine.
+  # Import ids can't be sensitive; the account id only shows in local plan output.
   id = "${nonsensitive(var.cloudflare_account_id)}/kleinbem-tofu-state"
 }
 
@@ -136,8 +111,7 @@ resource "cloudflare_r2_bucket" "tofu_state" {
   account_id = var.cloudflare_account_id
   name       = "kleinbem-tofu-state"
 
-  # This bucket now holds the state that manages it. Destroying it would
-  # orphan every root that backs onto it — refuse at plan time.
+  # Holds the state that manages it; destroying it would orphan every root.
   lifecycle {
     prevent_destroy = true
   }

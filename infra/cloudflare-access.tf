@@ -1,35 +1,23 @@
 # ---------------------------------------------------------------------------
 # Cloudflare Access (Zero Trust) — edge SSO in front of the browser-facing
-# self-hosted apps. Free tier (≤ 50 users). Identity = email one-time-PIN, so
-# no external IdP setup is needed.
+# self-hosted apps. Free tier (≤ 50 users). Login by email one-time PIN or
+# the Authentik IdP below.
 #
-# Scope decisions (see also cloudflare-tunnel.nix for the ingress):
+# Scope (ingress: nix-config modules/nixos/services/cloudflare-tunnel.nix):
 #   * home.kleinbem.dev  — Dashboard  -> gated (stays on the public tunnel;
 #                          Access is its auth)
-#   * vault.kleinbem.dev/admin — Vaultwarden admin panel  -> gated (PATH-scoped:
-#                          only `/admin`, not the app root). The Bitwarden apps,
-#                          CLI and browser extensions only ever hit /api,
-#                          /identity, /notifications, /icons — all outside the
-#                          Access scope — so they keep working unauthenticated
-#                          at the edge (Vaultwarden's own master password + 2FA
-#                          is their gate). /admin is the historically worst
-#                          surface, so it gets edge SSO on top of ADMIN_TOKEN.
+#   * vault.kleinbem.dev/admin — gated, path-scoped. Bitwarden clients only use
+#                          /api, /identity, /notifications, /icons, so they
+#                          stay ungated; /admin gets SSO on top of ADMIN_TOKEN.
 #   * cache.kleinbem.dev — Attic Nix cache  -> NOT gated (SSO breaks Nix pulls)
 #   * n8n / chat         — use mTLS (webhooks/API)  -> NOT gated (SSO breaks them)
-#   * code.kleinbem.dev  — moved to mesh-only (nix-config#mesh-only-web-services);
-#                          off the tunnel, so Access can't gate it — Authentik
-#                          forward-auth (auth = true on the inventory node,
-#                          was Authelia until 2026-09-22) is its auth now.
-#   * frigate.kleinbem.dev — mesh-only, Authentik forward-auth. Never on the tunnel.
+#   * code, frigate      — mesh-only, not on the tunnel; Authentik forward-auth.
 #
 # Requires: the cloudflare_api_token to have "Access: Apps and Policies: Edit",
 # and the account's Zero Trust org to exist (it does — you run a tunnel).
 # ---------------------------------------------------------------------------
 
 locals {
-  # `code` removed — it moved to mesh-only; Access only ever sees the tunnel's
-  # 404 for it now. `home` stays: it's still on the public tunnel and Access is
-  # its gate.
   access_apps = {
     "home" = {
       name   = "Homelab Dashboard"
@@ -73,17 +61,11 @@ resource "cloudflare_zero_trust_access_policy" "allow_owner" {
 }
 
 # ---------------------------------------------------------------------------
-# Authentik OIDC Identity Provider for Cloudflare Access (Edge SSO)
+# Authentik OIDC Identity Provider for Cloudflare Access
 # Live IdP UUID: 6bb0c00a-ad4e-4250-b5bb-215e7129112a
 #
-# Configured and verified in Cloudflare Zero Trust (Integrations > Identity providers).
-# Cloudflare returns 1010 (auth.forbidden) when fine-grained API tokens attempt
-# to manage Identity Providers programmatically on free/pay-as-you-go tiers.
-#
-# Authentication flow:
-#   1. Cloudflare Access redirects to Authentik (https://auth.kleinbem.dev).
-#   2. Authentik issues RS256 token containing the user's verified email.
-#   3. allow_owner policy above matches on `email = local.access_allowed_emails`
-#      ("martin.kleinberger@gmail.com") and grants edge access.
+# Set up by hand in Zero Trust (Integrations > Identity providers): API tokens
+# get 1010 (auth.forbidden) managing IdPs on this plan. Authentik's ID token
+# carries the email that allow_owner matches.
 # ---------------------------------------------------------------------------
 
