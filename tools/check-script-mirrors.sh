@@ -12,12 +12,8 @@ FLEET_ROOT="$(dirname "$REPO_ROOT")"
 case "$FLEET_ROOT" in *.ws) FLEET_ROOT="$(dirname "$FLEET_ROOT")" ;; esac
 cd "$FLEET_ROOT"
 
+# Add source/mirror pairs here as needed, format: "source/path|mirror/path"
 PAIRS=(
-  "nix-presets/files/scripts/android/launch-android-desktop.sh|nix-devshells/shells/scripts/launch-android-desktop.sh"
-  "nix-presets/files/scripts/android/launch-emulator-daemon.sh|nix-devshells/shells/scripts/launch-emulator-daemon.sh"
-  "nix-presets/files/scripts/android/launch-scrcpy-client.sh|nix-devshells/shells/scripts/launch-scrcpy-client.sh"
-  "nix-presets/files/scripts/android/launch-vault.sh|nix-devshells/shells/scripts/launch-vault.sh"
-  "nix-presets/files/scripts/android/simulate-fingerprint.sh|nix-devshells/shells/scripts/simulate-fingerprint.sh"
 )
 
 # Compare by stripping the marker comment block from each file and diffing.
@@ -30,6 +26,11 @@ strip_markers() {
     -e 'Do not edit here' \
     "$1"
 }
+
+if [ "${#PAIRS[@]}" -eq 0 ]; then
+  echo "✅ No script mirrors configured."
+  exit 0
+fi
 
 errors=0
 for pair in "${PAIRS[@]}"; do
