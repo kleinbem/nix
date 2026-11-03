@@ -156,8 +156,14 @@ locals {
   dependabot_secret_pairs = merge([
     # nix-config: its required `check` (ci.yml), sync-docs and build-all mint
     # an app token on pull_request, so Dependabot PRs fail without these.
-    # kleinbem-site, revue: kleinbem/actions dependabot-auto-merge.
-    for repo in ["kleinbem-site", "nix-packages", "nix-config", "revue"] : {
+    # kleinbem-site: kleinbem/actions dependabot-auto-merge.
+    for repo in ["kleinbem-site", "nix-packages", "nix-config"] : {
+      for n in keys(local.dependabot_app_secrets) : "${repo}/${n}" => { repo = repo, secret = n }
+    }
+  ]...)
+  # The same for kleinbem-dev repos, written through the `org` provider.
+  org_dependabot_secret_pairs = merge([
+    for repo in ["revue"] : {
       for n in keys(local.dependabot_app_secrets) : "${repo}/${n}" => { repo = repo, secret = n }
     }
   ]...)
@@ -165,6 +171,15 @@ locals {
 
 resource "github_dependabot_secret" "app" {
   for_each = local.dependabot_secret_pairs
+
+  repository  = each.value.repo
+  secret_name = each.value.secret
+  value       = local.dependabot_app_secrets[each.value.secret]
+}
+
+resource "github_dependabot_secret" "org_app" {
+  for_each = local.org_dependabot_secret_pairs
+  provider = github.org
 
   repository  = each.value.repo
   secret_name = each.value.secret
