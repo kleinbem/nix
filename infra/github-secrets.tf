@@ -50,7 +50,8 @@ locals {
     var.public_cache_signing_key != ""
   )
   # Projects whose CI pushes to the public cache (public-cache.tf).
-  public_cache_repos = ["mesh-agents"]
+  public_cache_repos     = []
+  org_public_cache_repos = ["cadre"]
   public_cache_secrets = {
     CACHE_ACCESS_KEY_ID     = var.public_cache_access_key_id
     CACHE_SECRET_ACCESS_KEY = var.public_cache_secret_access_key
@@ -190,9 +191,9 @@ resource "github_actions_variable" "nixpkgs_review_gha_cachix_cache" {
   value         = "kleinbem-nixpkgs-review"
 }
 
-# public_cache_repos push their main build to the public cache (public-cache.tf).
-# S3 creds come from r2-tokens/, the signing key is made by hand; nothing is
-# distributed until all three are in sops.
+# public_cache_repos (and org_public_cache_repos) push their main build to
+# the public cache (public-cache.tf). S3 creds come from r2-tokens/, the signing
+# key is made by hand; nothing is distributed until all three are in sops.
 resource "github_actions_secret" "public_cache" {
   for_each = local.public_cache_enabled ? {
     for pair in setproduct(local.public_cache_repos, keys(local.public_cache_secrets)) :
@@ -202,6 +203,32 @@ resource "github_actions_secret" "public_cache" {
   repository  = each.value.repo
   secret_name = each.value.name
   value       = local.public_cache_secrets[each.value.name]
+}
+
+resource "github_actions_secret" "org_public_cache" {
+  for_each = local.public_cache_enabled ? {
+    for pair in setproduct(local.org_public_cache_repos, keys(local.public_cache_secrets)) :
+    "${pair[0]}/${pair[1]}" => { repo = pair[0], name = pair[1] }
+  } : {}
+  provider = github.org
+
+  repository  = each.value.repo
+  secret_name = each.value.name
+  value       = local.public_cache_secrets[each.value.name]
+}
+
+# mesh-agents was renamed to cadre and moved to the kleinbem-dev organization.
+moved {
+  from = github_actions_secret.public_cache["mesh-agents/CACHE_ACCESS_KEY_ID"]
+  to   = github_actions_secret.org_public_cache["cadre/CACHE_ACCESS_KEY_ID"]
+}
+moved {
+  from = github_actions_secret.public_cache["mesh-agents/CACHE_SECRET_ACCESS_KEY"]
+  to   = github_actions_secret.org_public_cache["cadre/CACHE_SECRET_ACCESS_KEY"]
+}
+moved {
+  from = github_actions_secret.public_cache["mesh-agents/CACHE_SIGNING_KEY"]
+  to   = github_actions_secret.org_public_cache["cadre/CACHE_SIGNING_KEY"]
 }
 
 # kleinbem/nix's r2-budget workflow (tools/r2-budget.sh): R2 has no spending
@@ -223,6 +250,20 @@ resource "github_actions_variable" "public_cache_store" {
   repository    = each.key
   variable_name = "CACHE_STORE"
   value         = "s3://${cloudflare_r2_bucket.public_cache.name}?endpoint=https://${nonsensitive(var.cloudflare_account_id)}.r2.cloudflarestorage.com&region=auto"
+}
+
+resource "github_actions_variable" "org_public_cache_store" {
+  for_each = local.public_cache_enabled ? toset(local.org_public_cache_repos) : []
+  provider = github.org
+
+  repository    = each.key
+  variable_name = "CACHE_STORE"
+  value         = "s3://${cloudflare_r2_bucket.public_cache.name}?endpoint=https://${nonsensitive(var.cloudflare_account_id)}.r2.cloudflarestorage.com&region=auto"
+}
+
+moved {
+  from = github_actions_variable.public_cache_store["mesh-agents"]
+  to   = github_actions_variable.org_public_cache_store["cadre"]
 }
 
 # Extra Nix configuration for the nixpkgs-review-gha runners: the CUDA team's
