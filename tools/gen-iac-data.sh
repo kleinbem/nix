@@ -93,6 +93,6 @@ emit_flake() { # <nix-config flake attr> <dest file>
 
 echo "✅ wrote $DEST/personas.json + $DEST/inventory.json"
 # The drift check only compares the two files above.
-[[ -n ${IAC_DATA_SKIP_FLAKE:-} ]] && exit 0
+[[ -n "${IAC_DATA_SKIP_FLAKE:-}" ]] && exit 0
 emit_flake heartbeats "$DEST/heartbeats.json"
 emit_flake backupHosts "$DEST/backup-hosts.json"
