@@ -94,7 +94,7 @@ def get_system_telemetry():
             raw_temps = psutil.sensors_temperatures()
             for name, entries in raw_temps.items():
                 temps[name] = entries[0].current if entries else "N/A"
-        except Exception:
+        except (AttributeError, OSError):
             pass
 
         # Check Health Sink from ai-logs.py

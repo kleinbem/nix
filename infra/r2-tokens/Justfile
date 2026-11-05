@@ -24,7 +24,7 @@ plan: _gen
 # Apply (asks for confirmation), then write each host's rclone config into
 # kleinbem-secrets/nix/per-host/<host>.yaml.
 apply: _gen
-    @. ./state-env.sh && tofu init -input=false -backend-config=.r2-backend.hcl >/dev/null && tofu apply && ./sync-secrets.sh
+    @. ./state-env.sh && tofu init -input=false -backend-config=.r2-backend.hcl >/dev/null && ../../tools/tofu-guarded-apply.sh && ./sync-secrets.sh
 
 # Re-sync kleinbem-secrets from current state without applying.
 sync: _gen

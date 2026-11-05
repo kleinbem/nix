@@ -16,6 +16,9 @@ import {
   id = "kleinbem-ai"
 }
 
+# Turning auto_create_network off deletes the default network on apply: owner
+# decision, tracking: kleinbem/nix#73
+#trivy:ignore:GCP-0010
 resource "google_project" "kleinbem_ai" {
   name       = "kleinbem-ai"
   project_id = "kleinbem-ai"

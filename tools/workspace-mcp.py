@@ -11,8 +11,7 @@ import os
 import sys
 
 # Ensure we can import the local atlas_mcp package
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, SCRIPT_DIR)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import atlas_mcp.ai_services
 import atlas_mcp.browser

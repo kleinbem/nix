@@ -22,12 +22,13 @@ This document tracks the status of system services across different NixOS Specia
 | **android-emulator** | ❌ | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ |
 | **waydroid** | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ |
 | **nix-mineral** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| **Printing** | ✅ | ✅ | ✅ | ✅ | ❌ |
-| **Avahi Discovery** | ✅ | ✅ | ✅ | ✅ | ❌ |
+| **Printing** | ✅ | ✅ | ✅ | ✅ | ❌ | ? | ? |
+| **Avahi Discovery** | ✅ | ✅ | ✅ | ✅ | ❌ | ? | ? |
 
 ## Legend
 - ✅ **Enabled**: Service is active and reachable.
 - ❌ **Disabled**: Service is completely turned off to save resources.
+- ? **Not recorded**: This mode's state hasn't been checked yet.
 
 ## Usage Guide
 

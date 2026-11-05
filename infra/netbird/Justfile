@@ -33,7 +33,7 @@ plan: _gen
 
 # Apply the NetBird control-plane config.
 apply: _gen
-    @. ./state-env.sh && tofu init -input=false -backend-config=.r2-backend.hcl >/dev/null && tofu apply
+    @. ./state-env.sh && tofu init -input=false -backend-config=.r2-backend.hcl >/dev/null && ../../tools/tofu-guarded-apply.sh
 
 # Dump the live provider schema to verify resource/attribute names.
 schema:

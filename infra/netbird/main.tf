@@ -3,6 +3,9 @@
 # modules/nixos/networking.nix); this root never creates them.
 # The provider is unsigned on the registry; review it on upgrades.
 terraform {
+  # OpenTofu: state encryption (1.7) and the s3 backend's use_lockfile (1.10).
+  required_version = ">= 1.10"
+
   required_providers {
     netbird = {
       source = "netbirdio/netbird"

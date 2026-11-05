@@ -116,7 +116,7 @@ def classify_activity_state(last_updated, last_line_content):
                 return "🔄 Active (This Week)"
             else:
                 return "📁 Inactive / Archived"
-    except Exception:
+    except (ValueError, AttributeError):
         pass
 
     # Fallback
@@ -167,7 +167,7 @@ def get_conversation_data():
                             conv_data["last_updated"] = max(
                                 conv_data["last_updated"], dt
                             )
-                except Exception:
+                except (OSError, ValueError, AttributeError):
                     continue
 
             # Check for overview.txt
@@ -194,7 +194,7 @@ def get_conversation_data():
                             if first_line is None:
                                 first_line = line_str
                             last_line = line_str
-                except Exception:
+                except OSError:
                     pass
 
                 # Parse first_line for summary
@@ -214,7 +214,7 @@ def get_conversation_data():
                                 summary = content.strip().split("\n")[0]
                             if summary:
                                 conv_data["summaries"].append(summary)
-                        except Exception:
+                        except (ValueError, AttributeError):
                             pass
                     else:
                         first_line_clean = re.sub(r"^USER: ", "", first_line)
@@ -482,7 +482,7 @@ def sync_database_index(convs):
         )
         if proc.returncode == 0:
             is_running = True
-    except Exception:
+    except OSError:
         pass
 
     if is_running:
@@ -555,7 +555,7 @@ def sync_database_index(convs):
                         ) as f:
                             lines = f.readlines()
                             steps_count = len([line for line in lines if line.strip()])
-                    except Exception:
+                    except OSError:
                         pass
 
                 if os.path.exists(overview_path):
@@ -571,7 +571,7 @@ def sync_database_index(convs):
                                         f_data["created_at"].replace("Z", "+00:00")
                                     )
                                     start_sec = int(dt.timestamp())
-                    except Exception:
+                    except (OSError, ValueError, AttributeError, TypeError):
                         pass
 
                 meta_b64 = build_trajectory_metadata_b64(

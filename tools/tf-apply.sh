@@ -41,15 +41,14 @@ while [ $# -gt 0 ]; do
   --) SAW_DDASH=1; shift ;;
   -h | --help)
     echo "Usage: $0 [--plan-only | --state-rm <resource...> | --exec <tofu-cmd...> | --migrate-tunnel | --migrate-state] [-- <tofu-args>...]"
-    echo "  Default:          decrypt sops, run 'tofu apply -auto-approve', write back tunnel_id."
+    echo "  Default:          decrypt sops, plan, apply it unless it deletes or replaces anything"
+    echo "                    (ALLOW_DESTROY=1 allows that), write back tunnel_id."
     echo "  --plan-only:      decrypt sops, run 'tofu plan', exit."
     echo "  --state-rm:       remove one or more resources from OpenTofu state."
     echo "  --exec:           run arbitrary tofu command with decrypted state & backend environment."
     echo "  --migrate-tunnel: rebind tunnel state to the new resource address."
     echo "  --migrate-state:  one-shot copy of local terraform.tfstate into the R2 backend."
-    echo "  -- <tofu-args>:   pass everything after -- straight to 'tofu apply'."
-    # shellcheck disable=SC2016  # literal $PASSTHROUGH is the documented behavior
-    echo '                    (default apply: tofu apply -auto-approve $PASSTHROUGH)'
+    echo "  -- <tofu-args>:   pass everything after -- to 'tofu plan' (-auto-approve: skip the prompt)."
     echo "                    Example: $0 -- -target='github_actions_secret.ci' -auto-approve"
     exit 0
     ;;
@@ -78,6 +77,7 @@ echo -e "=================================================="
 # kleinbem-secrets scopes secrets per consumer, so several files are read.
 # It's a sibling of nix/, resolved from this script's location, not the cwd.
 SECRETS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/kleinbem-secrets"
+GUARDED_APPLY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/tofu-guarded-apply.sh"
 TERRAFORM_FILE="$SECRETS_ROOT/infra/terraform.yaml"
 SHARED_FILE="$SECRETS_ROOT/nix/shared.yaml"
 COREPI_FILE="$SECRETS_ROOT/nix/per-host/core-pi.yaml"
@@ -405,11 +405,12 @@ if [ "$MODE" = "exec" ]; then
 fi
 
 echo -e "\n${BOLD}Applying OpenTofu plan...${RESET}"
+# Refuses planned deletes/replacements unless ALLOW_DESTROY=1.
 if [ ${#PASSTHROUGH[@]} -gt 0 ]; then
   echo -e "${YELLOW}Passthrough args: ${PASSTHROUGH[*]}${RESET}"
-  tofu apply "${PASSTHROUGH[@]}"
+  "$GUARDED_APPLY" "${PASSTHROUGH[@]}"
 else
-  tofu apply -auto-approve
+  "$GUARDED_APPLY" -auto-approve
 fi
 
 # 3. Capture Output

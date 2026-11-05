@@ -4,6 +4,9 @@
 # not on the OpenTofu registry, hence the full source; check `just schema`
 # before bumping it.
 terraform {
+  # OpenTofu: state encryption (1.7) and the s3 backend's use_lockfile (1.10).
+  required_version = ">= 1.10"
+
   required_providers {
     garage = {
       source  = "registry.terraform.io/jkossis/garage"
