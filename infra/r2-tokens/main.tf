@@ -5,6 +5,9 @@
 # minter token has no default, so a missing secret stops the run instead of
 # planning to destroy every token.
 terraform {
+  # OpenTofu: state encryption (1.7) and the s3 backend's use_lockfile (1.10).
+  required_version = ">= 1.10"
+
   required_providers {
     cloudflare = {
       source  = "cloudflare/cloudflare"

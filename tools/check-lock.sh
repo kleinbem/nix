@@ -4,7 +4,8 @@
 
 set -euo pipefail
 
-LOCK="/tmp/workspace-just.lock"
+# The lock common.just's LOCK_CMD takes (kleinbem/.just/common.just LOCK_FILE).
+LOCK="/tmp/kleinbem-workspace-just.lock"
 
 if [ ! -e "$LOCK" ]; then
   echo "✅ No active workspace lock found."

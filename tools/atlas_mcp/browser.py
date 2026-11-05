@@ -1,6 +1,7 @@
 import os
 import shutil
 import sqlite3
+import tempfile
 
 from .core import FIREFOX_PATH, mcp
 
@@ -15,15 +16,16 @@ def firefox_search(query: str, profile: str = "standard"):
         db_path = os.path.join(FIREFOX_PATH, profiles[0], "places.sqlite")
         if not os.path.exists(db_path):
             return f"Error: Places database not found for {profile}."
-        temp_db = f"/tmp/firefox_{profile}_search.sqlite"
-        shutil.copy2(db_path, temp_db)
-        conn = sqlite3.connect(temp_db)
-        cursor = conn.cursor()
-        sql = "SELECT title, url FROM moz_places WHERE (title LIKE ? OR url LIKE ?) ORDER BY last_visit_date DESC LIMIT 10"
-        cursor.execute(sql, (f"%{query}%", f"%{query}%"))
-        results = cursor.fetchall()
-        conn.close()
-        os.remove(temp_db)
+        # Firefox locks places.sqlite while it runs: query a private copy.
+        with tempfile.TemporaryDirectory(prefix="firefox-search-") as tmp:
+            temp_db = os.path.join(tmp, "places.sqlite")
+            shutil.copy2(db_path, temp_db)
+            conn = sqlite3.connect(temp_db)
+            cursor = conn.cursor()
+            sql = "SELECT title, url FROM moz_places WHERE (title LIKE ? OR url LIKE ?) ORDER BY last_visit_date DESC LIMIT 10"
+            cursor.execute(sql, (f"%{query}%", f"%{query}%"))
+            results = cursor.fetchall()
+            conn.close()
         return [{"title": r[0], "url": r[1]} for r in results]
     except Exception as e:
         return str(e)

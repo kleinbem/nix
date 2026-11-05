@@ -19,6 +19,8 @@ for host in $(echo "$CONFIGS" | jq -r 'keys[]'); do
   if [ ! -f "$HOST_YAML" ]; then
     work="$(mktemp -d /dev/shm/r2-tokens-XXXXXX)"
     echo "$CONFIGS" | jq -r --arg h "$host" '{backup_r2_rclone_config: .[$h]}' | yq -P >"$work/plain.yaml"
+    # --filename-override only picks the .sops.yaml rule; HOST_YAML doesn't exist yet.
+    # shellcheck disable=SC2094
     sops --config "$SECRETS_ROOT/.sops.yaml" --filename-override "$HOST_YAML" \
       -e "$work/plain.yaml" >"$HOST_YAML"
     shred -u "$work/plain.yaml"

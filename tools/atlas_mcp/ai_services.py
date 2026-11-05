@@ -36,7 +36,7 @@ def _get_ai_base_url():
             resp = requests.get(f"{url}/api/tags", timeout=0.5)
             if resp.status_code == 200:
                 return {"url": url, "type": "ollama"}
-        except Exception:
+        except requests.RequestException:
             pass
 
         try:
@@ -44,7 +44,7 @@ def _get_ai_base_url():
             resp = requests.get(f"{url}/health", timeout=0.5)
             if resp.status_code == 200:
                 return {"url": url, "type": "llama-cpp"}
-        except Exception:
+        except requests.RequestException:
             pass
 
     return None
@@ -100,7 +100,7 @@ def check_ai_stack_health(target_host: str = "nixos-nvme", fix: bool = False):
 
         # Check for rendered secrets (local only for now)
         if target_host == "nixos-nvme":
-            secret_dir = "/run/secrets/rendered"
+            secret_dir = "/run/secrets/rendered"  # noqa: S105 (a path; only names are listed)
             if os.path.exists(secret_dir):
                 for s in os.listdir(secret_dir):
                     results["secrets"][s] = "Present"

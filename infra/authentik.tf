@@ -45,7 +45,7 @@ data "authentik_property_mapping_provider_scope" "profile" {
 locals {
   # Authentik's system keypair. With a signing key set, providers use RS256
   # and publish keys at /jwks/, which Cloudflare Access requires.
-  authentik_jwt_cert_id = "5d46e643-75cf-45a9-b623-46f8dd95e5ee"
+  authentik_jwt_cert_id = "5d46e643-75cf-45a9-b623-46f8dd95e5ee" # gitleaks:allow (keypair UUID, not key material)
 }
 
 # --- Self-registration for kleinbem.dev visitors ---
@@ -109,7 +109,7 @@ resource "authentik_stage_prompt_field" "enrollment_password_repeat" {
 # Same thresholds as default-password-change-password-policy.
 resource "authentik_policy_password" "enrollment_password_policy" {
   name           = "kleinbem-site-enrollment-password-policy"
-  password_field = "password"
+  password_field = "password" # gitleaks:allow (name of the form field)
   length_min     = 8
   check_zxcvbn   = true
   error_message  = "Password needs to be 8 characters or longer."

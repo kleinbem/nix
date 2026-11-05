@@ -44,7 +44,8 @@ def is_task_running():
     Check if a long-running workspace task (like apply or build) is currently active.
     Returns True if locked, False otherwise.
     """
-    lock_file = "/tmp/workspace-just.lock"
+    # The lock common.just's LOCK_CMD takes (kleinbem/.just/common.just LOCK_FILE).
+    lock_file = "/tmp/kleinbem-workspace-just.lock"  # noqa: S108
     if not os.path.exists(lock_file):
         return False
 
@@ -52,7 +53,7 @@ def is_task_running():
     import fcntl
 
     try:
-        with open(lock_file, "w") as f:
+        with open(lock_file, "a") as f:
             fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
             return False  # We got the lock, so no one else was holding it
     except OSError:

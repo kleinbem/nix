@@ -1,0 +1,33 @@
+# Replaces kleinbem/actions' lint/config/gitleaks.toml for this repo, so its
+# allowlists are repeated here, the SSH key name one narrowed to its one field.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "age public recipients"
+regexTarget = "match"
+regexes = ['''age1(yubikey1)?[0-9a-z]{50,}''']
+
+[[allowlists]]
+description = "sops ciphertext"
+regexes = ['''ENC\[AES256_GCM,data:''']
+
+# infra/personas.json is generated from nix-config's personas (lib/personas.nix)
+# and JSON can't carry an inline gitleaks:allow. Both allowlists match whole
+# lines of one field in that file only.
+[[allowlists]]
+description = "SSH key file names in the generated personas"
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''^infra/personas\.json$''']
+regexTarget = "line"
+regexes = ['''^\s*"signing-key": "id_(ed25519|ecdsa|rsa)(_sk)?(_[A-Za-z0-9-]+)*",?$''']
+
+# discord-id is a public Discord user id, not a client id or secret.
+[[allowlists]]
+description = "Discord user ids in the generated personas"
+condition = "AND"
+targetRules = ["discord-client-id"]
+paths = ['''^infra/personas\.json$''']
+regexTarget = "line"
+regexes = ['''^\s*"discord-id": "\d+",?$''']

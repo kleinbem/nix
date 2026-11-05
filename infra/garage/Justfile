@@ -25,7 +25,7 @@ plan: init
 
 # Apply.
 apply: init
-    {{_enc}} TF_VAR_garage_admin_token="$(sops -d {{secrets}} | yq '.garage_admin_token')" tofu apply
+    {{_enc}} TF_VAR_garage_admin_token="$(sops -d {{secrets}} | yq '.garage_admin_token')" ../../tools/tofu-guarded-apply.sh
 
 # Read the created credentials (capture these for restic / the tofu s3 backend).
 creds: init
