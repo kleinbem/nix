@@ -82,23 +82,6 @@ in repo *args:
 audit-locks-all:
     @just maintenance::audit-locks-all
 
-[group("Main")]
-phone *args:
-    @cd {{ROOT}}/nix-config && just android::phone {{args}}
-
-[group("Main")]
-phone-push:
-    @cd {{ROOT}}/nix-config && just android::phone-push
-
-[group("Main")]
-phone-backup-fetch:
-    @cd {{ROOT}}/nix-config && just android::phone-backup-fetch
-
-[group("Main")]
-tablet *args:
-    @cd {{ROOT}}/nix-config && just android::tablet {{args}}
-
-
 # --- Workspace Hub (fleet-aware, linutil-style browser) ---
 # Browses recipes from both this root and nix-config; it only discovers and
 # dispatches, recipes stay in their own repo. See tools/workspace-hub.sh.
