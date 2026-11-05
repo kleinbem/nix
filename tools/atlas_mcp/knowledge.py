@@ -85,7 +85,7 @@ def semantic_search(query: str):
                     # Ollama returns 'embedding', llama.cpp returns 'embedding' inside a list or directly
                     data = resp.json()
                     query_embedding = data.get("embedding")
-            except (requests.RequestException, ValueError):
+            except (requests.RequestException, ValueError, AttributeError):
                 pass
 
         def dot_product(v1, v2):

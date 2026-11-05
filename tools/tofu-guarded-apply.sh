@@ -8,8 +8,13 @@ set -euo pipefail
 auto=0
 args=()
 for a in "$@"; do
-  case $a in
+  case "$a" in
   -auto-approve | --auto-approve) auto=1 ;;
+  # The guard applies only the plan it checked.
+  -out | -out=* | --out | --out=*)
+    echo "❌ -out isn't supported here: the guarded plan is applied directly." >&2
+    exit 2
+    ;;
   *) args+=("$a") ;;
   esac
 done
@@ -35,8 +40,8 @@ if [ -n "$destroys" ]; then
   echo "ALLOW_DESTROY=1 set: going ahead." >&2
 fi
 
-if [ $auto -eq 0 ]; then
+if [ "$auto" -eq 0 ]; then
   read -r -p "Apply this plan? [y/N] " answer
-  [[ $answer == [yY]* ]] || { echo "Not applied."; exit 1; }
+  [[ "$answer" == [yY]* ]] || { echo "Not applied."; exit 1; }
 fi
 tofu apply -input=false "$work/plan"

@@ -167,7 +167,7 @@ def get_conversation_data():
                             conv_data["last_updated"] = max(
                                 conv_data["last_updated"], dt
                             )
-                except (OSError, ValueError, AttributeError):
+                except (OSError, ValueError, AttributeError, TypeError):
                     continue
 
             # Check for overview.txt
