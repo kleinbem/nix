@@ -61,9 +61,9 @@ just nixos::switch                # Raw nixos-rebuild switch via `nh`
 just nixos::test                  # Activate config without making it the boot default
 just nixos::sys-plan              # Diff current system vs new build (nvd)
 
-just maintenance::check           # Eval the primary host (nixos-nvme)
-just maintenance::check-hosts     # Full check of nix-config flake
-just maintenance::sync-agent      # Regenerate docs/SYSTEM_REFERENCE.md
+just dev::check                   # Eval the primary host (nixos-nvme)
+just dev::check-hosts             # Full check of nix-config flake
+just dev::sync-agent              # Regenerate docs/SYSTEM_REFERENCE.md
 
 just deployment::deploy-fleet     # Colmena deploy to all hosts (out-of-band push)
 just deployment::deploy-orin      # Deploy to Orin Nano only
@@ -168,4 +168,4 @@ Enter via `just devshell::<name>` (handles the path for you). Manual equivalent:
 - **Inventory**: `nix-config/inventory.nix` — master for both NixOS and OpenWrt infrastructure.
 - **Agent rules**: `.agent/rules.md` and `.agent/rules/coding_standards.md`.
 - **Decisions**: `.agent/decisions/` — ADRs for non-obvious architectural choices.
-- After changes, run `just maintenance::sync-agent` to regenerate the system reference.
+- After changes, run `just dev::sync-agent` in nix-config to regenerate the system reference.
