@@ -5,7 +5,7 @@ terraform {
   required_providers {
     cloudflare = {
       source  = "cloudflare/cloudflare"
-      version = "~> 4.0"
+      version = "~> 5.28"
     }
     github = {
       source  = "integrations/github"
@@ -13,11 +13,11 @@ terraform {
     }
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "~> 6.71"
     }
     google = {
       source  = "hashicorp/google"
-      version = "~> 6.0"
+      version = "~> 8.9"
     }
     authentik = {
       source  = "goauthentik/authentik"
