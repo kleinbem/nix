@@ -6,7 +6,7 @@ description: "Checklist and impact analysis for editing an existing module"
 
 When modifying a module, especially renaming options, follow these steps to ensure you don't break consumers:
 
-1. In `nix-config`, run `just dev::impact <module-path>` to print a list of all consuming hosts. Also grep `nix-config/docs/OPTIONS.md` for the namespace and `nix-config/docs/IMPORTS.md` for
+1. In `nix-config`, run `just dev::impact <module-path>` to print a list of all consuming hosts. Also grep `docs/OPTIONS.md` for the namespace and `docs/IMPORTS.md` for
    the file: a module without `my.*` options has importers but no option consumers. IMPORTS.md
    lists only a host's direct imports, so also search for the files that import yours.
 2. Make your desired changes.
