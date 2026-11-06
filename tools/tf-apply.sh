@@ -213,7 +213,7 @@ NTFY_CI_TOKEN=$(echo "$SHARED_YAML" | yq '.ntfy_ci_token')
 # --- Google Cloud (infra/google.tf) ---
 # Hand-made bootstrap service-account key (base64 JSON), see infra/google.tf.
 GOOGLE_SA_KEY=$(echo "$DECRYPTED_YAML" | yq '.google_service_account_key')
-# healthchecks.io API key; empty means healthchecks.tf manages no checks.
+# healthchecks.io API key; healthchecks.tf requires it.
 HEALTHCHECKS_API_KEY=$(echo "$DECRYPTED_YAML" | yq '.healthchecks_api_key')
 
 # Normalise missing keys ("null") to empty strings
