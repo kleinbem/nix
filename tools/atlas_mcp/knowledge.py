@@ -105,8 +105,15 @@ def semantic_search(query: str):
         results = []
         for doc in index:
             score = 0
-            if query_embedding and doc.get("embedding"):
-                score = cosine_similarity(query_embedding, doc["embedding"])
+            # Another embedding model gives other dimensions, and zip() would
+            # compare only a prefix: use the keyword match for those.
+            doc_embedding = doc.get("embedding")
+            if (
+                query_embedding
+                and doc_embedding
+                and len(doc_embedding) == len(query_embedding)
+            ):
+                score = cosine_similarity(query_embedding, doc_embedding)
             else:
                 # Fallback to simple keyword overlap if no embeddings
                 if (
@@ -138,11 +145,13 @@ def reindex_vault():
     Run the semantic indexer to refresh the vault index.
     """
     try:
-        cmd = [
-            "python3",
-            os.path.join(DEFAULT_FLAKE_PATH, "tools/workspace-indexer.py"),
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        return {"stdout": result.stdout, "stderr": result.stderr}
+        cmd = [os.path.join(DEFAULT_FLAKE_PATH, "tools/workspace-indexer.sh")]
+        # One embedding request per note, up to 10 s each: bound the whole run.
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
+        return {
+            "exit_code": result.returncode,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+        }
     except Exception as e:
         return {"error": str(e)}

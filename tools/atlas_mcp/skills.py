@@ -53,7 +53,7 @@ def is_task_running():
     import fcntl
 
     try:
-        with open(lock_file, "a") as f:
+        with open(lock_file, "r") as f:
             fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
             return False  # We got the lock, so no one else was holding it
     except OSError:
@@ -64,7 +64,7 @@ def is_task_running():
 
 @mcp.tool()
 def manage_skill_progress(
-    skill_name: str, step_index: int = None, status: str = "view"
+    skill_name: str, step_index: int | None = None, status: str = "view"
 ):
     """
     Manage progress through a workspace skill.
@@ -72,27 +72,39 @@ def manage_skill_progress(
     """
     progress_file = os.path.join(DEFAULT_FLAKE_PATH, "scratch/skill_progress.json")
     try:
-        progress = {}
-        if os.path.exists(progress_file):
-            with open(progress_file, "r") as f:
-                progress = json.load(f)
+        import fcntl
 
-        if skill_name not in progress:
-            progress[skill_name] = {
-                "completed_steps": [],
-                "last_updated": datetime.now().isoformat(),
-            }
+        os.makedirs(os.path.dirname(progress_file), exist_ok=True)
+        # Every agent session runs its own MCP server: lock the whole
+        # read-modify-write, and replace the file atomically.
+        with open(progress_file + ".lock", "w") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            progress = {}
+            if os.path.exists(progress_file):
+                with open(progress_file, "r") as f:
+                    progress = json.load(f)
 
-        if status == "complete" and step_index is not None:
-            if step_index not in progress[skill_name]["completed_steps"]:
-                progress[skill_name]["completed_steps"].append(step_index)
-                progress[skill_name]["last_updated"] = datetime.now().isoformat()
-        elif status == "reset":
-            progress[skill_name]["completed_steps"] = []
+            if skill_name not in progress:
+                progress[skill_name] = {
+                    "completed_steps": [],
+                    "last_updated": datetime.now().isoformat(),
+                }
 
-        with open(progress_file, "w") as f:
-            json.dump(progress, f, indent=2)
+            entry = progress[skill_name]
+            if status == "complete" and step_index is not None:
+                if step_index not in entry["completed_steps"]:
+                    entry["completed_steps"].append(step_index)
+                    entry["last_updated"] = datetime.now().isoformat()
+            elif status == "reset":
+                entry["completed_steps"] = []
 
-        return progress[skill_name]
+            tmp = progress_file + ".tmp"
+            with open(tmp, "w") as f:
+                json.dump(progress, f, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp, progress_file)
+
+        return entry
     except Exception as e:
         return {"error": str(e)}

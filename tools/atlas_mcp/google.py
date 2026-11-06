@@ -1,7 +1,7 @@
 import json
 import os
 import subprocess
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -47,6 +47,8 @@ def _get_google_creds():
     """Helper to handle Google OAuth2 flow."""
     creds = None
     if os.path.exists(GOOGLE_TOKEN_PATH):
+        # The cache holds the refresh token and the client secret.
+        os.chmod(GOOGLE_TOKEN_PATH, 0o600)
         creds = Credentials.from_authorized_user_file(GOOGLE_TOKEN_PATH, GOOGLE_SCOPES)
 
     if not creds or not creds.valid:
@@ -59,7 +61,8 @@ def _get_google_creds():
             creds = flow.run_local_server(port=0)
 
         os.makedirs(os.path.dirname(GOOGLE_TOKEN_PATH), exist_ok=True)
-        with open(GOOGLE_TOKEN_PATH, "w") as token:
+        fd = os.open(GOOGLE_TOKEN_PATH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as token:
             token.write(creds.to_json())
     return creds
 
@@ -74,8 +77,9 @@ def get_calendar_events(days: int = 7):
         creds = _get_google_creds()
         service = build("calendar", "v3", credentials=creds)
 
-        now = datetime.utcnow().isoformat() + "Z"
-        end_time = (datetime.utcnow() + timedelta(days=days)).isoformat() + "Z"
+        start = datetime.now(timezone.utc)
+        now = start.isoformat()
+        end_time = (start + timedelta(days=days)).isoformat()
 
         events_result = (
             service.events()

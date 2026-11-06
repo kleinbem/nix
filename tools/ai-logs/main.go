@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -94,6 +93,30 @@ func getRecentErrors(lines int, unit, machine string) (interface{}, error) {
 	return logs, nil
 }
 
+// writeAtomic replaces path via a unique temp file, so concurrent runs
+// never share one.
+func writeAtomic(path string, data []byte) error {
+	f, err := os.CreateTemp(filepath.Dir(path), filepath.Base(path)+".*.tmp")
+	if err != nil {
+		return err
+	}
+	tmp := f.Name()
+	_, err = f.Write(data)
+	if err == nil {
+		err = f.Chmod(0644)
+	}
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err == nil {
+		err = os.Rename(tmp, path)
+	}
+	if err != nil {
+		os.Remove(tmp)
+	}
+	return err
+}
+
 func main() {
 	linesPtr := flag.Int("n", 30, "Number of log lines to fetch")
 	flag.IntVar(linesPtr, "lines", 30, "Number of log lines to fetch")
@@ -116,48 +139,52 @@ func main() {
 	logsDict, isDict := res.(map[string]string)
 
 	if *sinkPtr {
-		ex, err := os.Executable()
-		if err == nil {
-			pwd, _ := os.Getwd()
-			idx := strings.Index(pwd, "kleinbem/nix")
-			var flakePath string
-			if idx != -1 {
-				flakePath = pwd[:idx+len("kleinbem/nix")]
-			} else {
-				flakePath = filepath.Dir(filepath.Dir(filepath.Dir(ex)))
-			}
-			sinkPath := filepath.Join(flakePath, "scratch/ai-health.json")
-			os.MkdirAll(filepath.Dir(sinkPath), 0755)
+		// ai-logs.sh sets AI_LOGS_ROOT to the nix/ checkout.
+		flakePath := os.Getenv("AI_LOGS_ROOT")
+		if flakePath == "" {
+			fmt.Fprintln(os.Stderr, "Error: --sink needs AI_LOGS_ROOT (run via tools/ai-logs.sh)")
+			os.Exit(1)
+		}
+		sinkPath := filepath.Join(flakePath, "scratch/ai-health.json")
+		if err := os.MkdirAll(filepath.Dir(sinkPath), 0755); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 
-			status := "Healthy"
-			errCount := 0
-			var recentUnits []string
-			if isSlice {
-				errCount = len(logs)
-				if errCount > 0 {
-					status = "Degraded"
-				}
-				unitMap := make(map[string]bool)
-				for _, l := range logs {
-					if l.Unit != "" {
-						unitMap[l.Unit] = true
-					}
-				}
-				for k := range unitMap {
-					recentUnits = append(recentUnits, k)
-				}
-			} else {
+		status := "Healthy"
+		errCount := 0
+		var recentUnits []string
+		if isSlice {
+			errCount = len(logs)
+			if errCount > 0 {
 				status = "Degraded"
 			}
-
-			summary := SinkSummary{
-				LastCheck:   time.Now().Format(time.RFC3339),
-				ErrorCount:  errCount,
-				Status:      status,
-				RecentUnits: recentUnits,
+			unitMap := make(map[string]bool)
+			for _, l := range logs {
+				if l.Unit != "" {
+					unitMap[l.Unit] = true
+				}
 			}
-			b, _ := json.MarshalIndent(summary, "", "  ")
-			os.WriteFile(sinkPath, b, 0644)
+			for k := range unitMap {
+				recentUnits = append(recentUnits, k)
+			}
+		} else {
+			status = "Degraded"
+		}
+
+		summary := SinkSummary{
+			LastCheck:   time.Now().Format(time.RFC3339),
+			ErrorCount:  errCount,
+			Status:      status,
+			RecentUnits: recentUnits,
+		}
+		b, err := json.MarshalIndent(summary, "", "  ")
+		if err == nil {
+			err = writeAtomic(sinkPath, b)
+		}
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error writing %s: %v\n", sinkPath, err)
+			os.Exit(1)
 		}
 	}
 

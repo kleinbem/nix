@@ -1,12 +1,16 @@
 import json
 import os
 import shutil
+import socket
 import subprocess
+import time
 
-from .core import DEFAULT_FLAKE_PATH, mcp
+from .core import DEFAULT_FLAKE_PATH, WORKSPACE_ROOT, mcp
 from .network import netbird_status
 
 _INVENTORY_CACHE = None
+# The running ai-logs.sh --sink refresh, if any.
+_SINK_REFRESH = None
 
 
 def _get_inventory_cached():
@@ -14,7 +18,7 @@ def _get_inventory_cached():
     if _INVENTORY_CACHE is not None:
         return _INVENTORY_CACHE
     try:
-        inv_path = os.path.join(DEFAULT_FLAKE_PATH, "nix-config/inventory.nix")
+        inv_path = os.path.join(WORKSPACE_ROOT, "nix-config/inventory.nix")
         result = subprocess.run(
             ["nix", "eval", "--json", "--file", inv_path],
             capture_output=True,
@@ -37,19 +41,27 @@ def get_fleet_status():
         if "error" in inventory:
             return inventory
 
-        # Check NetBird status for mesh connectivity
+        # Check NetBird status for mesh connectivity. Peers are keyed by the
+        # first label of their FQDN (orin-nano.netbird.cloud -> orin-nano).
         nb = netbird_status()
-        peers = {}
-        if isinstance(nb, dict) and "peers" in nb:
-            for p in nb["peers"]:
-                peers[p.get("hostname", "unknown")] = p.get("status", "offline")
+        peers = None
+        if isinstance(nb, dict) and isinstance(nb.get("peers"), dict):
+            peers = {}
+            # Our own NetBird FQDN can carry a suffix; the hostname can't.
+            peers[socket.gethostname()] = "this host"
+            for p in nb["peers"].get("details") or []:
+                name = (p.get("fqdn") or "").split(".")[0]
+                if name:
+                    peers[name] = p.get("status", "unknown")
 
         # inventory.nix top level is {git, hardware, hosts, network, …} —
         # the fleet lives under `hosts`, each entry {ip, tags, type}.
         for host, data in inventory.get("hosts", {}).items():
             results[host] = {
                 "ip": data.get("ip", "unknown"),
-                "mesh_status": peers.get(host, "offline"),
+                "mesh_status": (
+                    "unavailable" if peers is None else peers.get(host, "not a peer")
+                ),
                 "tags": data.get("tags", []),
             }
     except Exception as e:
@@ -75,6 +87,7 @@ def get_system_telemetry():
     Fetch real-time hardware telemetry (CPU, Mem, Disk, Temp).
     Essential for monitoring build load and system health.
     """
+    global _SINK_REFRESH
     try:
         import psutil
 
@@ -97,30 +110,23 @@ def get_system_telemetry():
         except (AttributeError, OSError):
             pass
 
-        # Check Health Sink from ai-logs.py
+        # Health sink written by tools/ai-logs.sh --sink. Refresh it in the
+        # background when missing, or when Degraded and older than 10 minutes,
+        # so repeated calls don't each start a new run.
         health_status = "Unknown"
         sink_path = os.path.join(DEFAULT_FLAKE_PATH, "scratch/ai-health.json")
+        refresh = True
         if os.path.exists(sink_path):
             with open(sink_path, "r") as f:
                 sink_data = json.load(f)
-                health_status = sink_data.get("status", "Unknown")
-                # If degraded, trigger a refresh in the background
-                if health_status == "Degraded":
-                    subprocess.Popen(
-                        [
-                            "python3",
-                            os.path.join(DEFAULT_FLAKE_PATH, "tools/ai-logs.py"),
-                            "--sink",
-                        ]
-                    )
-        else:
-            # First time? Run it once.
-            subprocess.Popen(
-                [
-                    "python3",
-                    os.path.join(DEFAULT_FLAKE_PATH, "tools/ai-logs.py"),
-                    "--sink",
-                ]
+            health_status = sink_data.get("status", "Unknown")
+            age = time.time() - os.path.getmtime(sink_path)
+            refresh = health_status == "Degraded" and age > 600
+        if refresh and (_SINK_REFRESH is None or _SINK_REFRESH.poll() is not None):
+            _SINK_REFRESH = subprocess.Popen(
+                [os.path.join(DEFAULT_FLAKE_PATH, "tools/ai-logs.sh"), "--sink"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
             )
 
         return {

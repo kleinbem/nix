@@ -38,13 +38,16 @@ def analyze_nix_closure(attr_path: str):
 
 @mcp.tool()
 def check_binary_cache(pkg_name: str):
-    """Check if a package is available in the Nix binary cache."""
+    """Search nixpkgs for a package (does not query the binary cache itself)."""
     try:
         res = subprocess.run(
-            ["nix", "search", "nixpkgs", pkg_name, "--json"],
+            ["nix", "search", "--json", "nixpkgs", "--", pkg_name],
             capture_output=True,
             text=True,
+            timeout=120,
         )
+        if res.returncode != 0:
+            return {"error": res.stderr}
         return json.loads(res.stdout)
     except Exception as e:
         return {"error": str(e)}

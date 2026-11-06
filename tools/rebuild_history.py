@@ -15,6 +15,9 @@ CONVERSATIONS_DIR = os.path.expanduser("~/.gemini/antigravity/conversations")
 IMPLICIT_DIR = os.path.expanduser("~/.gemini/antigravity/implicit")
 KNOWLEDGE_DIR = ".agent/knowledge"
 OUTPUT_FILE = "conversation_history.md"
+# Sidebar duplicates are moved here instead of deleted. The IDE lists
+# subagent sessions as conversations; no-link: not reported to Antigravity.
+REMOVED_DIR = os.path.expanduser("~/.gemini/antigravity/conversations.removed")
 
 
 def sanitize_filename(text):
@@ -275,9 +278,13 @@ def sync_missing_to_app(convs):
             conv_path = os.path.join(CONVERSATIONS_DIR, f"{conv_id}.pb")
             if os.path.exists(conv_path):
                 try:
-                    os.remove(conv_path)
+                    os.makedirs(REMOVED_DIR, exist_ok=True)
+                    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
+                    shutil.move(
+                        conv_path, os.path.join(REMOVED_DIR, f"{conv_id}.{stamp}.pb")
+                    )
                     print(
-                        f"  [CLEAN] Removed subagent session {conv_id[:8]}... from UI sidebar"
+                        f"  [CLEAN] Moved subagent session {conv_id[:8]}... out of the UI sidebar ({REMOVED_DIR})"
                     )
                     count += 1
                 except Exception as e:
@@ -491,9 +498,19 @@ def sync_database_index(convs):
             "  Please restart/reopen the IDE after the sync completes to load the updated sidebar."
         )
 
-    backup_path = db_path + ".backup"
+    # One backup per run, through SQLite's backup API: the IDE may be writing.
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
+    backup_path = f"{db_path}.backup-{stamp}"
     try:
-        shutil.copy2(db_path, backup_path)
+        # O_EXCL: never overwrite an earlier snapshot.
+        os.close(os.open(backup_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600))
+        src = sqlite3.connect(db_path)
+        dst = sqlite3.connect(backup_path)
+        try:
+            src.backup(dst)
+        finally:
+            dst.close()
+            src.close()
         print(f"💾 Backed up global storage database to {backup_path}")
     except Exception as e:
         print(f"❌ Failed to back up SQLite database: {e}")
@@ -631,10 +648,11 @@ def generate_markdown(convs):
     for c in sorted_convs:
         date_str = c["last_updated"].strftime("%Y-%m-%d %H:%M")
         summary = (
-            " / ".join(list(set(c["summaries"])))
+            " / ".join(dict.fromkeys(c["summaries"]))
             if c["summaries"]
             else "*(No summary)*"
         )
+        summary = summary.replace("|", "\\|").replace("\n", " ")
         if len(summary) > 90:
             summary = summary[:87] + "..."
 
@@ -675,7 +693,7 @@ def distill_to_knowledge(convs):
         content += f"- **Activity State**: {activity}\n\n"
 
         content += "## Summaries Found\n"
-        for s in set(c["summaries"]):
+        for s in dict.fromkeys(c["summaries"]):
             content += f"- {s}\n"
 
         with open(filepath, "w") as f:
