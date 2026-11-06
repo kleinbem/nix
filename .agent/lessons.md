@@ -18,7 +18,8 @@ description: Persistent memory of lessons learned and patterns to avoid
 - ❌ **Bad**: Changing `flake.nix` `url` to a local path (Breaks CI/Remote builds).
 - ✅ **Good**: Pass `--override-input` to every command that evaluates the flake. In
   `nix-config`, most `just` recipes do this through `OVERRIDES` (`.just/common.just`), which
-  covers every sibling checkout and `kleinbem-secrets`. Some don't (`deployment::pi-update-usb`
+  covers the `nix-*` sibling checkouts and `kleinbem-secrets`, not other inputs such as
+  `kleinbem-skills`. Some recipes don't pass it (`deployment::pi-update-usb`
   builds the locked inputs), so check the recipe before relying on local changes:
 
     ```bash
