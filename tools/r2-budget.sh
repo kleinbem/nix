@@ -6,6 +6,14 @@
 # DRY_RUN=1 to only report.
 set -euo pipefail
 
+# An empty token would turn the guard off while the run stays green.
+for v in CLOUDFLARE_ACCOUNT_ID R2_BUDGET_TOKEN; do
+  if [ -z "${!v:-}" ]; then
+    echo "::error::$v is not set, the R2 budget guard can't run" >&2
+    exit 1
+  fi
+done
+
 ALERT_EUR=${ALERT_EUR:-5}
 OFFLINE_EUR=${OFFLINE_EUR:-15}
 bucket=kleinbem-cache

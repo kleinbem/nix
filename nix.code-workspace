@@ -29,20 +29,12 @@
       "path": "../nix-templates"
     },
     {
-      "name": "Nix Secrets",
-      "path": "../nix-secrets"
-    },
-    {
       "name": "Github config",
       "path": "/home/martin/Develop/github.com/kleinbem/github-config"
     },
     {
       "name": "Router Config (Ansible)",
       "path": "/home/martin/Develop/github.com/kleinbem/openwrt-config"
-    },
-    {
-      "name": "Router Secrets",
-      "path": "/home/martin/Develop/github.com/kleinbem/openwrt-secrets"
     },
     {
       "name": "Antigravity (Memory)",
@@ -53,10 +45,6 @@
       "path": "/home/martin/.local/share/applications"
     },
     {
-      "name": "System Persistence",
-      "path": "/nix/persist"
-    },
-    {
       "name": "User Systemd Units",
       "path": "/home/martin/.config/systemd/user"
     },
@@ -65,32 +53,8 @@
       "path": "/home/martin/.ssh"
     },
     {
-      "name": "Browser Profiles",
-      "path": "/home/martin/.mozilla/firefox"
-    },
-    {
       "name": "Obsidian Vault",
       "path": "/home/martin/Documents/Notes"
-    },
-    {
-      "name": "System Logs",
-      "path": "/var/log"
-    },
-    {
-      "name": "Container State",
-      "path": "/var/lib/containers"
-    },
-    {
-      "name": "Nix Profiles",
-      "path": "/nix/var/nix/profiles"
-    },
-    {
-      "name": "Global Nix Config",
-      "path": "/etc/nix"
-    },
-    {
-      "name": "Sops State",
-      "path": "/var/lib/sops"
     },
     {
       "name": "Local Bin",
@@ -99,24 +63,12 @@
   ],
   "settings": {
     "editor.formatOnSave": true,
-    // The system-dir folders above (containers, /var/log, /nix/*, browser
-    // profiles) must stay out of the watcher and search index: watching them
-    // was a root cause of the 2026-07-15 whole-machine freeze. Explorer
-    // browsing still works — these only stop FS-event watching and grep.
+    // No system dirs (/nix, /var, browser profiles) as folders: watching them froze the
+    // machine, and absolute exclude patterns don't apply per folder.
     "files.watcherExclude": {
       "**/result": true,
       "**/result-*": true,
-      "**/.direnv": true,
-      "/var/lib/containers/**": true,
-      "/var/log/**": true,
-      "/nix/**": true,
-      "/home/martin/.mozilla/**": true
-    },
-    "search.exclude": {
-      "/var/lib/containers/**": true,
-      "/var/log/**": true,
-      "/nix/**": true,
-      "/home/martin/.mozilla/**": true
+      "**/.direnv": true
     },
     "files.exclude": {
       "**/.git": true,
@@ -133,10 +85,8 @@
     "[nix]": {
       "editor.defaultFormatter": "jnoortheen.nix-ide"
     },
-    // nil, not nixd: nixd's option providers eval the full system config
-    // (multi-GB workers — 2026-07-15 freeze). nixEnvSelector settings removed:
-    // the meta root has no flake.nix, so they only produced a blocking
-    // execSync error in the extension host at every startup.
+    // nil, not nixd: nixd's option providers eval the full system config in
+    // multi-GB workers.
     "nix.enableLanguageServer": true,
     "nix.serverPath": "nil",
     "nix.formatterPath": "nixfmt"
