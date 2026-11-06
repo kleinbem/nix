@@ -10,7 +10,7 @@ terraform {
     netbird = {
       source = "netbirdio/netbird"
       # Pinned exactly — provider is pre-1.0, so minor bumps may break schema.
-      version = "0.0.9"
+      version = "0.0.11"
     }
   }
 }
