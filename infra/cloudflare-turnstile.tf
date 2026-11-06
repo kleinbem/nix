@@ -9,6 +9,13 @@ resource "cloudflare_turnstile_widget" "kleinbem_site" {
     local.primary_domain,
     "www.${local.primary_domain}",
   ]
+
+  # v5 puts the list endpoint's page/per_page on this resource. The diff alone
+  # triggers an update that plans a new secret, which would empty
+  # TURNSTILE_SECRET_KEY.
+  lifecycle {
+    ignore_changes = [page, per_page]
+  }
 }
 
 output "turnstile_site_key" {
