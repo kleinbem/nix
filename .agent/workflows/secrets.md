@@ -4,32 +4,31 @@ description: "Manage encrypted secrets with SOPS"
 
 # Manage Secrets (SOPS)
 
-Our secrets are stored in the `nix-secrets` repository and encrypted using **sops-nix** with **age** (via YubiKey).
+Secrets live in the sibling `kleinbem-secrets` repo (sops + age, YubiKey for Martin's key).
+`nix-config` reads them through its `kleinbem-secrets` flake input. Full guide:
+`nix-config/docs/SECRETS-MANAGEMENT.md`.
 
 ## 1. Prerequisites
-- **SOPS**: Installed in your environment.
-- **YubiKey**: Plugged in and configured for `age`.
+- `sops` and `age-plugin-yubikey` (both in the workspace devshell).
+- YubiKey plugged in.
 
 ## 2. Edit Secrets
-To edit the main secrets file:
+From `nix/`:
 
 ```bash
-cd nix-secrets
-sops secrets.yaml
+cd ../kleinbem-secrets || exit 1
+sops nix/shared.yaml               # fleet-wide
+sops nix/per-host/<host>.yaml      # one host
 ```
 
-This will decrypt the file into your editor. When you save and close, SOPS will re-encrypt it.
+sops decrypts into your editor and re-encrypts on save. Who can decrypt which path is set in
+`kleinbem-secrets/.sops.yaml`.
 
-## 3. Adding a New Secret
-1. Open the file as shown above.
-2. Add a new key:value pair.
-3. Save and close.
+## 3. Using Secrets in Nix
+- Reference the file with `secretFile "<path>"` (`nix-config/lib/secret-file.nix`).
+- Declare the key in `sops.secrets` and read it via `config.sops.secrets.<name>.path`.
+- Gate the `sops.secrets` entry behind the module's `enable` option.
 
-## 4. Using Secrets in Nix
-Secrets are imported into `nix-config`.
-- **References**: Usually handled via `config.sops.secrets.<name>.path`.
-- **Note**: Ensure the secret is added to the `sops.secrets` attribute set in your NixOS module.
-
-## 5. Troubleshooting
-- **No touch prompt?** Check if `gpg-agent` or `pcscd` is running.
-- **Permission denied?** Ensure your YubiKey age identity is recognized (`age-plugin-yubikey`).
+## 4. Troubleshooting
+- **No touch prompt?** Check that `pcscd` is running.
+- **Permission denied?** Check that the YubiKey age identity is recognized (`age-plugin-yubikey --list`).

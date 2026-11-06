@@ -3,38 +3,25 @@ description: "Deploy and verify configuration on a remote host"
 ---
 
 # Deploy Remote Host
-// turbo-all
 
-Follow this procedure to bring a remote host (like Orin Nano or RPi) online with its latest configuration.
+Hosts pull CI-validated commits on their own. Use this only for an immediate deploy to one
+remote host (like orin-nano or core-pi). Commands run from `nix/`.
 
 ## 1. Verify Connectivity
-Check if the host is reachable via the mesh network before attempting deployment.
 ```bash
-# Use MCP to check fleet status
-# mcp_workspace-atlas_get_fleet_status
+ping -c1 -W2 <HOST_NAME>
 ```
+Stop if the host doesn't answer.
 
-## 2. Check Prerequisites
-Ensure you are in the correct devshell and have necessary secrets.
+## 2. Apply Configuration
 ```bash
-# mcp_workspace-atlas_check_ai_stack_health --target_host <HOST_NAME>
+just apply <HOST_NAME>
 ```
+This runs `just dev::apply <HOST_NAME>` in `nix-config`; `just apply --help` lists the flags.
 
-## 3. Apply Configuration
-Deploy the configuration using Colmena or `just`.
+## 3. Post-Deployment Health Check
 ```bash
-# Replace <HOST_NAME> with the actual host (e.g., orin-nano)
-just deployment::remote <HOST_NAME>
+ssh <HOST_NAME> systemctl list-units --failed --no-legend
 ```
-
-## 4. Post-Deployment Health Check
-Verify all services are running correctly on the target host.
-```bash
-# mcp_workspace-atlas_check_ai_stack_health --target_host <HOST_NAME>
-```
-
-## 5. Update Task List
-Mark the host as online in our tracking system.
-```bash
-# mcp_workspace-atlas_update_todo --task "Bring <HOST_NAME> online" --status "done"
-```
+Any output is a failed unit: look at it (`ssh <HOST_NAME> journalctl -u <unit> -n 50`)
+before calling the host done.

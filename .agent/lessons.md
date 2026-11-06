@@ -11,16 +11,21 @@ description: Persistent memory of lessons learned and patterns to avoid
 - ❌ **Bad**: `just -d path/to/child command` (Fails if `just` version differs or env logic differs).
 - ✅ **Good**: `cd path/to/child && just command` (Robust, respects child's environment).
 
-## 2. Flake Input Overrides (Direnv)
+## 2. Flake Input Overrides
 
-**Pattern**: Using a local copy of a private inputs (like `nix-secrets`) without polluting `flake.nix`.
+**Pattern**: Using a local checkout of an input (like `kleinbem-secrets`) without polluting `flake.nix`.
 
 - ❌ **Bad**: Changing `flake.nix` `url` to a local path (Breaks CI/Remote builds).
-- ✅ **Good**: Use `.envrc` override:
+- ✅ **Good**: Pass `--override-input` to every command that evaluates the flake. In
+  `nix-config`, the `just` recipes do this through `OVERRIDES` (`.just/common.just`), which
+  covers every sibling checkout and `kleinbem-secrets`:
 
     ```bash
-    use flake . --override-input nix-secrets path:../nix-secrets
+    nix build .#<attr> --override-input kleinbem-secrets git+file://$PWD/../kleinbem-secrets
     ```
+
+  An override in `.envrc` (`use flake . --override-input ...`) only reaches the dev shell, not
+  later `nix build` or deploy commands.
 
 ## 3. Filesystem Hierarchy Standard (FHS)
 

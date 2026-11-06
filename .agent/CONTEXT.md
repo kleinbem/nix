@@ -14,7 +14,7 @@ description: High-level context, goals, and architecture of the workspace
 ## 2. Architecture: Federated Meta-Workspaces
 
 The workspace is NOT a monorepo. `nix/` and `openwrt/` are each their own colocated
-git+jj repo acting as a tooling-only conductor (own `justfile`, `repos.nix`,
+git+jj repo acting as a tooling-only conductor (own `justfile` and
 `.agent/`) for a domain. Their sub-flakes/sub-repos are **flat siblings** under
 the workspace root — not nested inside the conductor dir, not git submodules.
 Each conductor's `just` recipes resolve them via `{{ROOT}}` (justfiles) or
@@ -22,16 +22,15 @@ Each conductor's `just` recipes resolve them via `{{ROOT}}` (justfiles) or
 
 ```text
 ~/Develop/github.com/kleinbem/       # workspace root — NOT a git repo itself
-├── kleinbem/                 # profile/meta repo (README, .code-workspace)
+├── kleinbem/                 # fleet hub: repos.nix, shared .just/ modules
 ├── nix/                      # [CONDUCTOR] General Computing — own git+jj repo
 ├── nix-config/                 Main NixOS Flake (flake-parts)
-├── nix-secrets/                Private secrets (Sops)
 ├── nix-presets/ nix-hardware/ nix-devshells/ nix-packages/ nix-templates/
 ├── github-config/              GitHub governance (Terraform)
+├── kleinbem-secrets/           Fleet secrets (sops + age)
 ├── openwrt/                  # [CONDUCTOR] Networking — own git+jj repo
 ├── openwrt-builder/            Router Image Builder
-├── openwrt-config/             Ansible runtime config
-└── openwrt-secrets/            Router secrets (Sops)
+└── openwrt-config/             Ansible runtime config
 ```
 
 ## 3. Tech Stack

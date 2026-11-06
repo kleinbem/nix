@@ -2,18 +2,14 @@
 description: Verify Caddy service and dashboard accessibility
 ---
 
-1. Apply the local configuration change
-// turbo
-2. just switch-local
+1. Apply the local configuration change from `nix/`:
+   `just apply`
 
-3. Wait for Caddy to become responsive (retry loop)
-// turbo
-4. for i in {1..10}; do curl -k -v https://10.85.46.107 && break || sleep 5; done
+2. Check Caddy from `nix/`:
+   `just in nix-config nixos::verify-caddy`
 
-5. Check Caddy service status on the host (if failed)
-// turbo
-6. systemctl status container@caddy.service --no-pager
+   It retries for about 10 seconds and exits non-zero when Caddy doesn't answer, printing the
+   container's status and recent logs.
 
-7. Check Caddy internal logs (via journalctl on host)
-// turbo
-8. journalctl -u container@caddy.service -n 50 --no-pager
+3. For more logs:
+   `just in nix-config containers::logs caddy`

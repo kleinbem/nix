@@ -7,17 +7,22 @@
 - [ ] SATA Mode: [AHCI]
 - [ ] TPM: [Enabled]
 
-## Disk Partitioning (Manual)
+## Disk Layout
 
-- [ ] EFI Partition (512MB-1GB, FAT32)
-- [ ] Root Partition (Ext4/Btrfs/ZFS)
-- [ ] Swap (Optional)
+- [ ] Declare the disks in a disko layout (`hosts/<name>/disko.nix` or a shared one in
+      `modules/nixos/`). disko partitions, formats and mounts the target, so the fleet
+      doesn't use `nixos-generate-config` or a hand-written `hardware-configuration.nix`.
 
-## Antigravity Bootstrap
+## Add the Host
 
-- [ ] Clone Repo: `git clone ...`
-- [ ] Generate Config: `nixos-generate-config`
-- [ ] Update `hosts/<name>/hardware-configuration.nix` with UUIDs
-- [ ] Run Bootstrap: `.agent/scripts/bootstrap.sh`
-- [ ] Verify: `.agent/workflows/verify.md`
-- [ ] Install: `nixos-install --flake .#<name>`
+Work in `nix-config` (a sibling of `nix/`, not inside it).
+
+- [ ] Follow `nix-config/hosts/AGENTS.md` and the host checklist in
+      `nix-config/docs/DEVICE-TIERS.md` (inventory entry, host dir, nix-hardware module).
+- [ ] `just dev::sync-agent` and `just dev::check-hosts` in `nix-config`.
+
+## Install
+
+- [ ] Use the host's install recipe in `nix-config` (`just --list deployment`: `*-install-usb`,
+      `pi-install-usb`, `orin-promote`). They run disko and install `nix-config#<name>`;
+      for a new kind of host, copy the closest one.
