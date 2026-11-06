@@ -10,13 +10,18 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
-const (
-	VAULT_PATH = "/home/martin/Documents/Notes"
-	INDEX_PATH = "/home/martin/Develop/github.com/kleinbem/nix/scratch/semantic_index.json"
-	MODEL      = "nomic-embed-text"
+const MODEL = "nomic-embed-text"
+
+// Set in main: the vault atlas_mcp searches, and nix/scratch/ where its
+// semantic_search reads the index. workspace-indexer.sh sets INDEXER_NIX_ROOT.
+var (
+	VAULT_PATH string
+	INDEX_PATH string
+	NIX_ROOT   string
 )
 
 func getOllamaUrl() string {
@@ -27,10 +32,7 @@ func getOllamaUrl() string {
 	}
 
 	// Try to get from inventory.nix
-	invPath := "/home/martin/Develop/github.com/kleinbem/nix-config/inventory.nix"
-	if _, err := os.Stat(invPath); os.IsNotExist(err) {
-		invPath = "/home/martin/Develop/github.com/kleinbem/nix/nix-config/inventory.nix"
-	}
+	invPath := filepath.Join(filepath.Dir(NIX_ROOT), "nix-config", "inventory.nix")
 	if _, err := os.Stat(invPath); err == nil {
 		cmd := exec.Command("nix", "eval", "--json", "--file", invPath)
 		var out bytes.Buffer
@@ -59,7 +61,7 @@ func getOllamaUrl() string {
 		parts := strings.Split(url, "/")
 		if len(parts) > 3 {
 			baseUrl := strings.Join(parts[:len(parts)-2], "/")
-			resp, err := client.Get(baseUrl + "/tags")
+			resp, err := client.Get(baseUrl + "/api/tags")
 			if err == nil && resp.StatusCode == 200 {
 				resp.Body.Close()
 				return url
@@ -94,7 +96,7 @@ type Job struct {
 	Filename string
 }
 
-func worker(id int, ollamaUrl string, jobs <-chan Job, results chan<- *IndexEntry, wg *sync.WaitGroup) {
+func worker(id int, ollamaUrl string, jobs <-chan Job, results chan<- *IndexEntry, failed *atomic.Int64, wg *sync.WaitGroup) {
 	defer wg.Done()
 	client := http.Client{Timeout: 10 * time.Second}
 
@@ -102,6 +104,7 @@ func worker(id int, ollamaUrl string, jobs <-chan Job, results chan<- *IndexEntr
 		contentBytes, err := os.ReadFile(job.Path)
 		if err != nil {
 			fmt.Printf("Worker %d: error reading %s: %v\n", id, job.Path, err)
+			failed.Add(1)
 			continue
 		}
 		content := string(contentBytes)
@@ -123,23 +126,30 @@ func worker(id int, ollamaUrl string, jobs <-chan Job, results chan<- *IndexEntr
 
 		resp, err := client.Post(ollamaUrl, "application/json", bytes.NewBuffer(reqBody))
 		if err != nil {
+			fmt.Printf("Worker %d: skipped %s: %v\n", id, job.Filename, err)
+			failed.Add(1)
 			continue
 		}
 
 		if resp.StatusCode != 200 {
 			resp.Body.Close()
+			fmt.Printf("Worker %d: skipped %s: HTTP %d\n", id, job.Filename, resp.StatusCode)
+			failed.Add(1)
 			continue
 		}
 
 		var embedResp EmbeddingResponse
 		if err := json.NewDecoder(resp.Body).Decode(&embedResp); err != nil {
 			resp.Body.Close()
+			fmt.Printf("Worker %d: skipped %s: %v\n", id, job.Filename, err)
+			failed.Add(1)
 			continue
 		}
 		resp.Body.Close()
 
-		// Skip empty embeddings just in case
 		if len(embedResp.Embedding) == 0 {
+			fmt.Printf("Worker %d: skipped %s: empty embedding\n", id, job.Filename)
+			failed.Add(1)
 			continue
 		}
 
@@ -154,6 +164,18 @@ func worker(id int, ollamaUrl string, jobs <-chan Job, results chan<- *IndexEntr
 }
 
 func main() {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Printf("❌ No home directory: %v\n", err)
+		os.Exit(1)
+	}
+	VAULT_PATH = filepath.Join(home, "Documents", "Notes")
+	NIX_ROOT = os.Getenv("INDEXER_NIX_ROOT")
+	if NIX_ROOT == "" {
+		NIX_ROOT = filepath.Join(home, "Develop", "github.com", "kleinbem", "nix")
+	}
+	INDEX_PATH = filepath.Join(NIX_ROOT, "scratch", "semantic_index.json")
+
 	ollamaUrl := getOllamaUrl()
 	fmt.Printf("🤖 Using Ollama embedding endpoint: %s\n", ollamaUrl)
 
@@ -161,17 +183,18 @@ func main() {
 
 	if _, err := os.Stat(VAULT_PATH); os.IsNotExist(err) {
 		fmt.Printf("❌ Vault path not found: %s\n", VAULT_PATH)
-		return
+		os.Exit(1)
 	}
 
 	jobs := make(chan Job, 5000)
 	results := make(chan *IndexEntry, 5000)
 	var wg sync.WaitGroup
+	var failed atomic.Int64
 
 	numWorkers := 10 // Process 10 files concurrently
 	for w := 1; w <= numWorkers; w++ {
 		wg.Add(1)
-		go worker(w, ollamaUrl, jobs, results, &wg)
+		go worker(w, ollamaUrl, jobs, results, &failed, &wg)
 	}
 
 	go func() {
@@ -189,23 +212,48 @@ func main() {
 		close(results)
 	}()
 
-	var index []*IndexEntry
+	index := []*IndexEntry{}
 	for entry := range results {
 		index = append(index, entry)
 	}
 
-	os.MkdirAll(filepath.Dir(INDEX_PATH), 0755)
-
-	f, err := os.Create(INDEX_PATH)
-	if err != nil {
-		fmt.Printf("Error creating index file: %v\n", err)
-		return
+	// Keep the previous index when most of this run failed (Ollama down):
+	// it would silently drop documents. A few bad files still update it.
+	n := int(failed.Load())
+	if len(index) == 0 || n > len(index) {
+		fmt.Printf("❌ %d file(s) failed, %d embedded; index left unchanged\n", n, len(index))
+		os.Exit(1)
 	}
-	defer f.Close()
 
-	if err := json.NewEncoder(f).Encode(index); err != nil {
-		fmt.Printf("Error encoding JSON: %v\n", err)
+	if err := writeIndex(index); err != nil {
+		fmt.Printf("❌ Writing %s: %v\n", INDEX_PATH, err)
+		os.Exit(1)
 	}
 
 	fmt.Printf("✅ Index saved to %s (%d documents)\n", INDEX_PATH, len(index))
+	if n > 0 {
+		fmt.Printf("⚠️  %d file(s) skipped (see above)\n", n)
+		os.Exit(1)
+	}
+}
+
+func writeIndex(index []*IndexEntry) error {
+	if err := os.MkdirAll(filepath.Dir(INDEX_PATH), 0755); err != nil {
+		return err
+	}
+	tmp := INDEX_PATH + ".tmp"
+	f, err := os.Create(tmp)
+	if err != nil {
+		return err
+	}
+	if err := json.NewEncoder(f).Encode(index); err != nil {
+		f.Close()
+		os.Remove(tmp)
+		return err
+	}
+	if err := f.Close(); err != nil {
+		os.Remove(tmp)
+		return err
+	}
+	return os.Rename(tmp, INDEX_PATH)
 }

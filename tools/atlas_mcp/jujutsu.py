@@ -83,7 +83,7 @@ def jj_log(limit: int = 10):
         if result.returncode != 0:
             return f"Error: {result.stderr}"
 
-        lines = result.stdout.strip().split("\\n")
+        lines = result.stdout.strip().split("\n")
         return [line for line in lines if line]
     except Exception as e:
         return {"error": str(e)}

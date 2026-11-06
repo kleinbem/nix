@@ -22,8 +22,11 @@ def firefox_search(query: str, profile: str = "standard"):
             shutil.copy2(db_path, temp_db)
             conn = sqlite3.connect(temp_db)
             cursor = conn.cursor()
-            sql = "SELECT title, url FROM moz_places WHERE (title LIKE ? OR url LIKE ?) ORDER BY last_visit_date DESC LIMIT 10"
-            cursor.execute(sql, (f"%{query}%", f"%{query}%"))
+            sql = "SELECT title, url FROM moz_places WHERE (title LIKE ? ESCAPE '\\' OR url LIKE ? ESCAPE '\\') ORDER BY last_visit_date DESC LIMIT 10"
+            literal = (
+                query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            )
+            cursor.execute(sql, (f"%{literal}%", f"%{literal}%"))
             results = cursor.fetchall()
             conn.close()
         return [{"title": r[0], "url": r[1]} for r in results]

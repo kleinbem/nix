@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -116,48 +115,54 @@ func main() {
 	logsDict, isDict := res.(map[string]string)
 
 	if *sinkPtr {
-		ex, err := os.Executable()
-		if err == nil {
-			pwd, _ := os.Getwd()
-			idx := strings.Index(pwd, "kleinbem/nix")
-			var flakePath string
-			if idx != -1 {
-				flakePath = pwd[:idx+len("kleinbem/nix")]
-			} else {
-				flakePath = filepath.Dir(filepath.Dir(filepath.Dir(ex)))
-			}
-			sinkPath := filepath.Join(flakePath, "scratch/ai-health.json")
-			os.MkdirAll(filepath.Dir(sinkPath), 0755)
+		// ai-logs.sh sets AI_LOGS_ROOT to the nix/ checkout.
+		flakePath := os.Getenv("AI_LOGS_ROOT")
+		if flakePath == "" {
+			fmt.Fprintln(os.Stderr, "Error: --sink needs AI_LOGS_ROOT (run via tools/ai-logs.sh)")
+			os.Exit(1)
+		}
+		sinkPath := filepath.Join(flakePath, "scratch/ai-health.json")
+		if err := os.MkdirAll(filepath.Dir(sinkPath), 0755); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 
-			status := "Healthy"
-			errCount := 0
-			var recentUnits []string
-			if isSlice {
-				errCount = len(logs)
-				if errCount > 0 {
-					status = "Degraded"
-				}
-				unitMap := make(map[string]bool)
-				for _, l := range logs {
-					if l.Unit != "" {
-						unitMap[l.Unit] = true
-					}
-				}
-				for k := range unitMap {
-					recentUnits = append(recentUnits, k)
-				}
-			} else {
+		status := "Healthy"
+		errCount := 0
+		var recentUnits []string
+		if isSlice {
+			errCount = len(logs)
+			if errCount > 0 {
 				status = "Degraded"
 			}
-
-			summary := SinkSummary{
-				LastCheck:   time.Now().Format(time.RFC3339),
-				ErrorCount:  errCount,
-				Status:      status,
-				RecentUnits: recentUnits,
+			unitMap := make(map[string]bool)
+			for _, l := range logs {
+				if l.Unit != "" {
+					unitMap[l.Unit] = true
+				}
 			}
-			b, _ := json.MarshalIndent(summary, "", "  ")
-			os.WriteFile(sinkPath, b, 0644)
+			for k := range unitMap {
+				recentUnits = append(recentUnits, k)
+			}
+		} else {
+			status = "Degraded"
+		}
+
+		summary := SinkSummary{
+			LastCheck:   time.Now().Format(time.RFC3339),
+			ErrorCount:  errCount,
+			Status:      status,
+			RecentUnits: recentUnits,
+		}
+		b, _ := json.MarshalIndent(summary, "", "  ")
+		tmp := sinkPath + ".tmp"
+		if err := os.WriteFile(tmp, b, 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		if err := os.Rename(tmp, sinkPath); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
 		}
 	}
 

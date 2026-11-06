@@ -39,7 +39,10 @@ def search_paperless(query: str):
     try:
         paperless_url = _get_paperless_url()
         resp = requests.get(
-            f"{paperless_url}/api/documents/?query={query}", headers=headers, timeout=5
+            f"{paperless_url}/api/documents/",
+            params={"query": query},
+            headers=headers,
+            timeout=5,
         )
         if resp.status_code == 200:
             results = resp.json().get("results", [])

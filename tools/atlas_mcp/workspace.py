@@ -16,15 +16,26 @@ def update_todo(task: str, status: str = "done"):
         with open(todo_path, "r") as f:
             content = f.read()
         mark = "[x]" if status == "done" else "[ ]"
-        new_line = f"- {mark} {task}\n"
-        if task not in content:
+        new_line = f"- {mark} {task}"
+        # Match whole task lines, so "fix X" doesn't hit "fix X later".
+        lines = content.splitlines()
+        hits = [
+            i
+            for i, line in enumerate(lines)
+            if line in (f"- [ ] {task}", f"- [x] {task}")
+        ]
+        if not hits:
             with open(todo_path, "a") as f:
-                f.write(new_line)
+                f.write(
+                    ("" if content.endswith("\n") or not content else "\n")
+                    + new_line
+                    + "\n"
+                )
         else:
-            old_mark = "[ ]" if status == "done" else "[x]"
-            content = content.replace(f"- {old_mark} {task}", new_line)
+            for i in hits:
+                lines[i] = new_line
             with open(todo_path, "w") as f:
-                f.write(content)
+                f.write("\n".join(lines) + "\n")
         return f"Task updated: {task}"
     except Exception as e:
         return {"error": str(e)}

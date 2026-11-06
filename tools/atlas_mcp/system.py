@@ -13,9 +13,13 @@ def get_tool_help(binary: str):
     try:
         if subprocess.run(["which", binary], capture_output=True).returncode != 0:
             return f"Error: {binary} not found in PATH."
-        result = subprocess.run([binary, "--help"], capture_output=True, text=True)
+        result = subprocess.run(
+            [binary, "--help"], capture_output=True, text=True, timeout=10
+        )
         if result.returncode != 0:
-            result = subprocess.run([binary, "help"], capture_output=True, text=True)
+            result = subprocess.run(
+                [binary, "help"], capture_output=True, text=True, timeout=10
+            )
         return f"STDOUT:\n{result.stdout}\n\nSTDERR:\n{result.stderr}"
     except Exception as e:
         return str(e)
@@ -24,13 +28,12 @@ def get_tool_help(binary: str):
 @mcp.tool()
 def analyze_logs(unit: str = None, machine: str = None, lines: int = 50):
     """
-    Fetch and analyze recent logs using ai-logs.py.
+    Fetch and analyze recent logs using tools/ai-logs.sh.
     Provides a high-level assessment of any errors found.
     """
     try:
         cmd = [
-            "python3",
-            os.path.join(DEFAULT_FLAKE_PATH, "tools/ai-logs.py"),
+            os.path.join(DEFAULT_FLAKE_PATH, "tools/ai-logs.sh"),
             "--json",
             "-n",
             str(lines),
@@ -45,6 +48,9 @@ def analyze_logs(unit: str = None, machine: str = None, lines: int = 50):
             return {"error": f"Log analysis failed: {result.stderr}"}
 
         logs = json.loads(result.stdout)
+        # ai-logs reports an offline machine or a journalctl error as an object.
+        if isinstance(logs, dict):
+            return logs
         if not logs:
             return "No errors found in the specified logs. System looks healthy. ✅"
 

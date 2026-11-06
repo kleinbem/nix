@@ -9,7 +9,7 @@ def netbird_status():
     """Check the status of the NetBird mesh network and connected peers."""
     try:
         result = subprocess.run(
-            ["netbird", "status", "--output", "json"], capture_output=True, text=True
+            ["netbird", "status", "--json"], capture_output=True, text=True
         )
         if result.returncode == 0:
             return json.loads(result.stdout)

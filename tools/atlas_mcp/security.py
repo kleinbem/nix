@@ -12,7 +12,7 @@ def get_security_audit_summary():
     report_path = "/var/log/lynis-report.txt"
     try:
         if not os.path.exists(report_path):
-            return "Security audit report not found. Run 'just maintenance::audit' to generate it."
+            return "Security audit report not found. It comes from nix-config's lynis-audit.service (weekly): sudo systemctl start lynis-audit.service"
 
         with open(report_path, "r") as f:
             lines = f.readlines()
