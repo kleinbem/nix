@@ -25,7 +25,10 @@ locals {
     "nix" = ["CLOUDFLARE_ACCOUNT_ID", "NTFY_ALERT_TOPIC"]
     # NTFY_ALERT_TOPIC: the scheduled drift-detection plan (terraform-plan.yaml)
     # pings this human topic when GitHub config no longer matches Terraform.
-    "github-config" = ["APP_ID", "APP_PRIVATE_KEY", "APP_INSTALLATION_ID", "APP_ORG_INSTALLATION_ID", "NTFY_ALERT_TOPIC", "CLOUDFLARE_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]
+    # The App and R2 credentials are not repo-level: apply reads them from the
+    # main-only apply environment, plan and governance use the read-only PLAN_*
+    # (both below).
+    "github-config" = ["NTFY_ALERT_TOPIC", "CLOUDFLARE_ACCOUNT_ID"]
     # Deploy token plus the Pages secrets kleinbem-site's ci.yaml sets with
     # `wrangler pages secret put` before each deploy (see cloudflare-pages.tf).
     # No RESEND_API_KEY yet: the contact form's mail send fails gracefully.
@@ -298,9 +301,7 @@ resource "github_actions_variable" "nixpkgs_review_gha_extra_nix_config" {
 # github-config's terraform-apply.yaml reads its credentials from this
 # environment, which only main can deploy to. GitHub enforces that outside the
 # workflow file, so a dispatch on a branch with an older workflow gets nothing.
-# The repo-level copies in ci_secrets stay until the workflow uses the
-# environment; the PR plan (terraform-plan.yaml) still reads those. Direct var
-# refs, not secret_values, keep a targeted apply clear of Authentik.
+# Direct var refs, not secret_values, keep a targeted apply clear of Authentik.
 locals {
   github_config_apply_secrets = {
     "APP_ID"                  = var.github_app_id
