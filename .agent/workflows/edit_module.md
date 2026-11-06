@@ -10,7 +10,7 @@ When modifying a module, especially renaming options, follow these steps to ensu
    the file: a module without `my.*` options has importers but no option consumers. IMPORTS.md
    lists only a host's direct imports, so also search for the files that import yours.
    Neither index lists every place an option is read: before a rename, also grep the sibling
-   repos for the old option name.
+   repos for the old option name and for its aliases (`cfg = config.my.x;` then `cfg.y`).
 2. Make your desired changes.
 3. **CRITICAL:** If you renamed an option (e.g. `my.services.x.enable` -> `my.services.y.enable`), update every consumer file identified in Step 1.
 4. Run `just dev::sync-agent` to regenerate the docs, then `just dev::check-hosts`.
