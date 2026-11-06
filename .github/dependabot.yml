@@ -25,6 +25,11 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    # Majors come as one PR each, so a breaking provider can be closed
+    # (ignored) without holding back the safe bumps. netbird is 0.0.x, where
+    # a "patch" can change the schema.
     groups:
       providers:
         patterns: ["*"]
+        exclude-patterns: ["netbirdio/netbird"]
+        update-types: [minor, patch]
