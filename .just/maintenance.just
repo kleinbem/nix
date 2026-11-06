@@ -272,9 +272,9 @@ hooks-refresh-all:
     failed=()
     for repo in {{REPOS}}; do
         [ -e "{{ROOT}}/$repo/.git" ] || continue
-        # A linked worktree has a .git file and shares the main checkout's hooks.
-        hooks="{{ROOT}}/$repo/.git/hooks"
-        if [ -d "$hooks" ]; then find "$hooks" -mindepth 1 -delete; fi
+        # The common dir, so a linked worktree (.git is a file) clears the hooks it shares.
+        common=$(git -C "{{ROOT}}/$repo" rev-parse --path-format=absolute --git-common-dir)
+        if [ -d "$common/hooks" ]; then find "$common/hooks" -mindepth 1 -delete; fi
         if [ -f "{{ROOT}}/$repo/.pre-commit-config.yaml" ]; then
             echo "  └─ $repo"
             (cd "{{ROOT}}/$repo" && prek install) || failed+=("$repo")
