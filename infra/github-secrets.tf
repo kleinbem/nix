@@ -25,9 +25,9 @@ locals {
     "nix" = ["CLOUDFLARE_ACCOUNT_ID", "NTFY_ALERT_TOPIC"]
     # NTFY_ALERT_TOPIC: the scheduled drift-detection plan (terraform-plan.yaml)
     # pings this human topic when GitHub config no longer matches Terraform.
-    # The App and R2 credentials are not repo-level: apply reads them from the
-    # main-only apply environment, plan and governance use the read-only PLAN_*
-    # (both below).
+    # The App and R2 credentials are not repo-level: apply and the drift check
+    # read them from the main-only apply environment, the PR plan and govern.py
+    # use the read-only PLAN_* (both below).
     "github-config" = ["NTFY_ALERT_TOPIC", "CLOUDFLARE_ACCOUNT_ID"]
     # Deploy token plus the Pages secrets kleinbem-site's ci.yaml sets with
     # `wrangler pages secret put` before each deploy (see cloudflare-pages.tf).
