@@ -22,7 +22,7 @@ _zone="$(curl -fsS -H "Authorization: Bearer ${_cf_read}" \
 for _v in _account _key_id _key_secret _pass _minter _zone; do
   if [ -z "${!_v}" ] || [ "${!_v}" = "null" ]; then
     echo "❌ ${_v#_} missing — need cloudflare_account_id in kleinbem-secrets/nix/per-host/core-pi.yaml, and r2_state_access_key_id/r2_state_secret_access_key/tofu_state_passphrase/cloudflare_token_minter_token/cloudflare_api_token in kleinbem-secrets/infra/terraform.yaml (zone = kleinbem.dev zone id lookup)" >&2
-    # shellcheck disable=SC2317  # exit is the fallback when executed (not sourced)
+    # shellcheck disable=SC2317  # exit runs when executed; upstream: koalaman/shellcheck#2620
     return 1 2>/dev/null || exit 1
   fi
 done
@@ -32,7 +32,7 @@ done
 case "$_pass" in
   *\"* | *\\* | *\$\{* | *%\{*)
     echo "❌ tofu_state_passphrase contains \", \\, \${ or %{, which TF_ENCRYPTION can't carry verbatim" >&2
-    # shellcheck disable=SC2317  # exit is the fallback when executed (not sourced)
+    # shellcheck disable=SC2317  # exit runs when executed; upstream: koalaman/shellcheck#2620
     return 1 2>/dev/null || exit 1
     ;;
 esac
@@ -52,7 +52,7 @@ secret_key = "${_key_secret}"
 EOT
 ) || {
   echo "❌ couldn't write ${_here}/.r2-backend.hcl" >&2
-  # shellcheck disable=SC2317  # exit is the fallback when executed (not sourced)
+  # shellcheck disable=SC2317  # exit runs when executed; upstream: koalaman/shellcheck#2620
   return 1 2>/dev/null || exit 1
 }
 
