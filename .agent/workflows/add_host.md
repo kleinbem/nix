@@ -7,8 +7,6 @@ description: "How to add a new NixOS host"
 To introduce a new physical or virtual machine into the fleet:
 
 1. Read `nix-config/hosts/AGENTS.md` for host-specific layout rules.
-2. The host must be added to three primary locations:
-   - `inventory.nix` (master source for infrastructure).
-   - `flake.nix` (inside `nix-config/`).
-3. You must create a `nix-hardware` module for the device.
-4. Run `just maintenance::sync-agent` to update the system reference docs.
+2. Follow its checklist: `inventory.nix`, `hosts/<name>/`, a `nix-hardware` module, and
+   `nixosConfigurations` in `modules/flake/hosts.nix`.
+3. In `nix-config`, run `just dev::sync-agent` and `just dev::check-hosts`.

@@ -11,16 +11,24 @@ description: Persistent memory of lessons learned and patterns to avoid
 - ❌ **Bad**: `just -d path/to/child command` (Fails if `just` version differs or env logic differs).
 - ✅ **Good**: `cd path/to/child && just command` (Robust, respects child's environment).
 
-## 2. Flake Input Overrides (Direnv)
+## 2. Flake Input Overrides
 
-**Pattern**: Using a local copy of a private inputs (like `nix-secrets`) without polluting `flake.nix`.
+**Pattern**: Using a local checkout of an input (like `kleinbem-secrets`) without polluting `flake.nix`.
 
 - ❌ **Bad**: Changing `flake.nix` `url` to a local path (Breaks CI/Remote builds).
-- ✅ **Good**: Use `.envrc` override:
+- ✅ **Good**: Pass `--override-input` to every command that evaluates the flake. In
+  `nix-config`, most `just` recipes do this through `OVERRIDES` (`.just/common.just`), which
+  covers the `nix-*` sibling checkouts and `kleinbem-secrets`, not other inputs such as
+  `kleinbem-skills`. Some recipes don't pass it (`deployment::pi-update-usb`
+  builds the locked inputs), so check the recipe before relying on local changes:
 
     ```bash
-    use flake . --override-input nix-secrets path:../nix-secrets
+    nix build .#<attr> --override-input kleinbem-secrets git+file://$PWD/../kleinbem-secrets
     ```
+
+  A `git+file` input only sees tracked files: track a new file (for example a new per-host
+  secret) before building. An override in `.envrc` (`use flake . --override-input ...`) only
+  reaches the dev shell, not later `nix build` or deploy commands.
 
 ## 3. Filesystem Hierarchy Standard (FHS)
 

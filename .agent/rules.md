@@ -4,7 +4,7 @@ Read before acting:
 1. `nix-config/docs/SYSTEM_REFERENCE.md`: Current nixpkgs rev, host list.
 2. `nix-config/docs/OPTIONS.md`: All `my.*` options & consumers.
 3. `nix-config/docs/IMPORTS.md`: Per-host import map.
-If stale, run `just maintenance::sync-agent`.
+If stale, run `just dev::sync-agent` in `nix-config`.
 
 Commands:
 - Run `just` for interactive hub.

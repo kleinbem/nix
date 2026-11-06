@@ -3,51 +3,35 @@ description: "Update flake inputs and clean up the system"
 ---
 
 # System Maintenance
-// turbo-all
 
+Routine updates and Nix store cleanup. Commands run from `nix/`.
 
-Keep the system performing well by running routine updates and cleaning up the Nix store.
-
-## 1. Update All Dependencies
-// turbo
-Update the `flake.lock` files for all sub-repositories in the workspace.
+## 1. Update Dependencies
+CI opens `flake.lock` update PRs on its own. To align the local sub-flakes' lockfiles:
 ```bash
-# mcp_workspace-atlas_run_just_recipe --recipe "update-all"
+just maintenance::update-local
 ```
+It stages the changes and never commits.
 
 ## 2. Verify Health
-// turbo
-Run formatting and flake checks to ensure no regressions were introduced.
 ```bash
-just fmt
+just maintenance::format-all
 just check
 ```
 
 ## 3. Cleanup
-// turbo
-Remove old generations and garbage collect the Nix store to free up space.
+Delete old generations and garbage-collect the store (asks for confirmation):
 ```bash
-# mcp_workspace-atlas_run_just_recipe --recipe "clean"
+just maintenance::clean-all
 ```
 
-## 4. System Optimization
-// turbo
-If you notice the store getting very large, you can run a manual optimization:
-```bash
-nix-store --optimise
-```
-
-## 5. Verify Disk Usage
-// turbo
-Check the disk space after cleanup to verify space reclaimed.
+## 4. Verify Disk Usage
 ```bash
 df -h /
 ```
 
-## 6. Final Health Check
-// turbo
-Ensure all services are still healthy after maintenance.
+## 5. Final Health Check
 ```bash
-# mcp_workspace-atlas_check_ai_stack_health
-# mcp_workspace-atlas_update_todo --task "Run system maintenance" --status "done"
+systemctl list-units --failed --no-legend
 ```
+Any output is a failed unit to look at.

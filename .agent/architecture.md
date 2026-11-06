@@ -1,8 +1,9 @@
 # Workspace Discovery (Auto-generated)
 Last Synced: Thu 05 Mar 2026 19:46:47 GMT
 
-## Structure: Meta-Repo (Modular Monorepo)
-This workspace is managed as a **Meta-repo**. It uses Git submodules to aggregate multiple independent flakes into a unified coding environment.
+## Structure: Conductor + Sibling Repos
+`nix/` is a tooling-only conductor. The flakes are independent git+jj repos checked out as flat
+siblings of `nix/` (not submodules); run repo commands inside the sibling you change.
 
 ### Flake Hierarchy
 ```mermaid
@@ -12,7 +13,7 @@ graph TD;
     nix-config -- imports --> nix-hardware
     nix-config -- imports --> nix-packages
     nix-config -- imports --> nix-presets
-    nix-config -- imports --> nix-secrets
+    nix-config -- imports --> kleinbem-secrets
     nix-config -- imports --> nix-templates
 ```
 
@@ -25,4 +26,4 @@ graph TD;
 
 ## Workload Profiles (Specialisations)
 The system supports multiple operational modes to balance performance and capability.
-See the [Workload Profile Matrix](file:///home/martin/Develop/github.com/kleinbem/nix/.agent/workload_profiles.md) for a detailed breakdown of services per mode.
+See the [Workload Profile Matrix](workload_profiles.md) for a detailed breakdown of services per mode.
