@@ -2,7 +2,7 @@
 # tools/phone-deploy.sh
 # Automates packaging and pushing the entire meta-repo to Nix-on-Droid.
 
-set -e
+set -euo pipefail
 
 NIX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # nix-config et al are flat siblings of nix/, not nested under it — see repos.nix.
@@ -38,6 +38,10 @@ adb shell "
   # 1. Find extraction tools
   TAR=\$(ls /nix/store/*gnutar*/bin/tar | head -n 1)
   GZIP=\$(ls /nix/store/*gzip*/bin/gzip | head -n 1)
+  if [ -z \"\$TAR\" ] || [ -z \"\$GZIP\" ]; then
+    echo '❌ tar or gzip not found in /nix/store; old tools left in place.' >&2
+    exit 1
+  fi
   
   # 2. Extract directly from public storage
   # (Requires termux-setup-storage to have been run once on the phone)

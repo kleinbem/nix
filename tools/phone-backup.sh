@@ -2,13 +2,17 @@
 # tools/phone-backup.sh
 # Run this ON THE PHONE to create a safe snapshot of your working environment.
 
-set -e
+set -euo pipefail
 
 BACKUP_NAME="/sdcard/Download/nix-on-droid-snapshot-$(date +%F).tar"
 
 echo "📦 Finding tar binary..."
 # shellcheck disable=SC2012
-TAR=$(ls /nix/store/*gnutar*/bin/tar | head -n 1)
+TAR=$(ls /nix/store/*gnutar*/bin/tar 2>/dev/null | head -n 1) || true
+if [ -z "$TAR" ]; then
+  echo "❌ No gnutar in /nix/store." >&2
+  exit 1
+fi
 
 echo "📂 Moving to app root..."
 cd /data/data/com.termux.nix/files

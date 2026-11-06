@@ -11,11 +11,11 @@ CYAN="\033[1;36m"
 BOLD="\033[1m"
 RESET="\033[0m"
 
-# Get root directory of the workspace
+# nix/ itself, and the workspace root that holds the nix-* sibling repos.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+NIX_DIR="$(dirname "$SCRIPT_DIR")"
+ROOT_DIR="$(dirname "$NIX_DIR")"
 
-# Read repos from common.just (nix-* folders in root)
 mapfile -t REPOS < <(find "$ROOT_DIR" -maxdepth 1 -name 'nix-*' -type d -printf '%f\n' | sort)
 # Add root repo to the list
 REPOS+=(".")
@@ -26,8 +26,8 @@ has_unsigned=0
 
 for repo_dir in "${REPOS[@]}"; do
   if [ "$repo_dir" = "." ]; then
-    path="$ROOT_DIR"
-    name="workspace-root"
+    path="$NIX_DIR"
+    name="nix"
   else
     path="$ROOT_DIR/$repo_dir"
     name="$repo_dir"
@@ -78,28 +78,29 @@ for repo_dir in "${REPOS[@]}"; do
     fi
   done
 
-  if [ "$is_pure_lockfiles" -eq 1 ]; then
+  # The squash below rewrites every unpushed commit, so it is only safe when
+  # all of them are unsigned lockfile updates.
+  # Staged edits would land in the squash commit too.
+  if [ "$is_pure_lockfiles" -eq 1 ] && [ "$unsigned_count" -eq "$unpushed_count" ] &&
+    git -C "$path" diff --cached --quiet; then
     echo -e "  🧹 Only unsigned lockfile updates detected. ${GREEN}Squashing into 1 signed commit...${RESET}"
     # Soft reset to remote state
     git -C "$path" reset --soft "origin/$branch"
-    # Commit manually (will sign using user's config, bypassing buggy ssh-agent)
+    # Commit with the signing key from the user's git config, not the agent.
+    # no-link: the agent failure was never pinned down or reported.
     env SSH_AUTH_SOCK= git -C "$path" commit -m "chore: auto-update lockfile"
     echo -e "  ✅ Squashed and signed!"
   else
-    echo -e "  ⚠️ Unsigned manual commits detected."
+    echo -e "  ⚠️ Unsigned commits that can't be squashed automatically."
     echo -e "  Unsigned commits:"
     for commit in "${unsigned_list[@]}"; do
       msg=$(git -C "$path" log -n 1 --format="%h %s" "$commit")
       echo -e "    ${RED}✗${RESET} $msg"
     done
     echo -e "  Run one of the following to resolve:"
-    if [ "$repo_dir" = "." ]; then
-      echo -e "    • Squash all unpushed into 1 signed commit: ${BOLD}git reset --soft origin/$branch && git commit -m \"<message>\"${RESET}"
-      echo -e "    • Re-sign commits (preserving history): ${BOLD}git rebase --exec \"git commit --amend --no-edit\" origin/$branch${RESET}"
-    else
-      echo -e "    • Squash all unpushed into 1 signed commit: ${BOLD}git -C $repo_dir reset --soft origin/$branch && git -C $repo_dir commit -m \"<message>\"${RESET}"
-      echo -e "    • Re-sign commits (preserving history): ${BOLD}git -C $repo_dir rebase --exec \"git commit --amend --no-edit\" origin/$branch${RESET}"
-    fi
+    qpath=$(printf '%q' "$path")
+    echo -e "    • Squash all unpushed into 1 signed commit: ${BOLD}git -C $qpath reset --soft origin/$branch && git -C $qpath commit -m \"<message>\"${RESET}"
+    echo -e "    • Re-sign commits (preserving history): ${BOLD}git -C $qpath rebase --exec \"git commit --amend --no-edit\" origin/$branch${RESET}"
     has_unsigned=1
   fi
   echo ""
