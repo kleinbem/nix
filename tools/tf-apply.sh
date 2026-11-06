@@ -497,17 +497,25 @@ if [ -n "$OIDC_SECRETS_JSON" ] && [ "$OIDC_SECRETS_JSON" != "{}" ] && [ "$OIDC_S
       # Plaintext only in RAM; the repo gets the file once encryption worked.
       mkdir -p "$(dirname "$APP_YAML")"
       OIDC_WORK="$(mktemp -d /dev/shm/tf-apply-oidc-XXXXXX)"
+      # Exit cleanup for both RAM dirs, keeping the backend cleanup.
+      # shellcheck disable=SC2154 # d is the loop variable inside the trap
+      trap 'cleanup_backend; for d in "${GEMINI_WORK:-}" "${OIDC_WORK:-}"; do [ -n "$d" ] && { find "$d" -type f -exec shred -u {} \; 2>/dev/null; rm -rf "$d"; }; done' EXIT
       printf '%s' "$app_secret" >"$OIDC_WORK/value"
       printf '{}\n' >"$OIDC_WORK/plain.yaml"
+      # Encrypted output goes to a temp file beside APP_YAML, then one rename.
       # Inside `if`, so a failure still reaches the cleanup below.
+      OIDC_ENC="$(mktemp "$APP_YAML.XXXXXX")"
       if OIDC_VALUE_PATH="$OIDC_WORK/value" yq -i \
         ".${key_name} = load_str(strenv(OIDC_VALUE_PATH))" "$OIDC_WORK/plain.yaml" &&
         sops --config "$SECRETS_ROOT/.sops.yaml" --filename-override "$APP_YAML" \
-          -e "$OIDC_WORK/plain.yaml" >"$OIDC_WORK/enc.yaml"; then
-        mv "$OIDC_WORK/enc.yaml" "$APP_YAML"
+          -e "$OIDC_WORK/plain.yaml" >"$OIDC_ENC"; then
+        mv "$OIDC_ENC" "$APP_YAML" || rm -f "$OIDC_ENC"
+      else
+        rm -f "$OIDC_ENC"
       fi
       find "$OIDC_WORK" -type f -exec shred -u {} \; 2>/dev/null
       rm -rf "$OIDC_WORK"
+      OIDC_WORK=""
       [ -f "$APP_YAML" ] || { echo -e "${RED}❌ Encrypting $APP_YAML failed${RESET}" >&2; exit 1; }
       echo -e "🟢 Initialized and encrypted OIDC client secret in nix/per-container/${container_name}.yaml"
     else
