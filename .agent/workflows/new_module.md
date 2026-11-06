@@ -31,5 +31,8 @@ in
 }
 ```
 
+For a Home Manager module, use the `modules.*` namespace and `home.packages` instead of
+`environment.systemPackages` (see `.agent/templates/home-module.nix`).
+
 ## 3. Register the Module
 Ensure the module is imported in `flake.nix` or a default.nix bundle so it is available to the system.

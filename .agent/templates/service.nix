@@ -11,7 +11,7 @@
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
       ExecStart = "${pkgs.hello}/bin/hello";
-      Restart = "always";
+      Restart = "on-failure";
       User = "root";
     };
   };
