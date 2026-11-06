@@ -5,50 +5,89 @@
 # Not managed here: the mail host has a dynamic WAN IP, which would fight every
 # apply. services.cloudflare-dyndns on mac-mini (nix-config) owns this record.
 
+
+
+
+
+
+
+
+
+
 # --- MX: route inbound mail for kleinbem.dev → mail.kleinbem.dev ---
-resource "cloudflare_record" "mail_mx" {
+resource "cloudflare_dns_record" "mail_mx" {
   zone_id  = data.cloudflare_zone.main.id
   name     = "@"
   type     = "MX"
   content  = "mail.${local.primary_domain}"
   priority = 10
+  ttl      = 1
+}
+
+moved {
+  from = cloudflare_record.mail_mx
+  to   = cloudflare_dns_record.mail_mx
 }
 
 # --- SPF: authorise AWS SES (outbound relay) + Stalwart itself ---
 # `include:amazonses.com` covers all SES sending IPs.
 # `mx` allows the MX target to also send (useful for in-cluster mail).
 # `-all` = hard fail on unauthorised senders (strict, reject unknown).
-resource "cloudflare_record" "mail_spf" {
+resource "cloudflare_dns_record" "mail_spf" {
   zone_id = data.cloudflare_zone.main.id
   name    = "@"
   type    = "TXT"
   content = "v=spf1 mx include:amazonses.com -all"
+  ttl     = 1
+}
+
+moved {
+  from = cloudflare_record.mail_spf
+  to   = cloudflare_dns_record.mail_spf
 }
 
 # --- DMARC: reject unauth'd mail, report failures to dmarc@<domain> ---
-resource "cloudflare_record" "mail_dmarc" {
+resource "cloudflare_dns_record" "mail_dmarc" {
   zone_id = data.cloudflare_zone.main.id
   name    = "_dmarc"
   type    = "TXT"
   content = "v=DMARC1; p=reject; rua=mailto:dmarc@${local.primary_domain}; aspf=s; adkim=s"
+  ttl     = 1
+}
+
+moved {
+  from = cloudflare_record.mail_dmarc
+  to   = cloudflare_dns_record.mail_dmarc
 }
 
 # --- MTA-STS: declare strict TLS expectations for incoming mail ---
 # The version is just a serial — bump when you change the policy file
 # served at https://mta-sts.<domain>/.well-known/mta-sts.txt
-resource "cloudflare_record" "mail_mta_sts" {
+resource "cloudflare_dns_record" "mail_mta_sts" {
   zone_id = data.cloudflare_zone.main.id
   name    = "_mta-sts"
   type    = "TXT"
   content = "v=STSv1; id=20260616000000Z"
+  ttl     = 1
+}
+
+moved {
+  from = cloudflare_record.mail_mta_sts
+  to   = cloudflare_dns_record.mail_mta_sts
 }
 
 # --- TLSRPT: where to send TLS-handshake failure reports ---
-resource "cloudflare_record" "mail_tlsrpt" {
+resource "cloudflare_dns_record" "mail_tlsrpt" {
   zone_id = data.cloudflare_zone.main.id
   name    = "_smtp._tls"
   type    = "TXT"
   content = "v=TLSRPTv1; rua=mailto:tlsrpt@${local.primary_domain}"
+  ttl     = 1
+}
+
+moved {
+  from = cloudflare_record.mail_tlsrpt
+  to   = cloudflare_dns_record.mail_tlsrpt
 }
 
 # --- DKIM (per-persona) ---
@@ -72,22 +111,34 @@ variable "stalwart_dkim_pubkey_b64" {
   description = "Stalwart-generated DKIM public key (base64, single line). Empty disables the record."
 }
 
-resource "cloudflare_record" "stalwart_dkim" {
+resource "cloudflare_dns_record" "stalwart_dkim" {
   count   = var.stalwart_dkim_pubkey_b64 == "" ? 0 : 1
   zone_id = data.cloudflare_zone.main.id
   name    = "default._domainkey"
   type    = "TXT"
   content = "v=DKIM1; k=rsa; p=${var.stalwart_dkim_pubkey_b64}"
+  ttl     = 1
+}
+
+moved {
+  from = cloudflare_record.stalwart_dkim
+  to   = cloudflare_dns_record.stalwart_dkim
 }
 
 # --- Google Search Console: domain-property ownership verification ---
 # Covers every subdomain; needed for the Security Issues report and Safe
 # Browsing reviews. If the property is removed and re-added, Google issues a
 # new token and this value must change.
-resource "cloudflare_record" "google_search_console" {
+resource "cloudflare_dns_record" "google_search_console" {
   zone_id = data.cloudflare_zone.main.id
   name    = "@"
   type    = "TXT"
   content = "google-site-verification=iDaMsHoHqNYGf1kciCOV-ZwKs7CkQkFY4RtzetTZVuU"
   comment = "Google Search Console domain-property verification (kleinbem.dev)"
+  ttl     = 1
+}
+
+moved {
+  from = cloudflare_record.google_search_console
+  to   = cloudflare_dns_record.google_search_console
 }

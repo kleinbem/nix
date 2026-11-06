@@ -4,15 +4,17 @@
 resource "cloudflare_api_token" "public_cache_ci" {
   name = "kleinbem-cache-ci"
 
-  policy {
-    permission_groups = [
-      data.cloudflare_api_token_permission_groups.all.r2["Workers R2 Storage Bucket Item Read"],
-      data.cloudflare_api_token_permission_groups.all.r2["Workers R2 Storage Bucket Item Write"],
-    ]
-    resources = {
+  policies = [{
+    resources = jsonencode({
       "com.cloudflare.edge.r2.bucket.${local.account_id}_default_kleinbem-cache" = "*"
-    }
-  }
+    })
+    effect = "allow"
+    permission_groups = [{
+      id = local.permission_groups.r2["Workers R2 Storage Bucket Item Read"]
+      }, {
+      id = local.permission_groups.r2["Workers R2 Storage Bucket Item Write"]
+    }]
+  }]
 }
 
 output "public_cache_ci" {

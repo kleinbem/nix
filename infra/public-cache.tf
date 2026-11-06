@@ -119,28 +119,28 @@ resource "cloudflare_ruleset" "cache_settings" {
   kind        = "zone"
   phase       = "http_request_cache_settings"
 
-  rules {
-    description = "Public Nix binary cache: content-addressed, cache at the edge"
-    expression  = "(http.host eq \"${local.public_cache_domain}\")"
-    action      = "set_cache_settings"
-    enabled     = true
-
-    action_parameters {
-      cache = true
-
-      edge_ttl {
-        mode    = "override_origin"
-        default = 30 * 86400
-
-        status_code_ttl {
-          status_code = 404
-          value       = 60
+  rules = [
+    {
+      description = "Public Nix binary cache: content-addressed, cache at the edge"
+      expression  = "(http.host eq \"${local.public_cache_domain}\")"
+      action      = "set_cache_settings"
+      enabled     = true
+      action_parameters = {
+        cache = true
+        browser_ttl = {
+          mode = "respect_origin"
+        }
+        edge_ttl = {
+          mode    = "override_origin"
+          default = 30 * 86400
+          status_code_ttl = [
+            {
+              status_code = 404
+              value       = 60
+            }
+          ]
         }
       }
-
-      browser_ttl {
-        mode = "respect_origin"
-      }
     }
-  }
+  ]
 }

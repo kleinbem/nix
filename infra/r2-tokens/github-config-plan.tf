@@ -6,14 +6,15 @@
 resource "cloudflare_api_token" "github_config_plan" {
   name = "github-config-plan"
 
-  policy {
-    permission_groups = [
-      data.cloudflare_api_token_permission_groups.all.r2["Workers R2 Storage Bucket Item Read"],
-    ]
-    resources = {
+  policies = [{
+    resources = jsonencode({
       "com.cloudflare.edge.r2.bucket.${local.account_id}_default_kleinbem-tofu-state" = "*"
-    }
-  }
+    })
+    effect = "allow"
+    permission_groups = [{
+      id = local.permission_groups.r2["Workers R2 Storage Bucket Item Read"]
+    }]
+  }]
 }
 
 output "github_config_plan_r2" {

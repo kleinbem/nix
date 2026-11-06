@@ -5,26 +5,44 @@ locals {
   # nonsensitive: object keys / URLs can't carry a sensitive mark, and the
   # account id isn't secret anyway (it's in every R2 endpoint URL).
   account_id = nonsensitive(var.cloudflare_account_id)
+
+  # v5 policies take permission-group IDs, not names. Same name → id maps per
+  # scope as v4's data source had (r2, zone, account).
+  permission_group_scopes = {
+    r2      = "com.cloudflare.edge.r2.bucket"
+    zone    = "com.cloudflare.api.account.zone"
+    account = "com.cloudflare.api.account"
+  }
+  permission_groups = {
+    for k, scope in local.permission_group_scopes : k => {
+      for g in data.cloudflare_api_token_permission_groups_list.all.result :
+      g.name => g.id if contains(g.scopes, scope)
+    }
+  }
 }
 
-data "cloudflare_api_token_permission_groups" "all" {}
+data "cloudflare_api_token_permission_groups_list" "all" {
+  max_items = 1000
+}
 
 resource "cloudflare_api_token" "backup_r2" {
   for_each = local.backup_hosts
   name     = "backup-r2-${each.key}"
 
-  # Object read/write on the backup bucket only — no bucket admin, no other
+  # Object read/write on the backup bucket only: no bucket admin, no other
   # buckets. Deletes are possible (restic prune needs them); the bucket lock
   # on secure/ (infra/cloudflare-r2.tf) protects recent secure bundles.
-  policy {
-    permission_groups = [
-      data.cloudflare_api_token_permission_groups.all.r2["Workers R2 Storage Bucket Item Read"],
-      data.cloudflare_api_token_permission_groups.all.r2["Workers R2 Storage Bucket Item Write"],
-    ]
-    resources = {
+  policies = [{
+    resources = jsonencode({
       "com.cloudflare.edge.r2.bucket.${local.account_id}_default_${var.backup_bucket}" = "*"
-    }
-  }
+    })
+    effect = "allow"
+    permission_groups = [{
+      id = local.permission_groups.r2["Workers R2 Storage Bucket Item Read"]
+      }, {
+      id = local.permission_groups.r2["Workers R2 Storage Bucket Item Write"]
+    }]
+  }]
 }
 
 # R2's S3 credentials derive from the API token: Access Key ID = token id,
