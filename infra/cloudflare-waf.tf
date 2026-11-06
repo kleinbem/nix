@@ -26,9 +26,9 @@ resource "cloudflare_ruleset" "ratelimit" {
   }
 }
 
-# Custom rules have their own quota (5 on Free). n8n's /webhook* skips Authentik
-# (authExcludePaths in nix-presets caddy); n8n's per-webhook auth is the real gate.
-# Cloudflare now always reports cf.threat_score as 0, so those rules never match.
+# Custom rules have their own quota (5 on Free). No threat-score rules: Cloudflare
+# reports cf.threat_score as 0 now, so they never match.
+# https://developers.cloudflare.com/ruleset-engine/rules-language/fields/reference/cf.threat_score/
 resource "cloudflare_ruleset" "waf_custom" {
   zone_id     = data.cloudflare_zone.main.id
   name        = "Custom WAF rules"
@@ -37,24 +37,10 @@ resource "cloudflare_ruleset" "waf_custom" {
   phase       = "http_request_firewall_custom"
 
   rules {
-    ref         = "n8n_webhook_abuse"
-    description = "n8n webhooks — block known-bad IP reputation (real auth is n8n's own per-webhook Header Auth/HMAC)"
-    expression  = "(http.host eq \"n8n.kleinbem.dev\" and starts_with(http.request.uri.path, \"/webhook\") and cf.threat_score gt 30)"
-    action      = "block"
-  }
-
-  rules {
     ref         = "block_malicious_scanners"
     description = "Block known vulnerability scanners and automated exploit probes"
-    expression  = "(http.user_agent contains \"sqlmap\" or http.user_agent contains \"nikto\" or http.user_agent contains \"masscan\" or http.user_agent contains \"acunetix\" or http.user_agent contains \"censys\")"
+    expression  = "(lower(http.user_agent) contains \"sqlmap\" or lower(http.user_agent) contains \"nikto\" or lower(http.user_agent) contains \"masscan\" or lower(http.user_agent) contains \"acunetix\" or lower(http.user_agent) contains \"censys\")"
     action      = "block"
-  }
-
-  rules {
-    ref         = "authentik_threat_challenge"
-    description = "Managed challenge for high-threat IPs attempting Authentik login or API flows"
-    expression  = "(http.host eq \"auth.kleinbem.dev\" and starts_with(http.request.uri.path, \"/api/v3/flows/executor/\") and cf.threat_score gt 20)"
-    action      = "managed_challenge"
   }
 }
 
