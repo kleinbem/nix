@@ -3,7 +3,8 @@
 # YubiKey touches). Writes .r2-backend.hcl and exports TF_ENCRYPTION and the
 # TF_VARs. The zone id is looked up with the main root's token, since the minter
 # can't read zones. No AWS_* env: the main root's aws provider would read it.
-set -euo pipefail
+# No `set -euo pipefail`: sourced, it would stay on in the caller's shell. The
+# checks below catch every missing value instead.
 
 _here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _yaml="$(sops -d "${_here}/../../../kleinbem-secrets/infra/terraform.yaml")"
@@ -26,16 +27,29 @@ for _v in _account _key_id _key_secret _pass _minter _zone; do
   fi
 done
 
+# The passphrase goes into an HCL string unescaped; escaping would change the
+# derived key for an existing state, so refuse characters HCL would interpret.
+case "$_pass" in
+  *\"* | *\\* | *\$\{* | *%\{*)
+    echo "❌ tofu_state_passphrase contains \", \\, \${ or %{, which TF_ENCRYPTION can't carry verbatim" >&2
+    # shellcheck disable=SC2317  # exit is the fallback when executed (not sourced)
+    return 1 2>/dev/null || exit 1
+    ;;
+esac
+
 export TF_ENCRYPTION="key_provider \"pbkdf2\" \"state_key\" { passphrase = \"${_pass}\" }"
 export TF_VAR_cloudflare_token_minter_token="${_minter}"
 export TF_VAR_cloudflare_account_id="${_account}"
 export TF_VAR_cloudflare_zone_id="${_zone}"
 
-umask 077
-cat >"${_here}/.r2-backend.hcl" <<EOT
+# Subshell: the umask must not leak into the caller.
+(
+  umask 077
+  cat >"${_here}/.r2-backend.hcl" <<EOT
 endpoints  = { s3 = "https://${_account}.r2.cloudflarestorage.com" }
 access_key = "${_key_id}"
 secret_key = "${_key_secret}"
 EOT
+)
 
 unset _yaml _corepi_yaml _account _key_id _key_secret _pass _minter _cf_read _zone _v _here

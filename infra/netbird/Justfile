@@ -1,3 +1,6 @@
+# state-env.sh is bash (BASH_SOURCE, pipefail); just defaults to sh.
+set shell := ["bash", "-cu"]
+
 default:
     @just --list
 
@@ -7,6 +10,10 @@ default:
 # (two YubiKey touches). Needs tofu, sops and yq on PATH.
 
 secrets := "../../../kleinbem-secrets/infra/terraform.yaml"
+
+# Reads the API token for the REST recipes below; stops on a missing one
+# instead of sending "Token null".
+_token := 'token="$(sops -d ' + secrets + ' | yq -r ".netbird_api_token // \"\"")"; [ -n "$token" ] || { echo "netbird_api_token missing in ' + secrets + '" >&2; exit 1; };'
 
 # Refresh ../inventory.json from nix-config/inventory.nix so groups.tf tracks
 # the fleet. Soft-fails: the committed json is enough for a plan.
@@ -47,7 +54,7 @@ api_url := env_var_or_default("NETBIRD_API_URL", "https://api.netbird.io")
 
 # Print live group/policy ids as tfvars (paste into imports.auto.tfvars to adopt).
 ids:
-    @token="$(sops -d {{secrets}} | yq '.netbird_api_token')"; \
+    @{{_token}} \
      g="$(curl -fsSL -H "Authorization: Token $token" "{{api_url}}/api/groups")"; \
      p="$(curl -fsSL -H "Authorization: Token $token" "{{api_url}}/api/policies")"; \
      echo "# paste into imports.auto.tfvars"; \
@@ -57,7 +64,7 @@ ids:
 
 # List every policy (id, enabled, name) — spot the built-in "All -> All" default.
 list-policies:
-    @token="$(sops -d {{secrets}} | yq '.netbird_api_token')"; \
+    @{{_token}} \
      curl -fsSL -H "Authorization: Token $token" "{{api_url}}/api/policies" \
        | jq -r '["ID","ENABLED","NAME","DESCRIPTION"], (.[] | [.id, (.enabled|tostring), .name, .description]) | @tsv' | column -t -s "$(printf '\t')"
 
@@ -66,7 +73,7 @@ list-policies:
 # resources), or if any of the three explicit policies is missing/disabled.
 # Default policy was closed 2026-07-17 (deleted via close-default-policy).
 audit-policies:
-    @token="$(sops -d {{secrets}} | yq '.netbird_api_token')"; \
+    @{{_token}} \
      p="$(curl -fsSL -H "Authorization: Token $token" "{{api_url}}/api/policies")"; \
      fail=0; \
      if echo "$p" | jq -e '.[] | select(.name=="Default")' >/dev/null; then \
@@ -85,19 +92,20 @@ audit-policies:
 # this only after `just plan` is clean and the explicit SSH policy is adopted.
 # Delete a policy by id (confirmed) — closes the built-in "All -> All" default.
 close-default-policy POLICY_ID:
-    @test -n "{{POLICY_ID}}" || { echo "usage: just close-default-policy <id>   (see: just list-policies)"; exit 1; }
-    @token="$(sops -d {{secrets}} | yq '.netbird_api_token')"; \
+    @POLICY_ID={{quote(POLICY_ID)}}; test -n "$POLICY_ID" || { echo "usage: just close-default-policy <id>   (see: just list-policies)"; exit 1; }
+    @POLICY_ID={{quote(POLICY_ID)}}; \
+     {{_token}} \
      echo "About to DELETE this NetBird policy:"; \
-     curl -fsSL -H "Authorization: Token $token" "{{api_url}}/api/policies/{{POLICY_ID}}" | jq '{id, name, enabled, description}'; \
+     curl -fsSL -H "Authorization: Token $token" "{{api_url}}/api/policies/$POLICY_ID" | jq '{id, name, enabled, description}'; \
      printf 'Type DELETE to confirm: '; read c; [ "$c" = "DELETE" ] || { echo "aborted"; exit 1; }; \
-     curl -fsSL -X DELETE -H "Authorization: Token $token" "{{api_url}}/api/policies/{{POLICY_ID}}"; \
-     echo "deleted policy {{POLICY_ID}} — verify the explicit policies still cover every path you rely on"
+     curl -fsSL -X DELETE -H "Authorization: Token $token" "{{api_url}}/api/policies/$POLICY_ID"; \
+     echo "deleted policy $POLICY_ID — verify the explicit policies still cover every path you rely on"
 
 # --- Peer pruning (clear the accumulated ephemeral CI-runner peers) -----------
 
 # List all peers (name, connected, last seen) — eyeball the accumulated CI cruft.
 list-peers:
-    @token="$(sops -d {{secrets}} | yq '.netbird_api_token')"; \
+    @{{_token}} \
      curl -fsSL -H "Authorization: Token $token" "{{api_url}}/api/peers" \
        | jq -r '["NAME","CONNECTED","LAST_SEEN","ID"], (.[] | [.name, (.connected|tostring), .last_seen, .id]) | @tsv' \
        | column -t -s "$(printf '\t')"
@@ -106,23 +114,24 @@ list-peers:
 # name; a duplicate name breaks the name lookups in groups.tf.
 # Delete a single peer BY EXACT NAME.
 remove-peer NAME:
-    @token="$(sops -d {{secrets}} | yq '.netbird_api_token')"; \
+    @NAME={{quote(NAME)}}; \
+     {{_token}} \
      peers="$(curl -fsSL -H "Authorization: Token $token" "{{api_url}}/api/peers")"; \
-     match="$(echo "$peers" | jq -r --arg n "{{NAME}}" '.[] | select(.name == $n) | "\(.id)\t\(.name)\t\(.connected)\t\(.last_seen)"')"; \
-     [ -n "$match" ] || { echo "No peer named exactly '{{NAME}}' found."; exit 0; }; \
+     match="$(echo "$peers" | jq -r --arg n "$NAME" '.[] | select(.name == $n) | "\(.id)\t\(.name)\t\(.connected)\t\(.last_seen)"')"; \
+     [ -n "$match" ] || { echo "No peer named exactly '$NAME' found."; exit 0; }; \
      count="$(printf '%s\n' "$match" | wc -l | tr -d ' ')"; \
-     [ "$count" = "1" ] || { echo "Refusing: $count peers match name '{{NAME}}' exactly — resolve manually via list-peers."; exit 1; }; \
+     [ "$count" = "1" ] || { echo "Refusing: $count peers match name '$NAME' exactly — resolve manually via list-peers."; exit 1; }; \
      echo "Peer to DELETE:"; echo "$match" | column -t -s "$(printf '\t')"; \
-     printf "Type the peer name to confirm deletion: "; read -r c; [ "$c" = "{{NAME}}" ] || { echo "aborted"; exit 1; }; \
+     printf "Type the peer name to confirm deletion: "; read -r c; [ "$c" = "$NAME" ] || { echo "aborted"; exit 1; }; \
      id="$(printf '%s' "$match" | cut -f1)"; \
-     curl -fsSL -X DELETE -H "Authorization: Token $token" "{{api_url}}/api/peers/$id" && echo "✅ deleted peer '{{NAME}}' ($id)"
+     curl -fsSL -X DELETE -H "Authorization: Token $token" "{{api_url}}/api/peers/$id" && echo "✅ deleted peer '$NAME' ($id)"
 
 # Clears leaked one-shot CI-runner peers. Only names matching the protect regex
 # are kept (the phones' NetBird names don't match), so check the list first.
 # Override the kept set with NETBIRD_PROTECT="regex".
 # Delete DISCONNECTED peers not matching the protect regex (confirm by count).
 prune-peers:
-    @token="$(sops -d {{secrets}} | yq '.netbird_api_token')"; \
+    @{{_token}} \
      protect="${NETBIRD_PROTECT:-nixos-nvme|hass-pi|core-pi|orin|nasbook|router|phone|mac-mini}"; \
      peers="$(curl -fsSL -H "Authorization: Token $token" "{{api_url}}/api/peers")"; \
      cand="$(echo "$peers" | jq -r --arg p "$protect" '.[] | select(.connected==false) | select((.name|test($p))|not) | "\(.id)\t\(.name)\t\(.last_seen)"')"; \

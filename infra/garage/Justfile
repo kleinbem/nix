@@ -29,7 +29,7 @@ apply: init
 
 # Read the created credentials (capture these for restic / the tofu s3 backend).
 creds: init
-    {{_enc}} TF_VAR_garage_admin_token="$(sops -d {{secrets}} | yq '.garage_admin_token')" tofu output
+    {{_enc}} TF_VAR_garage_admin_token="$(sops -d {{secrets}} | yq '.garage_admin_token')" tofu output -show-sensitive
 
 # Dump the live provider schema to verify resource/attribute names.
 schema: init
