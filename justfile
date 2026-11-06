@@ -26,7 +26,7 @@ check:
 
 [group("Main")]
 attic-coverage host="$(hostname)":
-    @cd {{ROOT}}/nix-config && just dev::attic-coverage {{host}}
+    @cd {{ROOT}}/nix-config && just dev::attic-coverage "{{host}}"
 
 [group("Main")]
 check-shells:
@@ -70,7 +70,7 @@ alias ship := ship-all
 # nix-config/personas.nix). e.g. `just as daniel save-all "fix: ui polish"`
 [group("Main")]
 as persona *args:
-    @KLEINBEM_PERSONA={{persona}} just jj::{{args}}
+    @KLEINBEM_PERSONA={{quote(persona)}} just jj::{{args}}
 
 # e.g. `just in nix-config nixos::switch`, `just in nix-presets check`
 # Pass-through to any sub-flake's justfile from the meta root.

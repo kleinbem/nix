@@ -21,12 +21,12 @@ sync:
                 ext_dir="$HOME/.config/$editor/extensions"; \
             fi; \
             mkdir -p "$ext_dir"; \
-            find "$ext_dir" -maxdepth 1 -type l | while read link; do \
+            find "$ext_dir" -maxdepth 1 -type l | while IFS= read -r link; do \
                 target=$(readlink "$link"); \
                 case "$target" in /nix/store/*) rm -f "$link";; esac; \
             done; \
-            for ext in $bundle/share/vscode/extensions/*; do \
-                ln -sf "$ext" "$ext_dir/$(basename $ext)"; \
+            for ext in "$bundle"/share/vscode/extensions/*; do \
+                ln -sf "$ext" "$ext_dir/$(basename "$ext")"; \
             done; \
             echo "  ✅ $editor synced"; \
         else \
