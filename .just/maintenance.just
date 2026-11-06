@@ -271,9 +271,10 @@ hooks-refresh-all:
     command -v prek >/dev/null || { echo "❌ prek not on PATH: load the devshell (direnv allow)"; exit 1; }
     failed=()
     for repo in {{REPOS}}; do
+        [ -e "{{ROOT}}/$repo/.git" ] || continue
+        # A linked worktree has a .git file and shares the main checkout's hooks.
         hooks="{{ROOT}}/$repo/.git/hooks"
-        [ -d "$hooks" ] || continue
-        find "$hooks" -mindepth 1 -delete
+        if [ -d "$hooks" ]; then find "$hooks" -mindepth 1 -delete; fi
         if [ -f "{{ROOT}}/$repo/.pre-commit-config.yaml" ]; then
             echo "  └─ $repo"
             (cd "{{ROOT}}/$repo" && prek install) || failed+=("$repo")
