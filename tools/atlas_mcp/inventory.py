@@ -127,6 +127,8 @@ def get_system_telemetry():
                 [os.path.join(DEFAULT_FLAKE_PATH, "tools/ai-logs.sh"), "--sink"],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
+                # Write the sink this function reads, whatever the env says.
+                env={**os.environ, "AI_LOGS_ROOT": DEFAULT_FLAKE_PATH},
             )
 
         return {
