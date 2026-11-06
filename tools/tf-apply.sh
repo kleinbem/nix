@@ -497,9 +497,10 @@ if [ -n "$OIDC_SECRETS_JSON" ] && [ "$OIDC_SECRETS_JSON" != "{}" ] && [ "$OIDC_S
       # Plaintext only in RAM; the repo gets the file once encryption worked.
       mkdir -p "$(dirname "$APP_YAML")"
       OIDC_WORK="$(mktemp -d /dev/shm/tf-apply-oidc-XXXXXX)"
-      # Exit cleanup for both RAM dirs, keeping the backend cleanup.
+      # Exit cleanup for both RAM dirs first, then the backend cleanup, so a
+      # failing cleanup_backend can't leave the plaintext behind.
       # shellcheck disable=SC2154 # d is the loop variable inside the trap
-      trap 'cleanup_backend; for d in "${GEMINI_WORK:-}" "${OIDC_WORK:-}"; do [ -n "$d" ] && { find "$d" -type f -exec shred -u {} \; 2>/dev/null; rm -rf "$d"; }; done' EXIT
+      trap 'for d in "${GEMINI_WORK:-}" "${OIDC_WORK:-}"; do [ -n "$d" ] && { find "$d" -type f -exec shred -u {} \; 2>/dev/null; rm -rf "$d"; }; done; cleanup_backend' EXIT
       printf '%s' "$app_secret" >"$OIDC_WORK/value"
       printf '{}\n' >"$OIDC_WORK/plain.yaml"
       # Encrypted output goes to a temp file beside APP_YAML, then one rename.
