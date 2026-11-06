@@ -43,9 +43,15 @@ CONF_PATH=$(readlink -f ./result)
 # Find the nested bin folder (XCover 6 Pro / Nix-on-Droid specific structure).
 # Checked in the new build before the profile moves, since the core links
 # resolve through the profile.
-# shellcheck disable=SC2012
-NEW_BIN=$(ls -d "$CONF_PATH"/*/bin 2>/dev/null | head -n 1) || true
-if [ -z "$NEW_BIN" ] || [ ! -x "$NEW_BIN/sh" ] || [ ! -x "$NEW_BIN/env" ]; then
+# The first */bin that has both: filesystem/bin sorts first and lacks env.
+NEW_BIN=""
+for d in "$CONF_PATH"/*/bin; do
+  if [ -x "$d/sh" ] && [ -x "$d/env" ]; then
+    NEW_BIN="$d"
+    break
+  fi
+done
+if [ -z "$NEW_BIN" ]; then
   echo "❌ No bin/ with sh and env in $CONF_PATH; profile and core links left as they were." >&2
   exit 1
 fi
