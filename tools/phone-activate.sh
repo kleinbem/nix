@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tools/phone-activate.sh
-# To be run ON THE PHONE inside the nix-config directory.
+# To be run ON THE PHONE, with the repos flat in $HOME (phone-deploy.sh, phone-ssh-deploy.sh).
 # Automates Git initialization, Nix building with overrides, and the PTY-bypass symlink.
 
 set -euo pipefail
@@ -13,22 +13,20 @@ if [ -z "$GIT" ]; then
   GIT="nix run nixpkgs#git --"
 fi
 
+# The repos sit flat in $HOME (phone-deploy.sh / phone-ssh-deploy.sh). git-tracked
+# so the path inputs below don't copy build results and stray files into the store.
+REPOS=(nix-config nix-presets nix-devshells nix-hardware nix-packages nix-templates kleinbem-secrets)
 echo "🔄 Initializing Git repositories for all components..."
-cd ~/nix-config
-for d in nix-*; do
-  if [ -d "$d" ]; then
+for d in "${REPOS[@]}"; do
+  if [ -d "$HOME/$d" ]; then
     echo "  -> Setting up $d..."
-    cd "$d"
-    $GIT init >/dev/null 2>&1 || true
-    $GIT add . >/dev/null 2>&1 || true
-    cd ..
+    (cd "$HOME/$d" && $GIT init >/dev/null 2>&1 && $GIT add -A >/dev/null 2>&1) || echo "  ⚠️ git setup failed in $d" >&2
   fi
 done
 
 echo "🏗️ Building activation package (with local overrides)..."
-cd ~/nix-config
+cd "$HOME/nix-config"
 nix build ".#nixOnDroidConfigurations.phone.activationPackage" --impure \
-  --override-input nix-config . \
   --override-input nix-presets ../nix-presets \
   --override-input nix-devshells ../nix-devshells \
   --override-input nix-hardware ../nix-hardware \
