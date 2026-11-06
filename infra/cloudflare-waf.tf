@@ -8,22 +8,20 @@ resource "cloudflare_ruleset" "ratelimit" {
   kind        = "zone"
   phase       = "http_ratelimit"
 
-  rules {
-    ref         = "vault_token_bruteforce"
-    description = "Vaultwarden /identity/connect/token — brute force / cred stuffing"
-    expression  = "(http.host eq \"vault.kleinbem.dev\" and http.request.uri.path eq \"/identity/connect/token\")"
-    action      = "block"
-
-    ratelimit {
-      # Per client IP, per Cloudflare PoP (cf.colo.id is required by the API).
-      characteristics = ["ip.src", "cf.colo.id"]
-      # Free plan allows only period = 10 and mitigation_timeout == period.
-      # On Pro, raise to period 60 and mitigation_timeout 600.
-      period              = 10
-      requests_per_period = 20
-      mitigation_timeout  = 10
+  rules = [
+    {
+      ref         = "vault_token_bruteforce"
+      description = "Vaultwarden /identity/connect/token — brute force / cred stuffing"
+      expression  = "(http.host eq \"vault.kleinbem.dev\" and http.request.uri.path eq \"/identity/connect/token\")"
+      action      = "block"
+      ratelimit = {
+        characteristics     = ["ip.src", "cf.colo.id"]
+        period              = 10
+        requests_per_period = 20
+        mitigation_timeout  = 10
+      }
     }
-  }
+  ]
 }
 
 # Custom rules have their own quota (5 on Free). No threat-score rules: Cloudflare
@@ -36,11 +34,13 @@ resource "cloudflare_ruleset" "waf_custom" {
   kind        = "zone"
   phase       = "http_request_firewall_custom"
 
-  rules {
-    ref         = "block_malicious_scanners"
-    description = "Block known vulnerability scanners and automated exploit probes"
-    expression  = "(lower(http.user_agent) contains \"sqlmap\" or lower(http.user_agent) contains \"nikto\" or lower(http.user_agent) contains \"masscan\" or lower(http.user_agent) contains \"acunetix\" or lower(http.user_agent) contains \"censys\")"
-    action      = "block"
-  }
+  rules = [
+    {
+      ref         = "block_malicious_scanners"
+      description = "Block known vulnerability scanners and automated exploit probes"
+      expression  = "(lower(http.user_agent) contains \"sqlmap\" or lower(http.user_agent) contains \"nikto\" or lower(http.user_agent) contains \"masscan\" or lower(http.user_agent) contains \"acunetix\" or lower(http.user_agent) contains \"censys\")"
+      action      = "block"
+    }
+  ]
 }
 

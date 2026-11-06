@@ -5,7 +5,7 @@ terraform {
   required_providers {
     cloudflare = {
       source  = "cloudflare/cloudflare"
-      version = "~> 4.0"
+      version = "~> 5.0"
     }
     github = {
       source  = "integrations/github"
@@ -59,42 +59,60 @@ provider "github" {
 }
 
 data "cloudflare_zone" "main" {
-  name = "kleinbem.dev"
+  filter = {
+    name = "kleinbem.dev"
+  }
 }
 
 resource "cloudflare_zero_trust_tunnel_cloudflared" "core_pi" {
   account_id = var.cloudflare_account_id
   name       = "core-pi"
-  secret     = var.cloudflare_tunnel_secret
 
   # The API never returns the secret, so without this every plan would replace
   # the live tunnel. To rotate, drop ignore_changes for one apply.
   lifecycle {
-    ignore_changes = [secret]
+    ignore_changes = [tunnel_secret]
   }
+  tunnel_secret = var.cloudflare_tunnel_secret
+  config_src    = "local"
+}
+
+
+
+output "tunnel_id" {
+  value = cloudflare_zero_trust_tunnel_cloudflared.core_pi.id
 }
 
 # Route wildcard domain to the argo tunnel CNAME
-resource "cloudflare_record" "wildcard" {
+resource "cloudflare_dns_record" "wildcard" {
   zone_id = data.cloudflare_zone.main.id
   name    = "*"
   content = "${cloudflare_zero_trust_tunnel_cloudflared.core_pi.id}.cfargotunnel.com"
   type    = "CNAME"
   proxied = true
+  ttl     = 1
+}
+
+moved {
+  from = cloudflare_record.wildcard
+  to   = cloudflare_dns_record.wildcard
 }
 
 # Route apex domain (@) to argo tunnel CNAME
-resource "cloudflare_record" "root" {
+resource "cloudflare_dns_record" "root" {
   zone_id = data.cloudflare_zone.main.id
   name    = "@"
   content = "${cloudflare_zero_trust_tunnel_cloudflared.core_pi.id}.cfargotunnel.com"
   type    = "CNAME"
   proxied = true
+  ttl     = 1
 }
 
-output "tunnel_id" {
-  value = cloudflare_zero_trust_tunnel_cloudflared.core_pi.id
+moved {
+  from = cloudflare_record.root
+  to   = cloudflare_dns_record.root
 }
+
 
 moved {
   from = cloudflare_zero_trust_tunnel_cloudflared.nixos_nvme
@@ -123,4 +141,5 @@ resource "cloudflare_r2_bucket" "tofu_state" {
 output "tofu_state_bucket" {
   value = cloudflare_r2_bucket.tofu_state.name
 }
+
 

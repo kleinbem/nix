@@ -7,24 +7,21 @@ locals {
   account_id = nonsensitive(var.cloudflare_account_id)
 }
 
-data "cloudflare_api_token_permission_groups" "all" {}
-
 resource "cloudflare_api_token" "backup_r2" {
   for_each = local.backup_hosts
   name     = "backup-r2-${each.key}"
 
-  # Object read/write on the backup bucket only — no bucket admin, no other
-  # buckets. Deletes are possible (restic prune needs them); the bucket lock
-  # on secure/ (infra/cloudflare-r2.tf) protects recent secure bundles.
-  policy {
-    permission_groups = [
-      data.cloudflare_api_token_permission_groups.all.r2["Workers R2 Storage Bucket Item Read"],
-      data.cloudflare_api_token_permission_groups.all.r2["Workers R2 Storage Bucket Item Write"],
-    ]
-    resources = {
+  policies = [{
+    resources = jsonencode({
       "com.cloudflare.edge.r2.bucket.${local.account_id}_default_${var.backup_bucket}" = "*"
-    }
-  }
+    })
+    effect = "allow"
+    permission_groups = [{
+      id = "Workers R2 Storage Bucket Item Read"
+      }, {
+      id = "Workers R2 Storage Bucket Item Write"
+    }]
+  }]
 }
 
 # R2's S3 credentials derive from the API token: Access Key ID = token id,

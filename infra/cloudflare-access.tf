@@ -25,26 +25,20 @@ locals {
 resource "cloudflare_zero_trust_access_application" "this" {
   for_each = local.access_apps
 
-  account_id                = var.cloudflare_account_id
-  name                      = each.value.name
-  domain                    = each.value.domain
-  type                      = "self_hosted"
-  session_duration          = "24h"
-  auto_redirect_to_identity = false
-}
+  account_id       = var.cloudflare_account_id
+  name             = each.value.name
+  domain           = each.value.domain
+  type             = "self_hosted"
+  session_duration = "24h"
 
-resource "cloudflare_zero_trust_access_policy" "allow_owner" {
-  for_each = local.access_apps
-
-  application_id = cloudflare_zero_trust_access_application.this[each.key].id
-  account_id     = var.cloudflare_account_id
-  name           = "Allow owner (email OTP or Authentik)"
-  precedence     = 1
-  decision       = "allow"
-
-  include {
-    email = local.access_allowed_emails
-  }
+  policies = [
+    {
+      name       = "Allow owner (email OTP or Authentik)"
+      decision   = "allow"
+      precedence = 1
+      include    = [for v in local.access_allowed_emails : { email = { email = v } }]
+    }
+  ]
 }
 
 # Authentik OIDC IdP (UUID 6bb0c00a-ad4e-4250-b5bb-215e7129112a) is set up by

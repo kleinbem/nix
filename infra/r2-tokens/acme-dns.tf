@@ -5,15 +5,17 @@
 resource "cloudflare_api_token" "caddy_acme_dns" {
   name = "caddy-acme-dns-core-pi"
 
-  policy {
-    permission_groups = [
-      data.cloudflare_api_token_permission_groups.all.zone["Zone Read"],
-      data.cloudflare_api_token_permission_groups.all.zone["DNS Write"],
-    ]
-    resources = {
+  policies = [{
+    resources = jsonencode({
       "com.cloudflare.api.account.zone.${var.cloudflare_zone_id}" = "*"
-    }
-  }
+    })
+    effect = "allow"
+    permission_groups = [{
+      id = "DNS Write"
+      }, {
+      id = "Zone Read"
+    }]
+  }]
 }
 
 output "caddy_acme_dns_token" {

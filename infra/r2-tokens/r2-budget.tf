@@ -4,15 +4,17 @@
 resource "cloudflare_api_token" "r2_budget" {
   name = "r2-budget-watchdog"
 
-  policy {
-    permission_groups = [
-      data.cloudflare_api_token_permission_groups.all.account["Account Analytics Read"],
-      data.cloudflare_api_token_permission_groups.all.account["Workers R2 Storage Write"],
-    ]
-    resources = {
+  policies = [{
+    resources = jsonencode({
       "com.cloudflare.api.account.${local.account_id}" = "*"
-    }
-  }
+    })
+    effect = "allow"
+    permission_groups = [{
+      id = "Account Analytics Read"
+      }, {
+      id = "Workers R2 Storage Write"
+    }]
+  }]
 }
 
 output "r2_budget_token" {
