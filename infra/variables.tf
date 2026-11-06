@@ -175,3 +175,48 @@ variable "kleinbem_auth_google_client_secret" {
   default     = ""
   description = "Paired with kleinbem_auth_google_client_id above — same reused Google OAuth client, same source file/key (google_client_secret)."
 }
+
+# github-config's read-only plan credentials (PLAN_* secrets, github-secrets.tf).
+# All empty = not distributed yet. The App is made by hand; the R2 pair comes
+# from r2-tokens/ via sync-secrets.sh. All live in infra/terraform.yaml.
+variable "github_plan_app_id" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "Read-only GitHub App (kleinbem-plan) id, distributed as PLAN_APP_ID."
+}
+
+variable "github_plan_app_installation_id" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "kleinbem-plan's installation id on the kleinbem account (PLAN_APP_INSTALLATION_ID)."
+}
+
+variable "github_plan_app_org_installation_id" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "kleinbem-plan's installation id on the kleinbem-dev org (PLAN_APP_ORG_INSTALLATION_ID)."
+}
+
+variable "github_plan_app_private_key" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "kleinbem-plan's private key (PEM), distributed as PLAN_APP_PRIVATE_KEY."
+}
+
+variable "github_config_plan_r2_access_key_id" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "Read-only R2 access key id on kleinbem-tofu-state (r2-tokens/github-config-plan.tf), distributed as PLAN_R2_ACCESS_KEY_ID."
+}
+
+variable "github_config_plan_r2_secret_access_key" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "Read-only R2 secret access key on kleinbem-tofu-state, distributed as PLAN_R2_SECRET_ACCESS_KEY."
+}

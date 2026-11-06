@@ -59,6 +59,20 @@ else
 fi
 unset CACHE_CI
 
+# github-config's read-only plan credentials (github-config-plan.tf) →
+# infra/terraform.yaml, read by tools/tf-apply.sh for the main root.
+PLAN_R2=$(cd "$_here" && tofu output -json github_config_plan_r2 2>/dev/null || true)
+if [ -n "$PLAN_R2" ] && [ "$PLAN_R2" != "null" ]; then
+  for key in access_key_id secret_access_key; do
+    echo "$PLAN_R2" | jq -c --arg k "$key" '.[$k]' |
+      sops set --idempotent --value-stdin "$SECRETS_ROOT/infra/terraform.yaml" "[\"github_config_plan_r2_$key\"]"
+  done
+  echo "🟢 github_config_plan_r2_{access_key_id,secret_access_key} in sync in infra/terraform.yaml"
+else
+  echo "⚠️  no github_config_plan_r2 output — skipped github-config's plan credentials" >&2
+fi
+unset PLAN_R2
+
 # The r2-budget watchdog's token (r2-budget.tf) → infra/terraform.yaml.
 BUDGET_TOKEN=$(cd "$_here" && tofu output -raw r2_budget_token 2>/dev/null || true)
 if [ -n "$BUDGET_TOKEN" ]; then
