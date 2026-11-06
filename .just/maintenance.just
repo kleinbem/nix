@@ -291,22 +291,29 @@ find pattern:
 
 [group("Updates")]
 update-cached:
-    @echo "🔄 Backing up current flake.lock..."
-    @cp {{ROOT}}/nix-config/flake.lock {{ROOT}}/nix-config/flake.lock.bak
-    @echo "🔄 Updating lockfile (nix flake update)..."
-    @{{LOCK_CMD}} bash -c "cd {{ROOT}}/nix-config && nix flake update" \
-        || { mv {{ROOT}}/nix-config/flake.lock.bak {{ROOT}}/nix-config/flake.lock; echo "❌ Update failed, flake.lock restored"; exit 1; }
-    @just maintenance::update-local \
-        || { mv {{ROOT}}/nix-config/flake.lock.bak {{ROOT}}/nix-config/flake.lock; echo "❌ Lock sync failed: nix-config/flake.lock restored, sub-flake locks it already updated are not (check just status-all)"; exit 1; }
-    @echo "🔍 Checking if new updates require heavy local builds (evaluating checks)..."
-    @output=$({{LOCK_CMD}} nix build --no-link --dry-run {{ROOT}}/nix-config#checks.x86_64-linux.host-nixos-nvme {{OVERRIDES}} --impure 2>&1 || true); \
-    if echo "$output" | grep -q "will be built:"; then \
-        echo "❌ Updates require local builds! Reverting flake.lock..."; \
-        mv {{ROOT}}/nix-config/flake.lock.bak {{ROOT}}/nix-config/flake.lock; \
-        just maintenance::update-local; \
-    else \
-        echo "✅ Updates are fully cached! Lockfile updated successfully."; \
-        rm {{ROOT}}/nix-config/flake.lock.bak; \
+    #!/usr/bin/env bash
+    set -uo pipefail
+    lock={{ROOT}}/nix-config/flake.lock
+    # Another locked run may be mid-update: don't back up or restore under it.
+    if ! flock -n {{LOCK_FILE}} true; then
+        echo "❌ Workspace locked at {{LOCK_FILE}}. Run \`just maintenance::who\` to check."; exit 1
+    fi
+    # Per-run backup, so a second run can't overwrite this one's.
+    bak=$(mktemp "$lock.bak.XXXXXX")
+    cp "$lock" "$bak"
+    restore() { mv "$bak" "$lock"; echo "❌ $1: nix-config/flake.lock restored, sub-flake locks it already updated are not (check just status-all)"; exit 1; }
+    echo "🔄 Updating lockfile (nix flake update)..."
+    {{LOCK_CMD}} bash -c "cd {{ROOT}}/nix-config && nix flake update" || restore "Update failed"
+    just maintenance::update-local || restore "Lock sync failed"
+    echo "🔍 Checking if new updates require heavy local builds (evaluating checks)..."
+    output=$({{LOCK_CMD}} nix build --no-link --dry-run {{ROOT}}/nix-config#checks.x86_64-linux.host-nixos-nvme {{OVERRIDES}} --impure 2>&1 || true)
+    if echo "$output" | grep -q "will be built:"; then
+        echo "❌ Updates require local builds! Reverting flake.lock..."
+        mv "$bak" "$lock"
+        just maintenance::update-local
+    else
+        echo "✅ Updates are fully cached! Lockfile updated successfully."
+        rm "$bak"
     fi
 
 [group("Updates")]
