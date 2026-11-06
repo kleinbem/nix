@@ -1,7 +1,8 @@
 # Network routes: reach containers (which don't run NetBird) through a
 # gateway peer. Traffic also needs a netbird_policy whose destination is the
-# route's `access_control_groups` (policies.tf). Provider v0.0.9 predates the
-# network_* resources, so this uses netbird_route.
+# route's `access_control_groups` (policies.tf). These are legacy routes; the
+# provider's netbird_network* resources would replace them, which recreates
+# every route.
 
 resource "netbird_route" "buzz_relay" {
   network_id  = "buzz-relay"
@@ -36,7 +37,7 @@ resource "netbird_route" "buzz_relay" {
 
 resource "netbird_route" "code_server" {
   network_id            = "code-server"
-  description           = "code-server container on nixos-nvme (mesh-only forward-auth service). LIVE IP — see note above re: inventory.nix drift (declares .101)."
+  description           = "code-server container on nixos-nvme (mesh-only forward-auth service)."
   network               = "10.85.46.22/32"
   peer                  = data.netbird_peer.personal_devices["nixos-nvme"].id
   groups                = [netbird_group.personal_devices.id]
@@ -69,7 +70,7 @@ resource "netbird_route" "garage_ui" {
 
 resource "netbird_route" "frigate" {
   network_id            = "frigate"
-  description           = "frigate container on orin-nano (mesh-only forward-auth service). LIVE IP — see note above re: inventory.nix drift (declares .130)."
+  description           = "frigate container on orin-nano (mesh-only forward-auth service)."
   network               = "10.85.46.39/32"
   peer                  = data.netbird_peer.smart_home["orin-nano"].id
   groups                = [netbird_group.smart_home.id]

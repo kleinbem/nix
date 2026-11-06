@@ -134,7 +134,7 @@ variable "ntfy_deploy_topic" {
 variable "google_service_account_key" {
   type        = string
   sensitive   = true
-  description = "Base64-encoded JSON key for the terraform-google service account (project kleinbem-ai, roles/serviceusage.apiKeysAdmin). Bootstrap credential — created manually via gcloud (2026-08-07), not itself Terraform-managed, same as cloudflare_api_token."
+  description = "Base64-encoded JSON key for the terraform-google service account (project kleinbem-ai; roles/browser, roles/serviceusage.apiKeysAdmin and roles/serviceusage.serviceUsageAdmin, the last for google_project_service). Bootstrap credential — created manually via gcloud (2026-08-07), not itself Terraform-managed, same as cloudflare_api_token."
 }
 
 variable "r2_state_access_key_id" {

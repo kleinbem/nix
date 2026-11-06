@@ -22,6 +22,10 @@ the control plane.
    `garage_admin_token` (the same GARAGE_ADMIN_TOKEN the service uses). Already present.
 3. Run on the host that runs garage (admin API is on loopback `:3903`), or set
    `TF_VAR_garage_endpoint` to reach it over NetBird. Tools: `tofu`, `sops`, `yq`.
+4. Use one checkout. State is the local, encrypted `terraform.tfstate` here; a
+   checkout without it plans to create every bucket and key again. To move,
+   copy that file across (it stays encrypted). The local backend's lock only
+   covers one machine, so never apply from two at once.
 
 ## Use
 ```bash

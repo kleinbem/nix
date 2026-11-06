@@ -25,6 +25,9 @@ resource "aws_sesv2_email_identity" "primary_domain" {
 
 # --- Cloudflare CNAMEs for SES-generated DKIM tokens ---
 # SES emits 3 tokens; each becomes a CNAME pointing at the SES service.
+# The target assumes dkim.amazonses.com. SES returns the real one as the
+# identity's SigningHostedZone, which the provider doesn't expose: check it once
+# the identity exists and fix the content if it differs.
 resource "cloudflare_record" "ses_dkim" {
   count   = 3
   zone_id = data.cloudflare_zone.main.id
