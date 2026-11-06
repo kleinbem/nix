@@ -104,6 +104,12 @@ KLEINBEM_AUTH_YAML=$(sops -d "$KLEINBEM_AUTH_FILE")
 AUTHENTIK_API_TOKEN=$(echo "$AUTHENTIK_YAML" | yq '.authentik_bootstrap_api_token')
 GOOGLE_CLIENT_ID=$(echo "$KLEINBEM_AUTH_YAML" | yq '.google_client_id')
 GOOGLE_CLIENT_SECRET=$(echo "$KLEINBEM_AUTH_YAML" | yq '.google_client_secret')
+for v in AUTHENTIK_API_TOKEN GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET; do
+  if [ -z "${!v}" ] || [ "${!v}" = "null" ]; then
+    echo -e "${RED}❌ $v missing (authentik.yaml / kleinbem-auth.yaml in kleinbem-secrets).${RESET}" >&2
+    exit 1
+  fi
+done
 
 # Check if we have api token and account id
 API_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.cloudflare_api_token')
@@ -158,18 +164,30 @@ export TF_VAR_kleinbem_site_session_secret="$SESSION_SECRET"
 export TF_VAR_cloudflare_pages_deploy_token="$PAGES_DEPLOY_TOKEN"
 
 echo -e "\n${BOLD}${YELLOW}🔍 Cloudflare Token & Zero Trust Diagnostics:${RESET}"
+# Best effort: a slow or failing endpoint must not stop the plan.
+diag() { # diag <jq filter> <curl args...>
+  local filter="$1" out
+  shift
+  out=$(curl -s --max-time 10 "$@" | jq -c "$filter" 2>/dev/null) || out=""
+  echo "${out:-(unavailable)}"
+}
 echo -n "  • Token status:   "
-curl -s -H "Authorization: Bearer $API_TOKEN" https://api.cloudflare.com/client/v4/user/tokens/verify | jq -c '{id: .result.id, status: .result.status, success: .success, errors: .errors}'
+diag '{id: .result.id, status: .result.status, success: .success, errors: .errors}' \
+  -H "Authorization: Bearer $API_TOKEN" https://api.cloudflare.com/client/v4/user/tokens/verify
 echo -n "  • Zero Trust Org: "
-curl -s -H "Authorization: Bearer $API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/access/organizations" | jq -c '{name: .result.name, auth_domain: .result.auth_domain, success: .success, errors: .errors}'
+diag '{name: .result.name, auth_domain: .result.auth_domain, success: .success, errors: .errors}' \
+  -H "Authorization: Bearer $API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/access/organizations"
 echo -n "  • Access IdPs:    "
-curl -s -H "Authorization: Bearer $API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/access/identity_providers" | jq -c '{count: (.result | length), success: .success, errors: .errors}'
+diag '{count: (.result | length), success: .success, errors: .errors}' \
+  -H "Authorization: Bearer $API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/access/identity_providers"
 echo -n "  • Web Analytics:  "
-curl -s -H "Authorization: Bearer $API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/rum/site_info/list" | jq -c '{count: (.result | length), success: .success, errors: .errors}'
+diag '{count: (.result | length), success: .success, errors: .errors}' \
+  -H "Authorization: Bearer $API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/rum/site_info/list"
 # Report only whether the cloudflare-access client secret exists, never the
 # value: this output gets pasted into chats and issues.
 echo -n "  • Authentik OIDC: "
-curl -s -H "Authorization: Bearer $AUTHENTIK_API_TOKEN" "https://auth.kleinbem.dev/api/v3/providers/oauth2/?client_id=cloudflare-access" | jq -c '{client: "cloudflare-access", secret_present: ((.results[0].client_secret // "") != "")}'
+diag '{client: "cloudflare-access", secret_present: ((.results[0].client_secret // "") != "")}' \
+  -H "Authorization: Bearer $AUTHENTIK_API_TOKEN" "https://auth.kleinbem.dev/api/v3/providers/oauth2/?client_id=cloudflare-access"
 
 
 # --- GitHub provider inputs (sourced from sops) ---
@@ -343,7 +361,7 @@ tofu init -input=false -reconfigure -backend-config="$BACKEND_CFG"
 
 if [ "$MODE" = "plan" ]; then
   echo -e "\n${BOLD}🔎 Running plan only (no changes will be applied)...${RESET}"
-  tofu plan
+  tofu plan "${PASSTHROUGH[@]}"
   echo -e "\n${BOLD}${GREEN}✅ Plan complete. Re-run without --plan-only to apply.${RESET}"
   exit 0
 fi
@@ -476,9 +494,30 @@ if [ -n "$OIDC_SECRETS_JSON" ] && [ "$OIDC_SECRETS_JSON" != "{}" ] && [ "$OIDC_S
     [ "$app" = "grafana" ] && key_name="monitoring_grafana_oauth_client_secret"
 
     if [ ! -f "$APP_YAML" ]; then
+      # Plaintext only in RAM; the repo gets the file once encryption worked.
       mkdir -p "$(dirname "$APP_YAML")"
-      echo "${key_name}: ${app_secret}" > "$APP_YAML"
-      sops --config "$SECRETS_ROOT/.sops.yaml" -e -i "$APP_YAML"
+      OIDC_WORK="$(mktemp -d /dev/shm/tf-apply-oidc-XXXXXX)"
+      # Exit cleanup for both RAM dirs first, then the backend cleanup, so a
+      # failing cleanup_backend can't leave the plaintext behind.
+      # shellcheck disable=SC2154 # d is the loop variable inside the trap
+      trap 'for d in "${GEMINI_WORK:-}" "${OIDC_WORK:-}"; do [ -n "$d" ] && { find "$d" -type f -exec shred -u {} \; 2>/dev/null; rm -rf "$d"; }; done; cleanup_backend' EXIT
+      printf '%s' "$app_secret" >"$OIDC_WORK/value"
+      printf '{}\n' >"$OIDC_WORK/plain.yaml"
+      # Encrypted output goes to a temp file beside APP_YAML, then one rename.
+      # Inside `if`, so a failure still reaches the cleanup below.
+      OIDC_ENC="$(mktemp "$APP_YAML.XXXXXX")"
+      if OIDC_VALUE_PATH="$OIDC_WORK/value" yq -i \
+        ".${key_name} = load_str(strenv(OIDC_VALUE_PATH))" "$OIDC_WORK/plain.yaml" &&
+        sops --config "$SECRETS_ROOT/.sops.yaml" --filename-override "$APP_YAML" \
+          -e "$OIDC_WORK/plain.yaml" >"$OIDC_ENC"; then
+        mv "$OIDC_ENC" "$APP_YAML" || rm -f "$OIDC_ENC"
+      else
+        rm -f "$OIDC_ENC"
+      fi
+      find "$OIDC_WORK" -type f -exec shred -u {} \; 2>/dev/null
+      rm -rf "$OIDC_WORK"
+      OIDC_WORK=""
+      [ -f "$APP_YAML" ] || { echo -e "${RED}❌ Encrypting $APP_YAML failed${RESET}" >&2; exit 1; }
       echo -e "🟢 Initialized and encrypted OIDC client secret in nix/per-container/${container_name}.yaml"
     else
       current_val=$(sops -d "$APP_YAML" 2>/dev/null | yq -r ".${key_name}" 2>/dev/null || echo "")

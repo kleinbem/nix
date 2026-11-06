@@ -81,6 +81,13 @@ notify() {
 if over "$OFFLINE_EUR"; then
   enabled=$(curl -fsS "${auth[@]}" "$domain_api" |
     jq -r --arg d "$domain" '.result.domains[] | select(.domain == $d) | .enabled')
+  if [ "$enabled" != "true" ] && [ "$enabled" != "false" ]; then
+    # No match means the domain is gone or renamed: the guard can't act.
+    echo "❌ $domain not found on bucket $bucket (enabled='$enabled')" >&2
+    notify "R2 over €${OFFLINE_EUR}: can't take $domain offline" \
+      "$summary. $domain is not a custom domain of $bucket any more; check by hand."
+    exit 1
+  fi
   if [ "$enabled" = "true" ]; then
     if [ "${DRY_RUN:-}" = 1 ]; then
       echo "DRY_RUN: would take $domain offline"
