@@ -28,78 +28,8 @@ resource "netbird_route" "buzz_relay" {
   enabled = true
 }
 
-# ---------------------------------------------------------------------------
-# Lets Caddy on core-pi reach the mesh-only services' backends, which sit on
-# other hosts' host-local container bridges (Caddy 502s without these). Same
-# pattern as buzz_relay: one /32 per container, pinned gateway, masqueraded.
-# Only `cache` (core-pi) may use them; everyone else goes through Caddy.
-# IPs must match nix-config/inventory.nix.
-
-resource "netbird_route" "code_server" {
-  network_id            = "code-server"
-  description           = "code-server container on nixos-nvme (mesh-only forward-auth service)."
-  network               = "10.85.46.22/32"
-  peer                  = data.netbird_peer.personal_devices["nixos-nvme"].id
-  groups                = [netbird_group.personal_devices.id]
-  access_control_groups = [netbird_group.cache.id]
-  masquerade            = true
-  enabled               = true
-}
-
-resource "netbird_route" "syncthing" {
-  network_id            = "syncthing"
-  description           = "syncthing container on nasbook (mesh-only forward-auth service)."
-  network               = "10.85.47.127/32"
-  peer                  = data.netbird_peer.smart_home["nasbook"].id
-  groups                = [netbird_group.cache.id]
-  access_control_groups = [netbird_group.cache.id]
-  masquerade            = true
-  enabled               = true
-}
-
-resource "netbird_route" "garage_ui" {
-  network_id            = "garage-ui"
-  description           = "garage-ui container on nixos-nvme (mesh-only, Authentik OIDC login)."
-  network               = "10.85.46.134/32"
-  peer                  = data.netbird_peer.personal_devices["nixos-nvme"].id
-  groups                = [netbird_group.personal_devices.id]
-  access_control_groups = [netbird_group.cache.id]
-  masquerade            = true
-  enabled               = true
-}
-
-resource "netbird_route" "frigate" {
-  network_id            = "frigate"
-  description           = "frigate container on orin-nano (mesh-only forward-auth service)."
-  network               = "10.85.46.39/32"
-  peer                  = data.netbird_peer.smart_home["orin-nano"].id
-  groups                = [netbird_group.smart_home.id]
-  access_control_groups = [netbird_group.cache.id]
-  masquerade            = true
-  enabled               = true
-}
-
-resource "netbird_route" "alertmanager" {
-  network_id            = "alertmanager"
-  description           = "alertmanager (part of the monitoring container) on mac-mini (mesh-only forward-auth service)."
-  network               = "10.85.50.2/32"
-  peer                  = data.netbird_peer.personal_devices["mac-mini"].id
-  groups                = [netbird_group.personal_devices.id]
-  access_control_groups = [netbird_group.cache.id]
-  masquerade            = true
-  enabled               = true
-}
-
-resource "netbird_route" "paperless" {
-  network_id            = "paperless"
-  description           = "paperless container on nasbook (mesh-only forward-auth service)."
-  network               = "10.85.47.131/32"
-  peer                  = data.netbird_peer.smart_home["nasbook"].id
-  groups                = [netbird_group.smart_home.id]
-  access_control_groups = [netbird_group.cache.id]
-  masquerade            = true
-  enabled               = true
-}
+# Caddy on core-pi reaches the other hosts' container backends over the LAN
+# routes in nix-config modules/nixos/network-routing.nix, not over NetBird.
 
 resource "netbird_route" "garage_s3" {
   network_id            = "garage-s3"
@@ -111,15 +41,3 @@ resource "netbird_route" "garage_s3" {
   masquerade            = true
   enabled               = true
 }
-
-resource "netbird_route" "qbittorrent" {
-  network_id            = "qbittorrent"
-  description           = "qbittorrent container on nasbook (mesh-only service)."
-  network               = "10.85.47.134/32"
-  peer                  = data.netbird_peer.smart_home["nasbook"].id
-  groups                = [netbird_group.smart_home.id]
-  access_control_groups = [netbird_group.cache.id]
-  masquerade            = true
-  enabled               = true
-}
-
