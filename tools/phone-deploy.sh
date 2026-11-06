@@ -7,7 +7,17 @@ set -euo pipefail
 NIX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # nix-config et al are flat siblings of nix/, not nested under it — see repos.nix.
 WORKSPACE_ROOT="$(dirname "$NIX_ROOT")"
-TARBALL="/tmp/nix-full.tar.gz"
+TARBALL="$(mktemp -d)/nix-full.tar.gz"
+# The tarball carries kleinbem-secrets (sops-encrypted) and the whole config:
+# remove it from the PC and from the phone's shared storage however the run ends.
+PHONE_TARBALL=/sdcard/Download/nix-full.tar.gz
+pushed=
+cleanup() {
+  rm -rf "$(dirname "$TARBALL")"
+  [ -n "$pushed" ] || return 0
+  adb shell rm -f "$PHONE_TARBALL" >/dev/null 2>&1 || echo "⚠️ Couldn't remove $PHONE_TARBALL from the phone; delete it by hand." >&2
+}
+trap cleanup EXIT
 
 echo "🔄 Updating flake lock for nix-config..."
 cd "$WORKSPACE_ROOT/nix-config"
@@ -19,15 +29,17 @@ echo "📦 Packaging meta-repo repositories..."
 # tools/phone-activate.sh expects on the phone side.
 tar czf "$TARBALL" \
   --exclude='.git' \
+  --exclude='.jj' \
+  --exclude='.direnv' \
   --exclude='.devenv' \
   --exclude='.tools' \
   --exclude='result' \
-  --exclude='nix-config/result' \
   -C "$WORKSPACE_ROOT" nix-config nix-presets nix-devshells nix-hardware nix-packages nix-templates kleinbem-secrets \
   -C "$NIX_ROOT" tools
 
 echo "📲 Pushing to phone via ADB..."
-adb push "$TARBALL" /sdcard/Download/
+pushed=1
+adb push "$TARBALL" "$PHONE_TARBALL"
 
 echo "🚀 Triggering automatic update on phone..."
 # We use a single large ADB command to handle the whole process remotely
@@ -49,7 +61,7 @@ adb shell "
   # Clean both old (scripts/) and new (tools/) names for backward compat on
   # phones still holding the pre-rename tarball layout.
   rm -rf \$HOME_DIR/scripts \$HOME_DIR/tools
-  \$TAR --use-compress-program=\$GZIP -xf /sdcard/Download/nix-full.tar.gz -C \$HOME_DIR
+  \$TAR --use-compress-program=\$GZIP -xf $PHONE_TARBALL -C \$HOME_DIR
 
   # 3. Activate (this handles git, building, and symlinks)
   bash \$HOME_DIR/tools/phone-activate.sh
