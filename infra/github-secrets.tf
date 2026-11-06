@@ -293,3 +293,52 @@ resource "github_actions_variable" "nixpkgs_review_gha_extra_nix_config" {
     extra-trusted-public-keys = cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M=
   EOT
 }
+
+# github-config's terraform-apply.yaml reads its credentials from this
+# environment, which only main can deploy to. GitHub enforces that outside the
+# workflow file, so a dispatch on a branch with an older workflow gets nothing.
+# The repo-level copies in ci_secrets stay until the workflow uses the
+# environment; the PR plan (terraform-plan.yaml) still reads those. Direct var
+# refs, not secret_values, keep a targeted apply clear of Authentik.
+locals {
+  github_config_apply_secrets = {
+    "APP_ID"                  = var.github_app_id
+    "APP_PRIVATE_KEY"         = var.github_app_private_key
+    "APP_INSTALLATION_ID"     = var.github_app_installation_id
+    "APP_ORG_INSTALLATION_ID" = var.github_app_org_installation_id
+    "CLOUDFLARE_ACCOUNT_ID"   = var.cloudflare_account_id
+    "R2_ACCESS_KEY_ID"        = var.r2_state_access_key_id
+    "R2_SECRET_ACCESS_KEY"    = var.r2_state_secret_access_key
+  }
+}
+
+resource "github_repository_environment" "github_config_apply" {
+  repository  = "github-config"
+  environment = "apply"
+  # Admins would otherwise skip the branch policy, and the admin runs every apply.
+  can_admins_bypass = false
+
+  deployment_branch_policy {
+    protected_branches     = false
+    custom_branch_policies = true
+  }
+}
+
+resource "github_repository_environment_deployment_policy" "github_config_apply_main" {
+  repository     = "github-config"
+  environment    = github_repository_environment.github_config_apply.environment
+  branch_pattern = "main"
+}
+
+resource "github_actions_environment_secret" "github_config_apply" {
+  # Names spelled out: for_each can't take keys of a map of sensitive values.
+  for_each = toset([
+    "APP_ID", "APP_PRIVATE_KEY", "APP_INSTALLATION_ID", "APP_ORG_INSTALLATION_ID",
+    "CLOUDFLARE_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY",
+  ])
+
+  repository  = "github-config"
+  environment = github_repository_environment.github_config_apply.environment
+  secret_name = each.key
+  value       = local.github_config_apply_secrets[each.key]
+}
