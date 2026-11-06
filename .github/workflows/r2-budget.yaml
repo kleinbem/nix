@@ -32,11 +32,11 @@ jobs:
         with:
           persist-credentials: false
       - name: Check the R2 budget
-        if: env.R2_BUDGET_TOKEN != '' && !inputs.online
+        if: ${{ !inputs.online }}
         env:
           DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
           FORCE_ALERT: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
         run: tools/r2-budget.sh
       - name: Bring the cache back online
-        if: env.R2_BUDGET_TOKEN != '' && inputs.online
+        if: ${{ inputs.online }}
         run: tools/r2-budget.sh --online

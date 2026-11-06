@@ -261,18 +261,25 @@ clean-all *args="":
         git -C {{ROOT}}/$repo gc --prune=now; \
     done
 
+# Empty .git/hooks in every repo, then let prek reinstall where a .pre-commit-config.yaml exists.
 [group("System")]
 hooks-refresh-all:
-    @echo "⚓ Refreshing Git hooks..."
-    @rm -rf .git/hooks/*
-    @if [ -d .git/modules ]; then \
-        for mod in .git/modules/*; do \
-            rm -rf "$mod/hooks/*"; \
-        done; \
-    fi
-    @for repo in {{REPOS}}; do rm -rf "{{ROOT}}/$repo/.git/hooks/*" 2>/dev/null || true; done
-    @direnv allow
-    @nix develop --command bash -c 'prek install && for repo in {{REPOS}}; do if [ -f "{{ROOT}}/$repo/.pre-commit-config.yaml" ]; then echo "Installing hooks in $repo..."; (cd "{{ROOT}}/$repo" && prek install) || true; fi; done'
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "⚓ Refreshing Git hooks..."
+    # Check before deleting, or the hooks are gone with nothing to put them back.
+    command -v prek >/dev/null || { echo "❌ prek not on PATH: load the devshell (direnv allow)"; exit 1; }
+    failed=()
+    for repo in {{REPOS}}; do
+        hooks="{{ROOT}}/$repo/.git/hooks"
+        [ -d "$hooks" ] || continue
+        find "$hooks" -mindepth 1 -delete
+        if [ -f "{{ROOT}}/$repo/.pre-commit-config.yaml" ]; then
+            echo "  └─ $repo"
+            (cd "{{ROOT}}/$repo" && prek install) || failed+=("$repo")
+        fi
+    done
+    if [ ${#failed[@]} -gt 0 ]; then echo "❌ prek install failed in: ${failed[*]}"; exit 1; fi
 
 [group("System")]
 check-health:
@@ -289,6 +296,7 @@ build-history:
 find pattern:
     @grep -rnE --exclude-dir=.git -e {{quote(pattern)}} .
 
+# Workstation-only: the "fully cached" test dry-runs nixos-nvme, not the other hosts.
 [group("Updates")]
 update-cached:
     #!/usr/bin/env bash
@@ -366,11 +374,11 @@ update-container-all:
 audit-locks-all:
     @bash ./tools/audit-locks.sh
 
-# Run flake-checker on flake.lock (stale, EOL or insecure inputs).
+# Run flake-checker on nix-config's flake.lock (stale, EOL or insecure inputs).
 [group("Audit")]
 check-flakes:
     @echo "🩺 Running flake-checker (input freshness, security, EOL…)"
-    @nix run github:DeterminateSystems/flake-checker -- ./flake.lock
+    @nix run github:DeterminateSystems/flake-checker/v0.2.15 -- {{quote(ROOT / "nix-config/flake.lock")}}
 
 [group("System")]
 who:

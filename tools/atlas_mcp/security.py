@@ -1,5 +1,3 @@
-import os
-
 from .core import mcp
 
 
@@ -9,13 +7,16 @@ def get_security_audit_summary():
     Read and summarize the latest Lynis security audit report.
     Provides a count of warnings and suggestions for hardening.
     """
-    report_path = "/var/log/lynis-report.txt"
+    # Written by nix-config's lynis-audit.service; wheel can read it through an ACL.
+    report_path = "/var/log/security-audit/lynis-report.txt"
     try:
-        if not os.path.exists(report_path):
+        try:
+            with open(report_path, "r") as f:
+                lines = f.readlines()
+        except FileNotFoundError:
             return "Security audit report not found. It comes from nix-config's lynis-audit.service (weekly): sudo systemctl start lynis-audit.service"
-
-        with open(report_path, "r") as f:
-            lines = f.readlines()
+        except PermissionError:
+            return f"{report_path} is not readable: the wheel ACL comes from nix-config's audit.nix (apply it)."
 
         summary = {"warnings": [], "suggestions": [], "hardening_index": "Unknown"}
 
