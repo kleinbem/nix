@@ -216,6 +216,14 @@ PUBLIC_CACHE_SECRET=$(echo "$DECRYPTED_YAML" | yq '.public_cache_secret_access_k
 PUBLIC_CACHE_SIGNING_KEY=$(echo "$DECRYPTED_YAML" | yq '.public_cache_signing_key')
 # Optional: the R2 budget watchdog's token (from r2-tokens/sync-secrets.sh).
 R2_BUDGET_TOKEN=$(echo "$DECRYPTED_YAML" | yq '.r2_budget_token')
+# Optional: github-config's read-only plan credentials (hand-made kleinbem-plan
+# App + r2-tokens/sync-secrets.sh); all empty = PLAN_* not distributed.
+PLAN_APP_ID=$(echo "$DECRYPTED_YAML" | yq '.github_plan_app_id')
+PLAN_APP_INSTALLATION_ID=$(echo "$DECRYPTED_YAML" | yq '.github_plan_app_installation_id')
+PLAN_APP_ORG_INSTALLATION_ID=$(echo "$DECRYPTED_YAML" | yq '.github_plan_app_org_installation_id')
+PLAN_APP_PRIVATE_KEY=$(echo "$DECRYPTED_YAML" | yq '.github_plan_app_private_key')
+PLAN_R2_KEY_ID=$(echo "$DECRYPTED_YAML" | yq '.github_config_plan_r2_access_key_id')
+PLAN_R2_SECRET=$(echo "$DECRYPTED_YAML" | yq '.github_config_plan_r2_secret_access_key')
 NETBIRD_KEY=$(echo "$SHARED_YAML" | yq '.netbird_setup_key')
 NETBIRD_KEY_EPHEMERAL=$(echo "$DECRYPTED_YAML" | yq '.netbird_setup_key_ephemeral')
 NTFY_DEPLOY_TOPIC=$(echo "$SHARED_YAML" | yq '.ntfy_deploy_topic')
@@ -244,6 +252,9 @@ HEALTHCHECKS_API_KEY=$(echo "$DECRYPTED_YAML" | yq '.healthchecks_api_key')
 [ "$PUBLIC_CACHE_SECRET" = "null" ] && PUBLIC_CACHE_SECRET=""
 [ "$PUBLIC_CACHE_SIGNING_KEY" = "null" ] && PUBLIC_CACHE_SIGNING_KEY=""
 [ "$R2_BUDGET_TOKEN" = "null" ] && R2_BUDGET_TOKEN=""
+for _v in PLAN_APP_ID PLAN_APP_INSTALLATION_ID PLAN_APP_ORG_INSTALLATION_ID PLAN_APP_PRIVATE_KEY PLAN_R2_KEY_ID PLAN_R2_SECRET; do
+  [ "${!_v}" = "null" ] && printf -v "$_v" '%s' ""
+done
 [ "$NETBIRD_KEY" = "null" ] && NETBIRD_KEY=""
 [ "$NETBIRD_KEY_EPHEMERAL" = "null" ] && NETBIRD_KEY_EPHEMERAL=""
 [ "$NTFY_DEPLOY_TOPIC" = "null" ] && NTFY_DEPLOY_TOPIC=""
@@ -282,6 +293,12 @@ export TF_VAR_public_cache_access_key_id="$PUBLIC_CACHE_KEY_ID"
 export TF_VAR_public_cache_secret_access_key="$PUBLIC_CACHE_SECRET"
 export TF_VAR_public_cache_signing_key="$PUBLIC_CACHE_SIGNING_KEY"
 export TF_VAR_r2_budget_token="$R2_BUDGET_TOKEN"
+export TF_VAR_github_plan_app_id="$PLAN_APP_ID"
+export TF_VAR_github_plan_app_installation_id="$PLAN_APP_INSTALLATION_ID"
+export TF_VAR_github_plan_app_org_installation_id="$PLAN_APP_ORG_INSTALLATION_ID"
+export TF_VAR_github_plan_app_private_key="$PLAN_APP_PRIVATE_KEY"
+export TF_VAR_github_config_plan_r2_access_key_id="$PLAN_R2_KEY_ID"
+export TF_VAR_github_config_plan_r2_secret_access_key="$PLAN_R2_SECRET"
 export TF_VAR_netbird_setup_key="$NETBIRD_KEY"
 export TF_VAR_netbird_setup_key_ephemeral="$NETBIRD_KEY_EPHEMERAL"
 export TF_VAR_ntfy_deploy_topic="$NTFY_DEPLOY_TOPIC"

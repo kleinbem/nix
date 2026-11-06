@@ -343,3 +343,60 @@ resource "github_actions_environment_secret" "github_config_apply" {
   secret_name = each.key
   value       = local.github_config_apply_secrets[each.key]
 }
+
+# github-config's PR/drift plan and governance report run from any branch, so
+# they get read-only credentials: the kleinbem-plan App and a read-only R2
+# token (r2-tokens/github-config-plan.tf). Nothing is distributed until all six
+# values are in infra/terraform.yaml. tracking: kleinbem/github-config#60
+locals {
+  github_config_plan_secrets = {
+    "PLAN_APP_ID"                  = var.github_plan_app_id
+    "PLAN_APP_INSTALLATION_ID"     = var.github_plan_app_installation_id
+    "PLAN_APP_ORG_INSTALLATION_ID" = var.github_plan_app_org_installation_id
+    "PLAN_APP_PRIVATE_KEY"         = var.github_plan_app_private_key
+    "PLAN_R2_ACCESS_KEY_ID"        = var.github_config_plan_r2_access_key_id
+    "PLAN_R2_SECRET_ACCESS_KEY"    = var.github_config_plan_r2_secret_access_key
+  }
+  github_config_plan_enabled = nonsensitive(alltrue([
+    for v in values(local.github_config_plan_secrets) : v != ""
+  ]))
+}
+
+resource "github_actions_secret" "github_config_plan" {
+  for_each = local.github_config_plan_enabled ? toset([
+    "PLAN_APP_ID", "PLAN_APP_INSTALLATION_ID", "PLAN_APP_ORG_INSTALLATION_ID",
+    "PLAN_APP_PRIVATE_KEY", "PLAN_R2_ACCESS_KEY_ID", "PLAN_R2_SECRET_ACCESS_KEY",
+  ]) : toset([])
+
+  repository  = "github-config"
+  secret_name = each.key
+  value       = local.github_config_plan_secrets[each.key]
+}
+
+# The governance report's PR step needs the write App. It runs in its own job
+# with this main-only environment, apart from the job that runs govern.py.
+resource "github_repository_environment" "github_config_report" {
+  repository        = "github-config"
+  environment       = "report"
+  can_admins_bypass = false
+
+  deployment_branch_policy {
+    protected_branches     = false
+    custom_branch_policies = true
+  }
+}
+
+resource "github_repository_environment_deployment_policy" "github_config_report_main" {
+  repository     = "github-config"
+  environment    = github_repository_environment.github_config_report.environment
+  branch_pattern = "main"
+}
+
+resource "github_actions_environment_secret" "github_config_report" {
+  for_each = toset(["APP_ID", "APP_PRIVATE_KEY"])
+
+  repository  = "github-config"
+  environment = github_repository_environment.github_config_report.environment
+  secret_name = each.key
+  value       = local.github_config_apply_secrets[each.key]
+}
