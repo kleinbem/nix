@@ -6,12 +6,6 @@ set working-directory := ".."
 # Host-specific deploys live in nix-config/.just/deployment.just
 # (e.g. `just in nix-config deployment::deploy-fleet`).
 
-[group("Status")]
-fleet mode="minimal":
-    @echo "🚢 Container Fleet Status (Mode: {{mode}})"
-    @ssh root@caddy.local "caddy list-adapters"
-    @nix run nixpkgs#glances
-
 [group("Development")]
 launch-dashboard:
     @echo "📊 Launching Local Dashboard..."

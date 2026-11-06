@@ -51,7 +51,6 @@ just jj::ship                     # Describe + sign + push (the everything butto
 # Diagnostics
 just maintenance::check-health    # AI log health check
 just maintenance::who             # Show who holds the workspace lock
-just deployment::fleet            # Container fleet status view (NOT a deploy)
 ```
 
 ### From `nix-config/`
@@ -85,7 +84,7 @@ Sub-flakes are **flat siblings of `nix/`** (under the workspace root, `~/Develop
 ├── nix-presets      ← reusable service/desktop bundles
 ├── nix-packages     ← custom packages (NUR-style)
 ├── nix-templates    ← project scaffolding
-├── nix-secrets      ← sops-encrypted secrets (flake = false)
+├── kleinbem-secrets ← sops + age secrets for the fleet (flake = false)
 └── github-config    ← GitHub governance (Terraform)
 ```
 
@@ -93,9 +92,9 @@ All sub-flakes are **standalone git+jj repos** (NOT git submodules — see `klei
 
 ## Deploy Model
 
-**Pull-based via `system.autoUpgrade`** (NixOS-native). Each host that opts in (`my.deploy.autoUpgrade.enable = true`) runs a `system.autoUpgrade` timer that polls `github:kleinbem/nix-config?ref=production#<host>` on its schedule (default nightly 04:00 ±30min) and switches if the SHA has moved. The `production` tag is advanced automatically by `.github/workflows/promote-production.yaml` after a green build-all — never a failed build's SHA, so hosts only auto-deploy CI-validated commits.
+**Pull-based via comin** (`my.deploy.comin`, nix-config `modules/nixos/comin.nix`). The 24/7 hosts (core-pi, hass-pi, mac-mini, nasbook, orin-nano) run comin, which polls the `production` branch of kleinbem/nix-config and switches to each new signed head. `.github/workflows/promote-production.yaml` advances `production` after a green build-all and the cache gate, so hosts only deploy CI-validated commits; a `testing-<host>` branch on top of it is a per-host canary. `my.deploy.autoUpgrade` (`system.autoUpgrade`) is the older, mutually exclusive option. The workstation (nixos-nvme) deploys with `just apply`.
 
-Offline hosts catch up next cycle; no special handling. No inbound SSH credentials in CI. `just deployment::deploy-fleet` (colmena push) is still available locally for immediate / out-of-band deploys.
+Offline hosts catch up on the next poll. No inbound SSH credentials in CI. `just deployment::deploy-fleet` (colmena push) is still available locally for immediate / out-of-band deploys.
 
 ## nix-config Structure
 
