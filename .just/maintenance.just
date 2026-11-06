@@ -297,7 +297,7 @@ update-cached:
     @{{LOCK_CMD}} bash -c "cd {{ROOT}}/nix-config && nix flake update" \
         || { mv {{ROOT}}/nix-config/flake.lock.bak {{ROOT}}/nix-config/flake.lock; echo "❌ Update failed, flake.lock restored"; exit 1; }
     @just maintenance::update-local \
-        || { mv {{ROOT}}/nix-config/flake.lock.bak {{ROOT}}/nix-config/flake.lock; echo "❌ Lock sync failed, nix-config/flake.lock restored"; exit 1; }
+        || { mv {{ROOT}}/nix-config/flake.lock.bak {{ROOT}}/nix-config/flake.lock; echo "❌ Lock sync failed: nix-config/flake.lock restored, sub-flake locks it already updated are not (check just status-all)"; exit 1; }
     @echo "🔍 Checking if new updates require heavy local builds (evaluating checks)..."
     @output=$({{LOCK_CMD}} nix build --no-link --dry-run {{ROOT}}/nix-config#checks.x86_64-linux.host-nixos-nvme {{OVERRIDES}} --impure 2>&1 || true); \
     if echo "$output" | grep -q "will be built:"; then \
