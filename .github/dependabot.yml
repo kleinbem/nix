@@ -11,3 +11,20 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+
+  # Provider versions and the committed .terraform.lock.hcl of every infra
+  # root. `opentofu`, not `terraform`: the roots run tofu and lock against
+  # registry.opentofu.org.
+  - package-ecosystem: opentofu
+    directories:
+      - /infra
+      - /infra/garage
+      - /infra/netbird
+      - /infra/r2-tokens
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      providers:
+        patterns: ["*"]
