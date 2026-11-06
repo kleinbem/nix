@@ -1,4 +1,4 @@
-_:
+{ pkgs, ... }:
 
 {
   # If this package is from GitHub/GitLab
