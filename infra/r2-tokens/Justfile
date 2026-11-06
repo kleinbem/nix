@@ -1,3 +1,6 @@
+# state-env.sh is bash (BASH_SOURCE, pipefail); just defaults to sh.
+set shell := ["bash", "-cu"]
+
 default:
     @just --list
 

@@ -9,9 +9,10 @@ _here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SECRETS_ROOT="$(cd "${_here}/../../../kleinbem-secrets" && pwd)"
 
 CONFIGS=$(cd "$_here" && tofu output -json backup_r2_rclone_configs)
-if [ -z "$CONFIGS" ] || [ "$CONFIGS" = "{}" ] || [ "$CONFIGS" = "null" ]; then
-  echo "⚠️  no backup_r2_rclone_configs output — nothing to sync" >&2
-  exit 0
+# No hosts left still syncs the shared credentials below.
+if [ -z "$CONFIGS" ] || [ "$CONFIGS" = "null" ]; then
+  echo "⚠️  no backup_r2_rclone_configs output — skipped the per-host configs" >&2
+  CONFIGS="{}"
 fi
 
 for host in $(echo "$CONFIGS" | jq -r 'keys[]'); do
@@ -20,11 +21,21 @@ for host in $(echo "$CONFIGS" | jq -r 'keys[]'); do
     work="$(mktemp -d /dev/shm/r2-tokens-XXXXXX)"
     echo "$CONFIGS" | jq -r --arg h "$host" '{backup_r2_rclone_config: .[$h]}' | yq -P >"$work/plain.yaml"
     # --filename-override only picks the .sops.yaml rule; HOST_YAML doesn't exist yet.
+    # Encrypt to a temp file first: a failed sops must not leave an empty
+    # HOST_YAML, which the next run would take for an existing one.
+    # The temp file sits next to HOST_YAML, so the mv is an atomic rename.
+    enc="$(mktemp "${HOST_YAML}.XXXXXX")"
     # shellcheck disable=SC2094
-    sops --config "$SECRETS_ROOT/.sops.yaml" --filename-override "$HOST_YAML" \
-      -e "$work/plain.yaml" >"$HOST_YAML"
+    if ! sops --config "$SECRETS_ROOT/.sops.yaml" --filename-override "$HOST_YAML" \
+      -e "$work/plain.yaml" >"$enc"; then
+      shred -u "$work/plain.yaml"
+      rmdir "$work"
+      rm -f "$enc"
+      exit 1
+    fi
     shred -u "$work/plain.yaml"
     rmdir "$work"
+    mv "$enc" "$HOST_YAML"
     echo "🟢 created nix/per-host/${host}.yaml with backup_r2_rclone_config"
   else
     echo "$CONFIGS" | jq -c --arg h "$host" '.[$h]' |

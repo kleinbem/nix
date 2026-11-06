@@ -14,8 +14,8 @@ written to `kleinbem-secrets/nix/per-host/<host>.yaml` as
 
 Separate root on purpose: it holds the only token-minting credential
 (`cloudflare_token_minter_token`, API Tokens: Edit = effectively account
-admin), so the main `infra/` root never sees it and it's only decrypted
-when the host list changes.
+admin), so the main `infra/` root never sees it. Every recipe here
+(`init`, `plan`, `apply`, `sync`) decrypts it through `state-env.sh`.
 
 ## One-time bootstrap
 1. Cloudflare dashboard → My Profile → API Tokens → Create Custom Token:
