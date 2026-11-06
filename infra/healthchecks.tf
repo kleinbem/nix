@@ -5,11 +5,17 @@
 # Bootstrap: create account + project, put the API key in infra/terraform.yaml
 # (healthchecks_api_key), the ping key in nix/shared.yaml (healthchecks_ping_key).
 
+# Required: without a key the checks would drop out of the config and plan
+# as destroyed.
 variable "healthchecks_api_key" {
   type        = string
   sensitive   = true
-  default     = ""
-  description = "healthchecks.io project read-write API key (sops: infra/terraform.yaml healthchecks_api_key). Empty → no checks are managed."
+  description = "healthchecks.io project read-write API key (sops: infra/terraform.yaml healthchecks_api_key)."
+
+  validation {
+    condition     = length(var.healthchecks_api_key) > 0
+    error_message = "healthchecks_api_key is empty: set it in kleinbem-secrets infra/terraform.yaml."
+  }
 }
 
 variable "healthchecks_channel_kinds" {
@@ -25,9 +31,8 @@ provider "healthchecksio" {
 locals {
   heartbeats = jsondecode(file("${path.module}/heartbeats.json"))
 
-  # host → { slug → spec }  ⇒  slug → spec + host. Empty until the API key
-  # exists. nonsensitive() only unwraps the "is a key set" boolean.
-  heartbeat_checks = nonsensitive(var.healthchecks_api_key == "") ? {} : merge([
+  # host → { slug → spec }  ⇒  slug → spec + host.
+  heartbeat_checks = merge([
     for host, checks in local.heartbeats : {
       for slug, c in checks : slug => merge(c, { host = host })
     }
@@ -35,7 +40,7 @@ locals {
 }
 
 data "healthchecksio_channel" "notify" {
-  for_each = nonsensitive(var.healthchecks_api_key == "") ? toset([]) : toset(var.healthchecks_channel_kinds)
+  for_each = toset(var.healthchecks_channel_kinds)
   kind     = each.value
 }
 
