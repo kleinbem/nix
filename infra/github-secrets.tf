@@ -18,6 +18,8 @@ locals {
     # The fleet's own holds list: release PRs (App token), ntfy alert, and
     # Attic for the release checks of our own packages.
     "nix-detour-fleet" = ["APP_ID", "APP_PRIVATE_KEY", "NTFY_ALERT_TOPIC", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
+    # The App creds are for maintain.yaml's nightly flake.lock PR.
+    "kleinbem" = ["APP_ID", "APP_PRIVATE_KEY"]
     # sync-org.yaml copies the central config to kleinbem-dev/coderabbit
     # through the App's org installation.
     "coderabbit" = ["APP_ID", "APP_PRIVATE_KEY"]
@@ -44,6 +46,10 @@ locals {
   # the App creds are for its lock-bump dispatch to nix-config.
   org_ci_secrets = {
     "nix-gantry" = ["APP_ID", "APP_PRIVATE_KEY", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
+    # maintain.yaml's nightly flake.lock PR.
+    "cadre"      = ["APP_ID", "APP_PRIVATE_KEY"]
+    "nix-detour" = ["APP_ID", "APP_PRIVATE_KEY"]
+    "revue"      = ["APP_ID", "APP_PRIVATE_KEY"]
   }
 
   # Whether the token is set is not itself secret; for_each needs it plain.
