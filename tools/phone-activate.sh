@@ -3,11 +3,11 @@
 # To be run ON THE PHONE inside the nix-config directory.
 # Automates Git initialization, Nix building with overrides, and the PTY-bypass symlink.
 
-set -e
+set -euo pipefail
 
 echo "🔍 Finding Git in the Nix store..."
 # shellcheck disable=SC2012
-GIT=$(ls /nix/store/*git-2*/bin/git | head -n 1)
+GIT=$(ls /nix/store/*git-2*/bin/git 2>/dev/null | head -n 1) || true
 if [ -z "$GIT" ]; then
   echo "❌ Git not found! Trying to run it via nix-run..."
   GIT="nix run nixpkgs#git --"
@@ -44,7 +44,11 @@ ln -sfn "$CONF_PATH" /nix/var/nix/profiles/nix-on-droid-path
 
 # Find the nested bin folder (XCover 6 Pro / Nix-on-Droid specific structure)
 # shellcheck disable=SC2012
-NESTED_BIN=$(ls -d /nix/var/nix/profiles/nix-on-droid-path/*/bin | head -n 1)
+NESTED_BIN=$(ls -d /nix/var/nix/profiles/nix-on-droid-path/*/bin 2>/dev/null | head -n 1) || true
+if [ -z "$NESTED_BIN" ] || [ ! -x "$NESTED_BIN/sh" ] || [ ! -x "$NESTED_BIN/env" ]; then
+  echo "❌ No bin/ with sh and env under the new profile; core links left as they were." >&2
+  exit 1
+fi
 
 echo "🔗 Linking core binaries from $NESTED_BIN..."
 mkdir -p /data/data/com.termux.nix/files/usr/bin
