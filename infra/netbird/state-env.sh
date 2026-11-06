@@ -46,6 +46,10 @@ endpoints  = { s3 = "https://${_account}.r2.cloudflarestorage.com" }
 access_key = "${_key_id}"
 secret_key = "${_key_secret}"
 EOF
-)
+) || {
+  echo "❌ couldn't write ${_here}/.r2-backend.hcl" >&2
+  # shellcheck disable=SC2317  # exit is the fallback when executed (not sourced)
+  return 1 2>/dev/null || exit 1
+}
 
 unset _yaml _corepi_yaml _account _key_id _key_secret _pass _token _v _here

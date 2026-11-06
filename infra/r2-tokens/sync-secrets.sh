@@ -23,16 +23,19 @@ for host in $(echo "$CONFIGS" | jq -r 'keys[]'); do
     # --filename-override only picks the .sops.yaml rule; HOST_YAML doesn't exist yet.
     # Encrypt to a temp file first: a failed sops must not leave an empty
     # HOST_YAML, which the next run would take for an existing one.
+    # The temp file sits next to HOST_YAML, so the mv is an atomic rename.
+    enc="$(mktemp "${HOST_YAML}.XXXXXX")"
     # shellcheck disable=SC2094
     if ! sops --config "$SECRETS_ROOT/.sops.yaml" --filename-override "$HOST_YAML" \
-      -e "$work/plain.yaml" >"$work/enc.yaml"; then
+      -e "$work/plain.yaml" >"$enc"; then
       shred -u "$work/plain.yaml"
-      rm -rf "$work"
+      rmdir "$work"
+      rm -f "$enc"
       exit 1
     fi
     shred -u "$work/plain.yaml"
-    mv "$work/enc.yaml" "$HOST_YAML"
     rmdir "$work"
+    mv "$enc" "$HOST_YAML"
     echo "🟢 created nix/per-host/${host}.yaml with backup_r2_rclone_config"
   else
     echo "$CONFIGS" | jq -c --arg h "$host" '.[$h]' |
