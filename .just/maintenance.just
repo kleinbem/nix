@@ -306,7 +306,13 @@ update-cached:
     {{LOCK_CMD}} bash -c "cd {{ROOT}}/nix-config && nix flake update" || restore "Update failed"
     just maintenance::update-local || restore "Lock sync failed"
     echo "🔍 Checking if new updates require heavy local builds (evaluating checks)..."
-    output=$({{LOCK_CMD}} nix build --no-link --dry-run {{ROOT}}/nix-config#checks.x86_64-linux.host-nixos-nvme {{OVERRIDES}} --impure 2>&1 || true)
+    if ! output=$({{LOCK_CMD}} nix build --no-link --dry-run {{ROOT}}/nix-config#checks.x86_64-linux.host-nixos-nvme {{OVERRIDES}} --impure 2>&1); then
+        echo "$output"
+        echo "❌ Dry run failed (the new lock may not evaluate). Reverting flake.lock..."
+        mv "$bak" "$lock"
+        just maintenance::update-local
+        exit 1
+    fi
     if echo "$output" | grep -q "will be built:"; then
         echo "❌ Updates require local builds! Reverting flake.lock..."
         mv "$bak" "$lock"
