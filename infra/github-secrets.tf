@@ -374,6 +374,20 @@ resource "github_actions_secret" "github_config_plan" {
   value       = local.github_config_plan_secrets[each.key]
 }
 
+# Dependabot PRs only see Dependabot secrets, so without these the required
+# plan check fails on every bump. Same read-only values.
+resource "github_dependabot_secret" "github_config_plan" {
+  for_each = local.github_config_plan_enabled ? toset([
+    "PLAN_APP_ID", "PLAN_APP_INSTALLATION_ID", "PLAN_APP_ORG_INSTALLATION_ID",
+    "PLAN_APP_PRIVATE_KEY", "PLAN_R2_ACCESS_KEY_ID", "PLAN_R2_SECRET_ACCESS_KEY",
+    "CLOUDFLARE_ACCOUNT_ID",
+  ]) : toset([])
+
+  repository  = "github-config"
+  secret_name = each.key
+  value       = merge(local.github_config_plan_secrets, { CLOUDFLARE_ACCOUNT_ID = var.cloudflare_account_id })[each.key]
+}
+
 # The governance report's PR step needs the write App. It runs in its own job
 # with this main-only environment, apart from the job that runs govern.py.
 resource "github_repository_environment" "github_config_report" {
