@@ -9,6 +9,8 @@ from .core import DEFAULT_FLAKE_PATH, WORKSPACE_ROOT, mcp
 from .network import netbird_status
 
 _INVENTORY_CACHE = None
+# The running ai-logs.sh --sink refresh, if any.
+_SINK_REFRESH = None
 
 
 def _get_inventory_cached():
@@ -85,6 +87,7 @@ def get_system_telemetry():
     Fetch real-time hardware telemetry (CPU, Mem, Disk, Temp).
     Essential for monitoring build load and system health.
     """
+    global _SINK_REFRESH
     try:
         import psutil
 
@@ -119,8 +122,8 @@ def get_system_telemetry():
             health_status = sink_data.get("status", "Unknown")
             age = time.time() - os.path.getmtime(sink_path)
             refresh = health_status == "Degraded" and age > 600
-        if refresh:
-            subprocess.Popen(
+        if refresh and (_SINK_REFRESH is None or _SINK_REFRESH.poll() is not None):
+            _SINK_REFRESH = subprocess.Popen(
                 [os.path.join(DEFAULT_FLAKE_PATH, "tools/ai-logs.sh"), "--sink"],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,

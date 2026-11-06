@@ -15,7 +15,8 @@ CONVERSATIONS_DIR = os.path.expanduser("~/.gemini/antigravity/conversations")
 IMPLICIT_DIR = os.path.expanduser("~/.gemini/antigravity/implicit")
 KNOWLEDGE_DIR = ".agent/knowledge"
 OUTPUT_FILE = "conversation_history.md"
-# Sidebar duplicates are moved here instead of deleted.
+# Sidebar duplicates are moved here instead of deleted. The IDE lists
+# subagent sessions as conversations; no-link: not reported to Antigravity.
 REMOVED_DIR = os.path.expanduser("~/.gemini/antigravity/conversations.removed")
 
 
@@ -498,9 +499,11 @@ def sync_database_index(convs):
         )
 
     # One backup per run, through SQLite's backup API: the IDE may be writing.
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
     backup_path = f"{db_path}.backup-{stamp}"
     try:
+        # O_EXCL: never overwrite an earlier snapshot.
+        os.close(os.open(backup_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600))
         src = sqlite3.connect(db_path)
         dst = sqlite3.connect(backup_path)
         try:

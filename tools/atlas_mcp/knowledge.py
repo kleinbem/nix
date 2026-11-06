@@ -146,7 +146,8 @@ def reindex_vault():
     """
     try:
         cmd = [os.path.join(DEFAULT_FLAKE_PATH, "tools/workspace-indexer.sh")]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        # One embedding request per note, up to 10 s each: bound the whole run.
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
         return {
             "exit_code": result.returncode,
             "stdout": result.stdout,

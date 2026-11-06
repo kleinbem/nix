@@ -93,6 +93,30 @@ func getRecentErrors(lines int, unit, machine string) (interface{}, error) {
 	return logs, nil
 }
 
+// writeAtomic replaces path via a unique temp file, so concurrent runs
+// never share one.
+func writeAtomic(path string, data []byte) error {
+	f, err := os.CreateTemp(filepath.Dir(path), filepath.Base(path)+".*.tmp")
+	if err != nil {
+		return err
+	}
+	tmp := f.Name()
+	_, err = f.Write(data)
+	if err == nil {
+		err = f.Chmod(0644)
+	}
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err == nil {
+		err = os.Rename(tmp, path)
+	}
+	if err != nil {
+		os.Remove(tmp)
+	}
+	return err
+}
+
 func main() {
 	linesPtr := flag.Int("n", 30, "Number of log lines to fetch")
 	flag.IntVar(linesPtr, "lines", 30, "Number of log lines to fetch")
@@ -154,14 +178,12 @@ func main() {
 			Status:      status,
 			RecentUnits: recentUnits,
 		}
-		b, _ := json.MarshalIndent(summary, "", "  ")
-		tmp := sinkPath + ".tmp"
-		if err := os.WriteFile(tmp, b, 0644); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+		b, err := json.MarshalIndent(summary, "", "  ")
+		if err == nil {
+			err = writeAtomic(sinkPath, b)
 		}
-		if err := os.Rename(tmp, sinkPath); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error writing %s: %v\n", sinkPath, err)
 			os.Exit(1)
 		}
 	}

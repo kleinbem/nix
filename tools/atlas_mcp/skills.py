@@ -101,6 +101,8 @@ def manage_skill_progress(
             tmp = progress_file + ".tmp"
             with open(tmp, "w") as f:
                 json.dump(progress, f, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
             os.replace(tmp, progress_file)
 
         return entry

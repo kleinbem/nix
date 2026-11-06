@@ -241,19 +241,24 @@ func writeIndex(index []*IndexEntry) error {
 	if err := os.MkdirAll(filepath.Dir(INDEX_PATH), 0755); err != nil {
 		return err
 	}
-	tmp := INDEX_PATH + ".tmp"
-	f, err := os.Create(tmp)
+	// A unique temp file: overlapping runs must not write the same one.
+	f, err := os.CreateTemp(filepath.Dir(INDEX_PATH), "semantic_index.*.tmp")
 	if err != nil {
 		return err
 	}
-	if err := json.NewEncoder(f).Encode(index); err != nil {
-		f.Close()
-		os.Remove(tmp)
-		return err
+	tmp := f.Name()
+	err = json.NewEncoder(f).Encode(index)
+	if err == nil {
+		err = f.Chmod(0644)
 	}
-	if err := f.Close(); err != nil {
-		os.Remove(tmp)
-		return err
+	if cerr := f.Close(); err == nil {
+		err = cerr
 	}
-	return os.Rename(tmp, INDEX_PATH)
+	if err == nil {
+		err = os.Rename(tmp, INDEX_PATH)
+	}
+	if err != nil {
+		os.Remove(tmp)
+	}
+	return err
 }
