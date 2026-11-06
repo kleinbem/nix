@@ -37,9 +37,10 @@ locals {
 
   # Repos under the kleinbem-dev organization (github-config's org_repos):
   # same secrets, written through the `org` provider alias. nix-gantry's CI
-  # reads the cache through kleinbem/actions/nix-setup like the sub-flakes.
+  # reads the cache through kleinbem/actions/nix-setup like the sub-flakes;
+  # the App creds are for its lock-bump dispatch to nix-config.
   org_ci_secrets = {
-    "nix-gantry" = ["ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
+    "nix-gantry" = ["APP_ID", "APP_PRIVATE_KEY", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
   }
 
   # Whether the token is set is not itself secret; for_each needs it plain.
