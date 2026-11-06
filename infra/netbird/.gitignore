@@ -2,7 +2,6 @@
 .terraform/
 *.tfstate
 *.tfstate.*
-.terraform.lock.hcl
 # Written by state-env.sh; holds the R2 access key.
 .r2-backend.hcl
 crash.log
