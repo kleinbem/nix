@@ -39,16 +39,20 @@ nix build ".#nixOnDroidConfigurations.phone.activationPackage" --impure \
 
 echo "🏁 Applying Manual PTY Bypass (Atomic Switch)..."
 CONF_PATH=$(readlink -f ./result)
-# Link the profile
-ln -sfn "$CONF_PATH" /nix/var/nix/profiles/nix-on-droid-path
 
-# Find the nested bin folder (XCover 6 Pro / Nix-on-Droid specific structure)
+# Find the nested bin folder (XCover 6 Pro / Nix-on-Droid specific structure).
+# Checked in the new build before the profile moves, since the core links
+# resolve through the profile.
 # shellcheck disable=SC2012
-NESTED_BIN=$(ls -d /nix/var/nix/profiles/nix-on-droid-path/*/bin 2>/dev/null | head -n 1) || true
-if [ -z "$NESTED_BIN" ] || [ ! -x "$NESTED_BIN/sh" ] || [ ! -x "$NESTED_BIN/env" ]; then
-  echo "❌ No bin/ with sh and env under the new profile; core links left as they were." >&2
+NEW_BIN=$(ls -d "$CONF_PATH"/*/bin 2>/dev/null | head -n 1) || true
+if [ -z "$NEW_BIN" ] || [ ! -x "$NEW_BIN/sh" ] || [ ! -x "$NEW_BIN/env" ]; then
+  echo "❌ No bin/ with sh and env in $CONF_PATH; profile and core links left as they were." >&2
   exit 1
 fi
+NESTED_BIN="/nix/var/nix/profiles/nix-on-droid-path/${NEW_BIN#"$CONF_PATH"/}"
+
+# Link the profile
+ln -sfn "$CONF_PATH" /nix/var/nix/profiles/nix-on-droid-path
 
 echo "🔗 Linking core binaries from $NESTED_BIN..."
 mkdir -p /data/data/com.termux.nix/files/usr/bin

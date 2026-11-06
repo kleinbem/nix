@@ -80,7 +80,9 @@ for repo_dir in "${REPOS[@]}"; do
 
   # The squash below rewrites every unpushed commit, so it is only safe when
   # all of them are unsigned lockfile updates.
-  if [ "$is_pure_lockfiles" -eq 1 ] && [ "$unsigned_count" -eq "$unpushed_count" ]; then
+  # Staged edits would land in the squash commit too.
+  if [ "$is_pure_lockfiles" -eq 1 ] && [ "$unsigned_count" -eq "$unpushed_count" ] &&
+    git -C "$path" diff --cached --quiet; then
     echo -e "  🧹 Only unsigned lockfile updates detected. ${GREEN}Squashing into 1 signed commit...${RESET}"
     # Soft reset to remote state
     git -C "$path" reset --soft "origin/$branch"
@@ -96,13 +98,9 @@ for repo_dir in "${REPOS[@]}"; do
       echo -e "    ${RED}✗${RESET} $msg"
     done
     echo -e "  Run one of the following to resolve:"
-    if [ "$repo_dir" = "." ]; then
-      echo -e "    • Squash all unpushed into 1 signed commit: ${BOLD}git reset --soft origin/$branch && git commit -m \"<message>\"${RESET}"
-      echo -e "    • Re-sign commits (preserving history): ${BOLD}git rebase --exec \"git commit --amend --no-edit\" origin/$branch${RESET}"
-    else
-      echo -e "    • Squash all unpushed into 1 signed commit: ${BOLD}git -C $path reset --soft origin/$branch && git -C $path commit -m \"<message>\"${RESET}"
-      echo -e "    • Re-sign commits (preserving history): ${BOLD}git -C $path rebase --exec \"git commit --amend --no-edit\" origin/$branch${RESET}"
-    fi
+    qpath=$(printf '%q' "$path")
+    echo -e "    • Squash all unpushed into 1 signed commit: ${BOLD}git -C $qpath reset --soft origin/$branch && git -C $qpath commit -m \"<message>\"${RESET}"
+    echo -e "    • Re-sign commits (preserving history): ${BOLD}git -C $qpath rebase --exec \"git commit --amend --no-edit\" origin/$branch${RESET}"
     has_unsigned=1
   fi
   echo ""
