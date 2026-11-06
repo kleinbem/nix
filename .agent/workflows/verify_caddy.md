@@ -2,14 +2,17 @@
 description: Verify Caddy service and dashboard accessibility
 ---
 
-1. Apply the local configuration change from `nix/`:
-   `just apply`
+Caddy runs as a container on core-pi (the `cache` host in `nix-config/inventory.nix`).
+Commands run from `nix/` on the workstation.
 
-2. Check Caddy from `nix/`:
-   `just in nix-config nixos::verify-caddy`
+1. Deploy the change to core-pi:
+   `just apply core-pi`
 
-   It retries for about 10 seconds and exits non-zero when Caddy doesn't answer, printing the
-   container's status and recent logs.
+2. Check the container there:
+   `just in nix-config containers::status caddy core-pi`
 
-3. For more logs:
-   `just in nix-config containers::logs caddy`
+3. Read its logs:
+   `just in nix-config containers::logs caddy core-pi`
+
+`just in nix-config nixos::verify-caddy` probes Caddy and fails after its retries, but its
+diagnostics read the local host, so run it on core-pi itself.

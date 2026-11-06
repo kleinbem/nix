@@ -24,5 +24,6 @@ Work in `nix-config` (a sibling of `nix/`, not inside it).
 ## Install
 
 - [ ] Use the host's install recipe in `nix-config` (`just --list deployment`: `*-install-usb`,
-      `pi-install-usb`, `orin-promote`). They run disko and install `nix-config#<name>`;
-      for a new kind of host, copy the closest one.
+      `orin-promote`). They run disko and install `nix-config#<name>`; for a new kind of host,
+      copy the closest one. Read the recipe first: they wipe the target disk, and
+      `pi-install-usb` is broken (kleinbem/nix-config#633).

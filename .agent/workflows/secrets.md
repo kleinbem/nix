@@ -10,7 +10,8 @@ Secrets live in the sibling `kleinbem-secrets` repo (sops + age, YubiKey for Mar
 
 ## 1. Prerequisites
 - `sops` and `age-plugin-yubikey` (both in the workspace devshell).
-- YubiKey plugged in.
+- YubiKey plugged in, and its age identity in `~/.config/sops/age/keys.txt` (or a file named by
+  `SOPS_AGE_KEY_FILE`); `age-plugin-yubikey --identity` prints it.
 
 ## 2. Edit Secrets
 From `nix/`:
@@ -31,4 +32,5 @@ sops decrypts into your editor and re-encrypts on save. Who can decrypt which pa
 
 ## 4. Troubleshooting
 - **No touch prompt?** Check that `pcscd` is running.
-- **Permission denied?** Check that the YubiKey age identity is recognized (`age-plugin-yubikey --list`).
+- **Permission denied?** Check that the YubiKey is seen (`age-plugin-yubikey --list`) and that
+  its identity is in `~/.config/sops/age/keys.txt` or `SOPS_AGE_KEY_FILE`.
