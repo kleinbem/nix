@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  # infra/inventory.json drifts when nix-config changes, which never runs this
+  # repo's CI on its own.
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: kleinbem/actions/nix-setup@7ec628296d5194e6e10031706387b992a10a1638 # v1.0.1
+        with:
+          nix-path: nixpkgs=channel:nixos-unstable
+      - name: Infra and tools checks
+        run: >-
+          nix shell nixpkgs#opentofu nixpkgs#just nixpkgs#yq-go nixpkgs#shellcheck
+          --command tools/ci-check.sh
+
+  # A meshOnly FQDN that nix-config forwards to NetBird but netbird/dns.tf
+  # doesn't serve loops DNS between dnsmasq and NetBird.
+  iac-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: nix
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: kleinbem/nix-config
+          path: nix-config
+          persist-credentials: false
+      - uses: kleinbem/actions/nix-setup@7ec628296d5194e6e10031706387b992a10a1638 # v1.0.1
+        with:
+          nix-path: nixpkgs=channel:nixos-unstable
+      - name: infra/inventory.json matches nix-config
+        run: nix shell nixpkgs#jq --command nix/tools/check-iac-data.sh inventory.json

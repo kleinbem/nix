@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Compare nix-config's flake.lock pins against the git HEAD of each sibling
+# `nix-*` repo checkout and report drift.
+
+set -euo pipefail
+
+# nix/ is itself a git+jj repo, so `git rev-parse --show-toplevel` from here
+# resolves to nix/ — one level up from the workspace root where the sub-flakes
+# actually live as flat siblings (not nested under nix/).
+REPO_ROOT="$(dirname "$(git rev-parse --show-toplevel)")"
+# nix-config is the root flake — its lock has the canonical pins for every
+# sub-flake, found via the root inputs (node names can carry a _N suffix).
+# (Meta dir no longer has a flake.nix.)
+LOCKS=$(nix flake metadata --json "$REPO_ROOT/nix-config" 2>/dev/null | jq -c '.locks')
+
+GREEN='\033[1;32m'
+YELLOW='\033[1;33m'
+RED='\033[1;31m'
+RESET='\033[0m'
+
+drift_count=0
+for dir in "$REPO_ROOT"/nix-*; do
+  [ -d "$dir/.git" ] || continue
+  name=$(basename "$dir")
+
+  locked=$(echo "$LOCKS" | jq -r --arg n "$name" '(.nodes.root.inputs[$n] | strings) as $k | .nodes[$k].locked.rev // empty')
+  if [ -z "$locked" ]; then
+    printf "  %-20s %b(no lock entry — not a flake input?)%b\n" "$name" "$YELLOW" "$RESET"
+    continue
+  fi
+
+  current=$(git -C "$dir" rev-parse HEAD)
+  if [ "$locked" = "$current" ]; then
+    printf "  %-20s %b✓ in sync%b  (%s)\n" "$name" "$GREEN" "$RESET" "${locked:0:12}"
+  else
+    printf "  %-20s %b⚠ DRIFT%b\n" "$name" "$RED" "$RESET"
+    printf "    lock:  %s\n" "${locked:0:12}"
+    printf "    head:  %s\n" "${current:0:12}"
+    drift_count=$((drift_count + 1))
+  fi
+done
+
+if [ "$drift_count" -gt 0 ]; then
+  echo
+  echo "ℹ  $drift_count drift(s) detected. Run \`just maintenance::update-local\` to sync."
+  exit 1
+fi

@@ -1,0 +1,211 @@
+#!/usr/bin/env python3
+import json
+import os
+import subprocess
+import sys
+
+# Color formatting helpers
+GREEN = "\033[1;32m"
+RED = "\033[1;31m"
+YELLOW = "\033[1;33m"
+CYAN = "\033[1;36m"
+BOLD = "\033[1m"
+RESET = "\033[0m"
+
+# Topological order of updates based on submodule dependencies.
+# Entries are flake INPUT names (as they appear in flake.lock), which don't
+# always match the on-disk repo directory — see REPO_DIR_OVERRIDES below.
+TOPOLOGICAL_ORDER = [
+    "kleinbem-secrets",  # No dependencies (nix-config's secrets input, flake = false)
+    "nix-devshells",  # No local dependencies
+    "nix-gantry",  # No local dependencies
+    "nix-hardware",  # Depends on nix-devshells
+    "nix-packages",  # Depends on nix-devshells
+    "nix-templates",  # Depends on nix-devshells
+    "nix-presets",  # Depends on nix-devshells, nix-packages, nix-gantry
+    "nix-config",  # Depends on presets, packages, hardware, devshells, secrets, gantry
+]
+
+# Input name -> on-disk/GitHub repo name, where they differ. A name in
+# TOPOLOGICAL_ORDER that isn't an input never matches, and its pin silently
+# goes stale.
+REPO_DIR_OVERRIDES: dict[str, str] = {}
+
+
+def repo_dir(name):
+    return REPO_DIR_OVERRIDES.get(name, name)
+
+
+def run_cmd(args, cwd=None, capture=False):
+    """Helper to run a system command."""
+    try:
+        res = subprocess.run(
+            args,
+            stdout=subprocess.PIPE if capture else None,
+            stderr=subprocess.PIPE if capture else None,
+            text=True,
+            cwd=cwd,
+            check=True,
+        )
+        return True, res.stdout.strip() if capture else ""
+    except subprocess.CalledProcessError as e:
+        err = e.stderr.strip() if capture and e.stderr else str(e)
+        return False, err
+
+
+def is_repo_dirty(path):
+    """Checks if a git repository has any uncommitted changes (excluding flake.lock)."""
+    # Check status of tracked files excluding flake.lock
+    success, stdout = run_cmd(["git", "status", "--porcelain"], cwd=path, capture=True)
+    if not success:
+        return True  # Default to dirty on error
+
+    lines = [line.strip() for line in stdout.split("\n") if line.strip()]
+    other_changes = [line for line in lines if not line.endswith("flake.lock")]
+    return len(other_changes) > 0
+
+
+def get_git_head(path):
+    success, stdout = run_cmd(["git", "rev-parse", "HEAD"], cwd=path, capture=True)
+    return stdout[:8] if success else "unknown"
+
+
+def get_git_rev_full(path):
+    """Full 40-char HEAD rev (for github: flake refs)."""
+    success, stdout = run_cmd(["git", "rev-parse", "HEAD"], cwd=path, capture=True)
+    return stdout if success else None
+
+
+def rev_on_origin(path, rev):
+    """True if rev is reachable from a remote-tracking branch (i.e. pushed)."""
+    success, out = run_cmd(
+        ["git", "branch", "-r", "--contains", rev], cwd=path, capture=True
+    )
+    return success and bool(out.strip())
+
+
+def main():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Two levels up from tools/: the workspace root, where the sub-flakes are
+    # siblings of nix/.
+    root_dir = os.path.dirname(os.path.dirname(script_dir))
+
+    print(f"{BOLD}{CYAN}🔄 Topological Workspace Lockfile Sync...{RESET}")
+    print(
+        f"{CYAN}📌 Local-only: re-pins sub-flake inputs to local HEADs."
+        f" Upstream bumps (ghostty, rust-overlay, openclaw, nixpkgs, …) are"
+        f" CI-only via lockfile-autopilot PRs.{RESET}"
+    )
+    print(
+        f"{YELLOW}   To bump upstream manually (rare): cd <sub> && nix flake update{RESET}\n"
+    )
+
+    # 1. Pre-check: Ensure no sub-flake has other uncommitted changes
+    dirty_repos = []
+    for sub in TOPOLOGICAL_ORDER:
+        sub_path = os.path.join(root_dir, repo_dir(sub))
+        if os.path.exists(sub_path) and is_repo_dirty(sub_path):
+            dirty_repos.append(sub)
+
+    if dirty_repos:
+        print(
+            f"{RED}❌ Cannot perform sync. The following sub-flakes have other uncommitted changes:{RESET}"
+        )
+        for r in dirty_repos:
+            print(f"  • {BOLD}{r}{RESET}")
+        print(
+            f'\nPlease commit these changes first using {BOLD}just jj::save-all "your message"{RESET}.'
+        )
+        sys.exit(1)
+
+    print("🟢 All sub-flakes are clean of non-lockfile changes. Proceeding...\n")
+
+    # 2. Update sub-flakes in topological order
+    for sub in TOPOLOGICAL_ORDER:
+        sub_path = os.path.join(root_dir, repo_dir(sub))
+        if not os.path.exists(sub_path) or not os.path.exists(
+            os.path.join(sub_path, "flake.nix")
+        ):
+            continue
+
+        print(f"{BOLD}Updating {CYAN}{sub}{RESET}...")
+
+        # Read the inputs of the submodule
+        lock_path = os.path.join(sub_path, "flake.lock")
+        local_deps = []
+        if os.path.exists(lock_path):
+            try:
+                with open(lock_path, "r") as f:
+                    data = json.load(f)
+                inputs = data.get("nodes", {}).get("root", {}).get("inputs", {}).keys()
+                # Only sub-flake inputs that live in this workspace count as
+                # "local deps" — those are the ones we re-pin to local HEADs.
+                local_deps = [dep for dep in TOPOLOGICAL_ORDER if dep in inputs]
+            except (json.JSONDecodeError, OSError) as e:
+                print(
+                    f"  {YELLOW}Warning: Failed to parse flake.lock in {sub}: {e}{RESET}"
+                )
+
+        # No local sub-flake deps, nothing to re-pin. External inputs are
+        # bumped by CI PRs.
+        if not local_deps:
+            print(
+                f"  ⏭  {CYAN}No local sub-flake deps — skipping"
+                f" (upstream bumps via CI PR).{RESET}"
+            )
+            continue
+
+        # Update only the local deps, pinning each to github:<its HEAD rev>:
+        # git+file:// locks don't resolve in CI and the flake checks reject
+        # them. Local builds still see unpushed work via OVERRIDES. The rev
+        # must be pushed or the github: ref won't resolve, so skip otherwise.
+        cmd = (
+            ["nix", "flake", "update"] + local_deps + ["--flake", f"./{repo_dir(sub)}"]
+        )
+        skip = False
+        for dep in local_deps:
+            dep_path = os.path.join(root_dir, repo_dir(dep))
+            rev = get_git_rev_full(dep_path)
+            if rev is None:
+                print(f"  {RED}❌ Cannot resolve {dep} HEAD — skipping {sub}{RESET}")
+                skip = True
+                break
+            if not rev_on_origin(dep_path, rev):
+                print(
+                    f"  {YELLOW}⚠  {dep} HEAD ({rev[:8]}) is not pushed — skipping"
+                    f" {sub} re-pin (push {dep} first; the build still works via"
+                    f" OVERRIDES).{RESET}"
+                )
+                skip = True
+                break
+            cmd += ["--override-input", dep, f"github:kleinbem/{repo_dir(dep)}/{rev}"]
+        if skip:
+            continue
+
+        success, err = run_cmd(cmd, cwd=root_dir, capture=True)
+        if not success:
+            print(f"  {RED}❌ Update failed: {err}{RESET}")
+            sys.exit(1)
+
+        # Check if flake.lock was modified
+        success, status = run_cmd(
+            ["git", "status", "--porcelain", "flake.lock"], cwd=sub_path, capture=True
+        )
+        if success and status.strip():
+            print(f"  📝 {YELLOW}flake.lock updated. Staging (not committing).{RESET}")
+            # Stage only: committing here would need a YubiKey touch per
+            # sub-flake for signing.
+            run_cmd(["git", "add", "flake.lock"], cwd=sub_path)
+            print(f"  ✅ Staged in {BOLD}{sub}{RESET} (commit when ready)")
+        else:
+            print(
+                f"  🟢 {GREEN}Already in sync at {BOLD}{get_git_head(sub_path)}{RESET}"
+            )
+
+    print(f"\n✨ {BOLD}{GREEN}Topological lockfile sync complete!{RESET}")
+    print("To save the updated state in the root repository, run:")
+    print(f'  {BOLD}jj describe -m "chore: update flake lockfiles"{RESET}')
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "jnoortheen.nix-ide",
+        "mkhl.direnv",
+        "tamasfe.even-better-toml",
+        "esbenp.prettier-vscode",
+        "foxundermoon.shell-format",
+        "arrterian.nix-env-selector"
+    ]
+}

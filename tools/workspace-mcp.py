@@ -1,0 +1,37 @@
+#!/usr/bin/env -S python3 -u
+# ruff: noqa: F401
+"""
+SOURCE OF TRUTH: tools/workspace-mcp.py
+This is a lightweight wrapper that bootstraps the atlas_mcp package structure.
+It allows the MCP server to remain at the expected path without breaking existing Nix configurations.
+"""
+
+import json
+import os
+import sys
+
+# Ensure we can import the local atlas_mcp package
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import atlas_mcp.ai_services
+import atlas_mcp.browser
+import atlas_mcp.google
+import atlas_mcp.inventory
+import atlas_mcp.jujutsu
+import atlas_mcp.knowledge
+import atlas_mcp.network
+import atlas_mcp.nix_tools
+import atlas_mcp.paperless
+import atlas_mcp.security
+import atlas_mcp.skills
+import atlas_mcp.system
+import atlas_mcp.workspace
+from atlas_mcp.core import mcp
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        # Simple CLI mode for manual testing
+        tool_name = sys.argv[1]
+        print(f"CLI manual mode. Check individual module to run: {tool_name}")
+    else:
+        mcp.run()

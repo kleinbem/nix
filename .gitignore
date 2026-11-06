@@ -1,0 +1,82 @@
+# Sub-flake directories — each is its own independent git repo, cloned
+# via `just jj::bootstrap` from repos.nix. NOT tracked as git submodules
+# (meta doesn't pin specific commits; deployment uses live local via
+# --override-input — see OVERRIDES in .just/common.just).
+nix-config/
+nix-devshells/
+nix-hardware/
+nix-packages/
+nix-presets/
+nix-secrets/
+nix-templates/
+
+# Environment State
+.direnv/
+.devenv/
+.tools/
+.pre-commit-config.yaml
+
+# Build Results
+result
+result-*
+result_*
+
+# Generated / Runtime State
+__pycache__/
+*.pyc
+conversation_history.md
+force-rebuild-trigger
+.dev-dashboard/cache/
+.dev-dashboard/logs/
+
+
+# Scratch space — tool-generated caches and one-off debug files
+# (workspace-atlas indexes, ad-hoc evals). Never version these.
+scratch/
+/*.patch
+/*.diff
+/*.jws
+/test-*.nix
+
+# Temporary Files
+*.bak
+*.tar
+*.gz
+*.tmp
+*.log
+*.qcow2
+cpu_usage.txt
+mem_usage.txt
+
+# OS Metadata
+.DS_Store
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Secrets
+.env
+.envrc.local
+
+# VS Code Workspace State
+state.vscdb*
+
+# Agentic AI State (Unreviewed/Sensitive)
+.agent/knowledge/
+.agent/tasks/
+.mcp.json
+
+# Terraform / OpenTofu
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+# Generated R2 backend config (contains the R2 access key)
+.r2-backend.hcl
+.r2-endpoint.hcl
+
+# Wrangler CLI local cache (account id, OAuth state)
+.wrangler/
