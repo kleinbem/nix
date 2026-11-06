@@ -33,6 +33,18 @@ Each conductor's `just` recipes resolve them via `{{ROOT}}` (justfiles) or
 └── openwrt-config/             Ansible runtime config
 ```
 
+`nix-config` is the root flake; the other `nix-*` repos and `kleinbem-secrets` are its inputs:
+
+```mermaid
+graph TD;
+    nix-config -- imports --> nix-devshells
+    nix-config -- imports --> nix-hardware
+    nix-config -- imports --> nix-packages
+    nix-config -- imports --> nix-presets
+    nix-config -- imports --> kleinbem-secrets
+    nix-config -- imports --> nix-templates
+```
+
 ## 3. Tech Stack
 
 - **Configuration**: NixOS + Home Manager + Flake-Parts.
