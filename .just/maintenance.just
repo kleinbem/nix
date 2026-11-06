@@ -57,12 +57,15 @@ _check-lints:
 _check-flakes *args="--impure":
     @echo
     @echo "▶ Stage 2/7: Flake evaluations"
-    @for repo in {{REPOS}}; do \
+    @set -o pipefail; failed=""; \
+    for repo in {{REPOS}}; do \
         if [ -f "{{ROOT}}/$repo/flake.nix" ]; then \
             echo "  └─ $repo"; \
-            {{LOCK_CMD}} nix flake check {{ROOT}}/$repo --impure {{OVERRIDES}} {{args}} 2>&1 | grep -v "does not match any input" || true; \
+            {{LOCK_CMD}} nix flake check {{ROOT}}/$repo --impure {{OVERRIDES}} {{args}} 2>&1 \
+                | { grep -v "does not match any input" || true; } || failed="$failed $repo"; \
         fi; \
-    done
+    done; \
+    if [ -n "$failed" ]; then echo "  ❌ Stage 2 failed:$failed"; exit 1; fi
     @echo "  ✅ Stage 2 OK"
 
 [private]
@@ -70,7 +73,7 @@ _check-audits:
     @echo
     @echo "▶ Stage 3/7: Audits"
     @echo "  └─ audit-locks (sub-flake HEAD vs lockfile drift)"
-    @just maintenance::audit-locks-all || true
+    @just maintenance::audit-locks-all || echo "  ⚠  lock drift found (advisory, not a failure)"
     @echo "  └─ flake-check (DeterminateSystems)"
     @just maintenance::check-flakes
     @echo "  └─ check-shells (devshell evaluation)"
@@ -81,8 +84,10 @@ _check-audits:
 _check-host-builds:
     @echo
     @echo "▶ Stage 4/7: Host closure builds (x86_64 only — discovered dynamically)"
-    @hosts=$(nix flake show {{ROOT}}/nix-config --json --impure 2>/dev/null \
-        | jq -r '.checks."x86_64-linux" | keys[] | select(startswith("host-"))'); \
+    @set -o pipefail; \
+    hosts=$(nix flake show {{ROOT}}/nix-config --json --impure 2>/dev/null \
+        | jq -r '.checks."x86_64-linux" | keys[] | select(startswith("host-"))') \
+        || { echo "  ❌ nix flake show failed for nix-config"; exit 1; }; \
     if [ -z "$hosts" ]; then \
         echo "  ⚠  No host-* checks found in nix-config — skipping"; \
         exit 0; \
@@ -111,8 +116,10 @@ _check-host-builds:
 _check-package-builds:
     @echo
     @echo "▶ Stage 5/7: Custom-package builds (nix-packages, x86_64)"
-    @pkgs=$(nix flake show {{ROOT}}/nix-packages --json --impure 2>/dev/null \
-        | jq -r '.packages."x86_64-linux" // {} | keys[] | "{{ROOT}}/nix-packages#packages.x86_64-linux." + .'); \
+    @set -o pipefail; \
+    pkgs=$(nix flake show {{ROOT}}/nix-packages --json --impure 2>/dev/null \
+        | jq -r '.packages."x86_64-linux" // {} | keys[] | "{{ROOT}}/nix-packages#packages.x86_64-linux." + .') \
+        || { echo "  ❌ nix flake show failed for nix-packages"; exit 1; }; \
     if [ -z "$pkgs" ]; then \
         echo "  ⚠  No x86_64-linux packages found — skipping"; \
         exit 0; \
@@ -130,10 +137,12 @@ _check-package-builds:
 _check-vm-tests:
     @echo
     @echo "▶ Stage 6/7: NixOS VM integration tests (discovered dynamically)"
-    @tests=$(nix flake show {{ROOT}}/nix-config --json --impure 2>/dev/null \
+    @set -o pipefail; \
+    tests=$(nix flake show {{ROOT}}/nix-config --json --impure 2>/dev/null \
         | jq -r '.checks."x86_64-linux" | keys[] \
                  | select(startswith("host-") | not) \
-                 | select(. != "pre-commit-check")'); \
+                 | select(. != "pre-commit-check")') \
+        || { echo "  ❌ nix flake show failed for nix-config"; exit 1; }; \
     if [ -z "$tests" ]; then \
         echo "  ⚠  No integration tests found — skipping"; \
         exit 0; \
@@ -268,7 +277,7 @@ hooks-refresh-all:
 [group("System")]
 check-health:
     @echo "🏥 Running system health check..."
-    @python3 ./tools/ai-logs.py --sink
+    @./tools/ai-logs.sh --sink
 
 [group("System")]
 build-history:
@@ -278,15 +287,17 @@ build-history:
 # Workspace-wide grep.
 [group("System")]
 find pattern:
-    @grep -rnE "{{pattern}}" . --exclude-dir=.git
+    @grep -rnE --exclude-dir=.git -e {{quote(pattern)}} .
 
 [group("Updates")]
 update-cached:
     @echo "🔄 Backing up current flake.lock..."
     @cp {{ROOT}}/nix-config/flake.lock {{ROOT}}/nix-config/flake.lock.bak
     @echo "🔄 Updating lockfile (nix flake update)..."
-    @{{LOCK_CMD}} bash -c "cd {{ROOT}}/nix-config && nix flake update"
-    @just maintenance::update-local
+    @{{LOCK_CMD}} bash -c "cd {{ROOT}}/nix-config && nix flake update" \
+        || { mv {{ROOT}}/nix-config/flake.lock.bak {{ROOT}}/nix-config/flake.lock; echo "❌ Update failed, flake.lock restored"; exit 1; }
+    @just maintenance::update-local \
+        || { mv {{ROOT}}/nix-config/flake.lock.bak {{ROOT}}/nix-config/flake.lock; echo "❌ Lock sync failed, nix-config/flake.lock restored"; exit 1; }
     @echo "🔍 Checking if new updates require heavy local builds (evaluating checks)..."
     @output=$({{LOCK_CMD}} nix build --no-link --dry-run {{ROOT}}/nix-config#checks.x86_64-linux.host-nixos-nvme {{OVERRIDES}} --impure 2>&1 || true); \
     if echo "$output" | grep -q "will be built:"; then \

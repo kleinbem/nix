@@ -15,7 +15,7 @@ This repository serves as the **entry point** and **conductor** for the federate
 
 1.  **Enter the Workspace**:
     ```bash
-    nix develop  # Pure fallback
+    nix develop ../nix-devshells#workspace  # Pure fallback
     # OR
     direnv allow # Professional recommendation
     ```
@@ -43,10 +43,10 @@ This repository serves as the **entry point** and **conductor** for the federate
 
 Keep your workspace healthy with these commands:
 
-- **Linting**: `just lint` (Check for dead code and style issues)
-- **Fixing**: `just fix` (Auto-fix lints and format all code)
-- **Updating**: `just update-all` (Update all flake inputs across the workspace)
-- **Cleaning**: `just clean` (Remove temporary files and stale hooks)
+- **Linting**: `just maintenance::lint-all` (treefmt `--fail-on-change` in every sub-flake and the meta files)
+- **Formatting**: `just maintenance::format-all` (format every sub-flake and the meta files)
+- **Updating**: `just maintenance::update-local` (sync lockfiles across the sub-flakes; stages, never commits)
+- **Cleaning**: `just maintenance::clean-all` (delete old generations, collect garbage, `git gc` every repo)
 
 ## 🛠 Workflow
 

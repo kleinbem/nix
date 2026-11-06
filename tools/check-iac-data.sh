@@ -12,8 +12,6 @@ INFRA="$(dirname "$SCRIPT_DIR")/infra"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-IAC_DATA_SKIP_FLAKE=1 "$SCRIPT_DIR/gen-iac-data.sh" "$TMP" >/dev/null
-
 FILES=("$@")
 [[ "${#FILES[@]}" -gt 0 ]] || FILES=(personas.json inventory.json)
 for f in "${FILES[@]}"; do
@@ -25,6 +23,8 @@ for f in "${FILES[@]}"; do
     ;;
   esac
 done
+
+IAC_DATA_SKIP_FLAKE=1 "$SCRIPT_DIR/gen-iac-data.sh" "$TMP" >/dev/null
 
 errors=0
 for f in "${FILES[@]}"; do

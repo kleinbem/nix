@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 # generate-secrets.sh
 # Generates random values for the internal secrets in your SOPS config.

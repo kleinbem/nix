@@ -42,7 +42,7 @@ for pair in "${PAIRS[@]}"; do
     echo "✅ in sync: $(basename "$src")"
   else
     echo "⚠️  DRIFTED: $(basename "$src")"
-    diff <(strip_markers "$src") <(strip_markers "$mirror") | head -10
+    diff <(strip_markers "$src") <(strip_markers "$mirror") | head -10 || true
     errors=$((errors + 1))
   fi
 done

@@ -17,6 +17,7 @@ CURRENT_SYSTEM=$(nix eval --raw --impure --expr 'builtins.currentSystem')
 echo -e "${YELLOW}🧪 Verifying DevShell Evaluation on ${CURRENT_SYSTEM}...${NC}"
 echo "------------------------------------------------------------"
 printf "%-15s | %-10s | %-30s\n" "Shell" "Status" "Details/Error"
+failed=0
 echo "------------------------------------------------------------"
 
 verify_one() {
@@ -30,6 +31,7 @@ verify_one() {
       ERROR="Evaluation failed (check verify_shell.log)"
     fi
     printf "${RED}❌ %-13s${NC} | FAILED     | %-30s\n" "$shell" "$ERROR"
+    failed=$((failed + 1))
   fi
 }
 
@@ -43,3 +45,4 @@ done
 rm -f verify_shell.log
 echo "------------------------------------------------------------"
 echo -e "${YELLOW}Tip: Use 'just devshell::<shell>' or 'nix develop ../nix-devshells#<shell>' to debug.${NC}"
+[ "$failed" -eq 0 ] || exit 1

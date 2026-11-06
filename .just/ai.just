@@ -20,7 +20,8 @@ knowledge-sync:
 [group("Knowledge")]
 distill-session title="unnamed-session":
     @echo "🧠 Distilling knowledge into permanence: {{title}}"
-    @jj diff | nix run nixpkgs#llm -- "Summarize these changes into a technical knowledge item for the meta-repo." > .agent/knowledge/distilled-{{title}}.md
+    @mkdir -p .agent/knowledge
+    @jj diff | nix run nixpkgs#llm -- "Summarize these changes into a technical knowledge item for the meta-repo." > {{quote(".agent/knowledge/distilled-" + title + ".md")}}
 
 [group("Coding")]
 architect:

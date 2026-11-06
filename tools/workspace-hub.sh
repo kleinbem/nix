@@ -114,8 +114,9 @@ edit_recipe() { # edit_recipe <source> <recipe> — best effort, used by Ctrl-E
   [ "$src" = "nix-config" ] && dir="$PARENT/nix-config"
   # Prefer module files (.just/*) so `foo::bar` opens its module definition,
   # falling back to the top-level justfile for un-prefixed recipes.
-  hit="$(grep -rniE "^${bare}( |:)" "$dir/.just" 2>/dev/null | head -1)"
-  [ -z "$hit" ] && hit="$(grep -niE "^${bare}( |:)" "$dir/justfile" 2>/dev/null | sed "s|^|$dir/justfile:|" | head -1)"
+  # `|| true`: no match must fall through to the next lookup, not trip set -e.
+  hit="$(grep -rniE "^${bare}( |:)" "$dir/.just" 2>/dev/null | head -1)" || true
+  [ -z "$hit" ] && { hit="$(grep -niE "^${bare}( |:)" "$dir/justfile" 2>/dev/null | sed "s|^|$dir/justfile:|" | head -1)" || true; }
   if [ -n "$hit" ]; then
     local file line
     file="${hit%%:*}"
