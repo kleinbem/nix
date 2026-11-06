@@ -1,0 +1,31 @@
+default:
+    @just --list
+
+# --- Per-host R2 backup tokens (OpenTofu; state in Cloudflare R2) ---
+# The only root holding the token-minting credential (main.tf). Needs tofu,
+# sops, yq and jq. Each recipe decrypts sops again, so don't chain
+# `just plan && just apply`; `apply` shows the plan first.
+
+# Refresh ../backup-hosts.json from nix-config#backupHosts. Soft-fail: the
+# committed copy is enough to plan.
+[private]
+_gen:
+    @../../tools/gen-iac-data.sh >/dev/null || \
+      echo "⚠️  gen-iac-data.sh failed — using the committed infra/*.json (may be stale)"
+
+# Init the R2 backend (state-env.sh feeds backend config + encryption).
+init: _gen
+    @. ./state-env.sh && tofu init -input=false -backend-config=.r2-backend.hcl
+
+# Review planned token changes.
+plan: _gen
+    @. ./state-env.sh && tofu init -input=false -backend-config=.r2-backend.hcl >/dev/null && tofu plan
+
+# Apply (asks for confirmation), then write each host's rclone config into
+# kleinbem-secrets/nix/per-host/<host>.yaml.
+apply: _gen
+    @. ./state-env.sh && tofu init -input=false -backend-config=.r2-backend.hcl >/dev/null && ../../tools/tofu-guarded-apply.sh && ./sync-secrets.sh
+
+# Re-sync kleinbem-secrets from current state without applying.
+sync: _gen
+    @. ./state-env.sh && tofu init -input=false -backend-config=.r2-backend.hcl >/dev/null && ./sync-secrets.sh

@@ -1,0 +1,14 @@
+# Cloudflare Web Analytics for kleinbem.dev: cookieless, no consent banner.
+# auto_install injects the beacon at the edge into every proxied HTML
+# response zone-wide, so nothing goes into kleinbem-site itself. To limit it
+# to one host, add a cloudflare_web_analytics_rule.
+resource "cloudflare_web_analytics_site" "kleinbem_dev" {
+  account_id   = var.cloudflare_account_id
+  zone_tag     = data.cloudflare_zone.main.id
+  auto_install = true
+}
+
+output "web_analytics_site_tag" {
+  description = "Cloudflare Web Analytics site tag (identifies the site in the dashboard/API)."
+  value       = cloudflare_web_analytics_site.kleinbem_dev.site_tag
+}

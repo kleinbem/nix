@@ -1,0 +1,36 @@
+default:
+    @just --list
+
+# --- Garage control plane (OpenTofu, local state) ----------------------------
+# Talks to the Garage Admin API on nixos-nvme's loopback; elsewhere set
+# TF_VAR_garage_endpoint to reach it over NetBird. One-time prerequisite on the
+# host, since a node without a layout can't store objects:
+#   sudo garage layout assign -z dc1 -c 1T "$(sudo garage node id -q | cut -d@ -f1)"
+#   sudo garage layout apply --version 1
+
+secrets := "../../../kleinbem-secrets/infra/terraform.yaml"
+
+
+# State encryption (encryption.tf): passphrase from sops, same key as infra/.
+_enc := "TF_ENCRYPTION=\"key_provider \\\"pbkdf2\\\" \\\"state_key\\\" { passphrase = \\\"$(sops -d " + secrets + " | yq '.tofu_state_passphrase')\\\" }\""
+
+# Init (local state — no remote backend; see backend.tf). tofu init already
+# checks the encryption keys, so it needs the passphrase too.
+init:
+    {{_enc}} tofu init -input=false
+
+# Review planned Garage control-plane changes (buckets / keys / permissions).
+plan: init
+    {{_enc}} TF_VAR_garage_admin_token="$(sops -d {{secrets}} | yq '.garage_admin_token')" tofu plan
+
+# Apply.
+apply: init
+    {{_enc}} TF_VAR_garage_admin_token="$(sops -d {{secrets}} | yq '.garage_admin_token')" ../../tools/tofu-guarded-apply.sh
+
+# Read the created credentials (capture these for restic / the tofu s3 backend).
+creds: init
+    {{_enc}} TF_VAR_garage_admin_token="$(sops -d {{secrets}} | yq '.garage_admin_token')" tofu output
+
+# Dump the live provider schema to verify resource/attribute names.
+schema: init
+    {{_enc}} tofu providers schema -json | yq -P

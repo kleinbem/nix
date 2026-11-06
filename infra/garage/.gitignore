@@ -1,0 +1,6 @@
+# Terraform / OpenTofu — local state, keep local artifacts out of git.
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+crash.log

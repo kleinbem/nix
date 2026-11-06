@@ -1,0 +1,23 @@
+# DNS-01 token so core-pi's Caddy gets Let's Encrypt certs for mesh-only names
+# (inventory `publicCert = true`), for clients that only trust public CAs, like
+# Buzz. The names still resolve only over NetBird.
+# Zone Read is needed by caddy-dns/cloudflare to find the zone id.
+resource "cloudflare_api_token" "caddy_acme_dns" {
+  name = "caddy-acme-dns-core-pi"
+
+  policy {
+    permission_groups = [
+      data.cloudflare_api_token_permission_groups.all.zone["Zone Read"],
+      data.cloudflare_api_token_permission_groups.all.zone["DNS Write"],
+    ]
+    resources = {
+      "com.cloudflare.api.account.zone.${var.cloudflare_zone_id}" = "*"
+    }
+  }
+}
+
+output "caddy_acme_dns_token" {
+  description = "Cloudflare token for Caddy's DNS-01 challenge; synced into kleinbem-secrets/nix/per-host/core-pi.yaml by sync-secrets.sh."
+  sensitive   = true
+  value       = cloudflare_api_token.caddy_acme_dns.value
+}
