@@ -70,17 +70,23 @@ provider "registry.opentofu.org/goauthentik/authentik" {
 
 provider "registry.opentofu.org/hashicorp/aws" {
   version     = "6.71.0"
-  constraints = "~> 5.0"
+  constraints = "~> 6.71"
   hashes = [
     "h1:0NOpfpZ0BJ+znFVEedMd2yWx4Q8SXj8H8tHEkiLrM/o=",
+    "h1:1eUAMsp6IPdvQHb6Cc4U0SxxECkwvP5RYGFxXJaIGiY=",
     "h1:2Tlplnn5v5JYAIDRYtveZO7cicSJ1CleYET8ycUS1CU=",
+    "h1:5SbT5whSV+Csh2KPkzYZ2VEhv0aSboFITqUDvMm/qGQ=",
+    "h1:AtkTrCVMkoZzrBIm05jghLXiHPfJAnU/GTgVRdIX5bc=",
     "h1:BsoTfyxZ2ct0Q0mfdAFmWtpmeCYOIeQjsyoR804Cse4=",
     "h1:ORnxYK/YWxzFA/L49QhrRVOMWgGOvlYHlTgMNXgn2K8=",
     "h1:Q5i7ee1oBfrYHgnQsnC+DKk/1ynUFvfcIxxpqoY0btQ=",
+    "h1:UsX7nnfKyOHOzKeRxkaHO0oNHsgW7RiGFe0x+JlU0gc=",
     "h1:Vcqk7kEWL0wVBGSgA/3yIeKdL7jihYEBZ5q6DJ1IW1k=",
+    "h1:dwryNAhannvEPEumOIwKEPhJtNAUL1uHs1Je8JopMF4=",
     "h1:hSDn8I/j4nELdfWdP/zDIRieY/GHv+trGadEsploGeM=",
     "h1:nP2rt9Y8dNPjl/68pJ9SLsUupxlrFIt/vkylVVo3uck=",
     "h1:xhdKlv4GCsI+T6JgHiGRZnqQnxxLPRDD2L9BVSZd8ag=",
+    "h1:zcXZtjJSqox2qrDFq/K8IKGpICzL6wa9Q4U+8EZU6qM=",
     "zh:26fcf302abd7112c23f44bd5c1afbdb56224e9dfbe5d3016866f3f1dba10f11a",
     "zh:399b50405fa1871f82db89e439dc53a07b6cfbd53753b86cfab0a10c42c93b8a",
     "zh:40945415f6de4e67beefb2a26c44b2d9d46981a7dae1e78ce41d4afba625b10b",
