@@ -488,11 +488,9 @@ locals {
       name = "Cloudflare Access"
       redirect_uris = [
         "https://sparkling-feather-0ab4.cloudflareaccess.com/cdn-cgi/access/callback",
-        "^https://.*\\.cloudflareaccess\\.com/cdn-cgi/access/callback$",
       ]
-      matching_mode = "regex"
-      desc          = "Cloudflare Zero Trust edge SSO (Passkey / WebAuthn)"
-      launch_url    = "https://home.kleinbem.dev"
+      desc       = "Cloudflare Zero Trust edge SSO (Passkey / WebAuthn)"
+      launch_url = "https://home.kleinbem.dev"
     }
   }
 }
