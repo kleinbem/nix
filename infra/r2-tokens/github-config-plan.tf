@@ -12,7 +12,7 @@ resource "cloudflare_api_token" "github_config_plan" {
     })
     effect = "allow"
     permission_groups = [{
-      id = "Workers R2 Storage Bucket Item Read"
+      id = local.permission_groups.r2["Workers R2 Storage Bucket Item Read"]
     }]
   }]
 }

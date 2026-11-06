@@ -11,9 +11,9 @@ resource "cloudflare_api_token" "caddy_acme_dns" {
     })
     effect = "allow"
     permission_groups = [{
-      id = "DNS Write"
+      id = local.permission_groups.zone["DNS Write"]
       }, {
-      id = "Zone Read"
+      id = local.permission_groups.zone["Zone Read"]
     }]
   }]
 }

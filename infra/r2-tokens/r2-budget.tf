@@ -10,9 +10,9 @@ resource "cloudflare_api_token" "r2_budget" {
     })
     effect = "allow"
     permission_groups = [{
-      id = "Account Analytics Read"
+      id = local.permission_groups.account["Account Analytics Read"]
       }, {
-      id = "Workers R2 Storage Write"
+      id = local.permission_groups.account["Workers R2 Storage Write"]
     }]
   }]
 }

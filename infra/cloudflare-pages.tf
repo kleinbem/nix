@@ -8,13 +8,10 @@ resource "cloudflare_pages_project" "kleinbem_site" {
   account_id        = var.cloudflare_account_id
   name              = "kleinbem-site"
   production_branch = "main"
-  deployment_configs = {
-    preview = {
-      fail_open = false
-    }
-    production = {
-      fail_open = false
-    }
+
+  # Holds the secrets CI puts with wrangler; v5 would overwrite them.
+  lifecycle {
+    ignore_changes = [deployment_configs]
   }
 }
 
@@ -23,7 +20,6 @@ resource "cloudflare_pages_domain" "kleinbem_site_www" {
   project_name = cloudflare_pages_project.kleinbem_site.name
   name         = "www.${local.primary_domain}"
 }
-
 
 # The apex keeps its tunnel CNAME (main.tf); this redirect runs first.
 resource "cloudflare_ruleset" "apex_to_www" {

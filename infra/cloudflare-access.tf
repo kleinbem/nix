@@ -41,7 +41,16 @@ resource "cloudflare_zero_trust_access_application" "this" {
   ]
 }
 
+# v5 moved these into the app's inline policies. Forget the old state entries
+# rather than destroy them (the v5 migration guide's `state rm`).
+removed {
+  from = cloudflare_zero_trust_access_policy.allow_owner
+  lifecycle {
+    destroy = false
+  }
+}
+
 # Authentik OIDC IdP (UUID 6bb0c00a-ad4e-4250-b5bb-215e7129112a) is set up by
 # hand in Zero Trust: API tokens get 1010 (auth.forbidden) managing IdPs on this
-# plan. Its ID token carries the email that allow_owner matches.
+# plan. Its ID token carries the email the owner policy matches.
 

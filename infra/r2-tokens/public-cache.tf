@@ -10,9 +10,9 @@ resource "cloudflare_api_token" "public_cache_ci" {
     })
     effect = "allow"
     permission_groups = [{
-      id = "Workers R2 Storage Bucket Item Read"
+      id = local.permission_groups.r2["Workers R2 Storage Bucket Item Read"]
       }, {
-      id = "Workers R2 Storage Bucket Item Write"
+      id = local.permission_groups.r2["Workers R2 Storage Bucket Item Write"]
     }]
   }]
 }
