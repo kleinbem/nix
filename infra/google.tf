@@ -16,12 +16,13 @@ import {
   id = "kleinbem-ai"
 }
 
-# Turning auto_create_network off deletes the default network on apply: owner
-# decision, tracking: kleinbem/nix#73
-#trivy:ignore:GCP-0010
+# On an existing project this only records intent: the provider acts on it at
+# create time. Enabling compute.googleapis.com still creates a `default` network
+# with open firewall rules, so that change must also delete it (kleinbem/nix#73).
 resource "google_project" "kleinbem_ai" {
-  name       = "kleinbem-ai"
-  project_id = "kleinbem-ai"
+  name                = "kleinbem-ai"
+  project_id          = "kleinbem-ai"
+  auto_create_network = false
 
   deletion_policy = "PREVENT"
 
