@@ -164,7 +164,8 @@ export TF_VAR_kleinbem_site_session_secret="$SESSION_SECRET"
 export TF_VAR_cloudflare_pages_deploy_token="$PAGES_DEPLOY_TOKEN"
 
 echo -e "\n${BOLD}${YELLOW}🔍 Cloudflare Token & Zero Trust Diagnostics:${RESET}"
-# Best effort: a slow or failing endpoint must not stop the plan.
+# Best effort: a slow or failing endpoint must not stop the plan. The token is
+# an account token, so it verifies under /accounts, not /user.
 diag() { # diag <jq filter> <curl args...>
   local filter="$1" out
   shift
@@ -173,16 +174,10 @@ diag() { # diag <jq filter> <curl args...>
 }
 echo -n "  • Token status:   "
 diag '{id: .result.id, status: .result.status, success: .success, errors: .errors}' \
-  -H "Authorization: Bearer $API_TOKEN" https://api.cloudflare.com/client/v4/user/tokens/verify
-echo -n "  • Zero Trust Org: "
-diag '{name: .result.name, auth_domain: .result.auth_domain, success: .success, errors: .errors}' \
-  -H "Authorization: Bearer $API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/access/organizations"
+  -H "Authorization: Bearer $API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/tokens/verify"
 echo -n "  • Access IdPs:    "
 diag '{count: (.result | length), success: .success, errors: .errors}' \
   -H "Authorization: Bearer $API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/access/identity_providers"
-echo -n "  • Web Analytics:  "
-diag '{count: (.result | length), success: .success, errors: .errors}' \
-  -H "Authorization: Bearer $API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/rum/site_info/list"
 # Report only whether the cloudflare-access client secret exists, never the
 # value: this output gets pasted into chats and issues.
 echo -n "  • Authentik OIDC: "
