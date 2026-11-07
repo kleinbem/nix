@@ -1,12 +1,17 @@
 # Access keys (S3 SigV4 credentials) + their bucket permissions. One scoped key
-# per consumer — restic only touches `backups`, tofu only touches `tofu-state`.
-# Least privilege: no key has `owner`, and neither can read the other's bucket.
+# per consumer — restic only touches `backups`, tofu only touches `tofu-state`,
+# ente only touches `ente`.
+# Least privilege: no key has `owner` or access to another bucket.
 resource "garage_key" "restic" {
   name = "restic-key"
 }
 
 resource "garage_key" "tofu" {
   name = "tofu-key"
+}
+
+resource "garage_key" "ente" {
+  name = "ente-key"
 }
 
 resource "garage_bucket_permission" "restic_backups" {
@@ -19,6 +24,13 @@ resource "garage_bucket_permission" "restic_backups" {
 resource "garage_bucket_permission" "tofu_state" {
   bucket_id     = garage_bucket.tofu_state.id
   access_key_id = garage_key.tofu.id
+  read          = true
+  write         = true
+}
+
+resource "garage_bucket_permission" "ente" {
+  bucket_id     = garage_bucket.ente.id
+  access_key_id = garage_key.ente.id
   read          = true
   write         = true
 }
@@ -38,5 +50,12 @@ output "tofu_access_key_id" {
 }
 output "tofu_secret_key" {
   value     = garage_key.tofu.secret_access_key
+  sensitive = true
+}
+output "ente_access_key_id" {
+  value = garage_key.ente.id
+}
+output "ente_secret_key" {
+  value     = garage_key.ente.secret_access_key
   sensitive = true
 }

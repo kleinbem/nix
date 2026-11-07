@@ -46,6 +46,7 @@ just schema    # verify provider resource/attribute names
   the `tofu-state` bucket via the s3 backend over NetBird.
 
 ## Manages
-- Buckets: `backups` (restic), `tofu-state` (remote state for other roots)
-- Keys: `restic-key` (RW on backups), `tofu-key` (RW on tofu-state) — least
-  privilege, no cross-bucket access, no `owner`.
+- Buckets: `backups` (restic), `tofu-state` (remote state for other roots),
+  `ente` (Ente museum on core-pi)
+- Keys: `restic-key` (RW on backups), `tofu-key` (RW on tofu-state),
+  `ente-key` (RW on ente) — least privilege, no cross-bucket access, no `owner`.

@@ -9,3 +9,8 @@ resource "garage_bucket" "backups" {
 resource "garage_bucket" "tofu_state" {
   global_alias = "tofu-state"
 }
+
+# Ente museum's object store (core-pi), replacing the in-container MinIO.
+resource "garage_bucket" "ente" {
+  global_alias = "ente"
+}
