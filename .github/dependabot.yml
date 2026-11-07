@@ -33,3 +33,14 @@ updates:
         patterns: ["*"]
         exclude-patterns: ["netbirdio/netbird"]
         update-types: [minor, patch]
+
+  # Go tools run via `go run` (stdlib only so far).
+  - package-ecosystem: gomod
+    directories: ["/tools/ai-logs", "/tools/workspace-indexer"]
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      go:
+        patterns: ["*"]
