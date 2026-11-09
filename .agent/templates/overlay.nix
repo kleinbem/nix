@@ -1,3 +1,4 @@
+# deadnix: skip # the commented example below uses pkgs once uncommented
 { pkgs, ... }:
 
 {
