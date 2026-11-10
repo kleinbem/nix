@@ -43,7 +43,7 @@
     },
     "mac-mini": {
       "ip": "10.0.0.16",
-      "netbirdIp": "100.117.247.175",
+      "netbirdIp": "100.117.93.197",
       "system": "x86_64-linux",
       "tags": [
         "desktop",
@@ -53,7 +53,7 @@
     },
     "nasbook": {
       "ip": "10.0.0.30",
-      "netbirdIp": null,
+      "netbirdIp": "100.117.39.136",
       "system": "x86_64-linux",
       "tags": [
         "nas",
@@ -74,7 +74,7 @@
     },
     "orin-nano": {
       "ip": "10.0.0.15",
-      "netbirdIp": null,
+      "netbirdIp": "100.117.37.104",
       "system": "aarch64-linux",
       "tags": [
         "edge",
@@ -126,7 +126,9 @@
     "attic.kleinbem.dev",
     "buzz.kleinbem.dev",
     "cache.kleinbem.dev",
+    "cadre.kleinbem.dev",
     "code.kleinbem.dev",
+    "detour.kleinbem.dev",
     "frigate.kleinbem.dev",
     "garage.kleinbem.dev",
     "git.kleinbem.dev",
