@@ -264,11 +264,9 @@ output "kleinbem_site_oidc_client_secret" {
 }
 
 # --- Branding: make auth.kleinbem.dev look like part of kleinbem.dev ---
-# Brands match by exact domain, so the default brand is untouched. The login
-# page's PatternFly 4 markup ignores --ak-color-* and `:root` doesn't match in
-# the shadow roots, so the CSS overrides .pf-c-* directly (except the
-# background image, set in flow.html's top-level <style>).
-# Colors mirror kleinbem-site/src/styles/global.css; keep them in sync.
+# Scoped Brand for auth.kleinbem.dev matching @kleinbem/web-config tokens.
+# PatternFly 4 markup in shadow roots ignores --ak-color-*, so authentik-brand.css
+# overrides .pf-c-* directly and enables automatic dark/light theme switching.
 resource "authentik_brand" "kleinbem_site" {
   domain         = "auth.kleinbem.dev"
   default        = false
@@ -283,57 +281,17 @@ resource "authentik_brand" "kleinbem_site" {
   branding_logo    = "https://kleinbem.dev/favicon.svg"
   branding_favicon = "https://kleinbem.dev/favicon.svg"
 
-  # Force light: kleinbem-site has no dark scheme, and a dark OS preference
-  # otherwise switches Authentik to its dark theme under the CSS below.
+  # Automatic theme switching to match client preference with web-config tokens.
   attributes = jsonencode({
     settings = {
       theme = {
-        base = "light"
+        base = "automatic"
       }
     }
   })
 
   # Authentik trims the trailing newline on save, so chomp it here too.
-  branding_custom_css = chomp(<<-CSS
-    :root,
-    html[data-theme="dark"] {
-      --ak-global--background-image: none !important;
-    }
-
-    .pf-c-login,
-    .pf-c-login__main {
-      background-color: #f9f9ff !important;
-    }
-
-    .pf-c-login__main-header,
-    .pf-c-login__main-body,
-    .pf-c-title,
-    .pf-c-login__main-footer-band {
-      color: #1a1b20 !important;
-    }
-
-    a {
-      color: #435e91 !important;
-    }
-
-    .pf-c-button.pf-m-primary {
-      background-color: #435e91 !important;
-    }
-
-    .pf-c-login__footer,
-    .pf-c-login__footer a,
-    ak-locale-select,
-    ak-locale-select label,
-    ak-locale-select select {
-      color: #44474f !important;
-    }
-
-    .source-button {
-      background-color: #435e91 !important;
-      border-radius: 999px !important;
-    }
-  CSS
-  )
+  branding_custom_css = chomp(file("${path.module}/authentik-brand.css"))
 }
 
 # --- Fleet forward-auth ---
