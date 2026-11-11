@@ -13,7 +13,7 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
 FILES=("$@")
-[[ "${#FILES[@]}" -gt 0 ]] || FILES=(personas.json inventory.json)
+[[ ${#FILES[@]} -gt 0 ]] || FILES=(personas.json inventory.json)
 for f in "${FILES[@]}"; do
   case $f in
   personas.json | inventory.json) ;;

@@ -113,4 +113,3 @@ elif over "$ALERT_EUR"; then
     notify "R2 over €${ALERT_EUR} this month" "$summary. The cache goes offline at €${OFFLINE_EUR}."
   fi
 fi
-

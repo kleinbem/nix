@@ -10,11 +10,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 if [ ! -d "$ROOT/kleinbem" ]; then
-    echo "🌱 kleinbem/ missing — cloning it first (everything else depends on it)..."
-    git clone git@github.com:kleinbem/kleinbem.git "$ROOT/kleinbem"
-    (cd "$ROOT/kleinbem" && jj git init --colocate && jj bookmark track main --remote=origin)
+  echo "🌱 kleinbem/ missing — cloning it first (everything else depends on it)..."
+  git clone git@github.com:kleinbem/kleinbem.git "$ROOT/kleinbem"
+  (cd "$ROOT/kleinbem" && jj git init --colocate && jj bookmark track main --remote=origin)
 else
-    echo "✓ kleinbem/ already present."
+  echo "✓ kleinbem/ already present."
 fi
 
 echo "▶ Continuing with the normal bootstrap (just jj::bootstrap)..."

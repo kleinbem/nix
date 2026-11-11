@@ -19,12 +19,18 @@ while [ $# -gt 0 ]; do
     continue
   fi
   case "$1" in
-  --plan-only | --plan) MODE="plan"; shift ;;
-  --migrate-state) MODE="migrate-state"; shift ;;
+  --plan-only | --plan)
+    MODE="plan"
+    shift
+    ;;
+  --migrate-state)
+    MODE="migrate-state"
+    shift
+    ;;
   --state-rm)
     MODE="state-rm"
     shift
-    while [ $# -gt 0 ] && [[ "$1" != --* ]]; do
+    while [ $# -gt 0 ] && [[ $1 != --* ]]; do
       PASSTHROUGH+=("$1")
       shift
     done
@@ -37,7 +43,10 @@ while [ $# -gt 0 ]; do
       shift
     done
     ;;
-  --) SAW_DDASH=1; shift ;;
+  --)
+    SAW_DDASH=1
+    shift
+    ;;
   -h | --help)
     echo "Usage: $0 [--plan-only | --state-rm <resource...> | --exec <tofu-cmd...> | --migrate-state] [-- <tofu-args>...]"
     echo "  Default:          decrypt sops, plan, apply it unless it deletes or replaces anything"
@@ -69,7 +78,7 @@ echo -e "=================================================="
 
 # Refresh infra/*.json from nix-config; soft-fail so a missing checkout
 # doesn't block a creds-only apply.
-"$(dirname "${BASH_SOURCE[0]}")/gen-iac-data.sh" || \
+"$(dirname "${BASH_SOURCE[0]}")/gen-iac-data.sh" ||
   echo -e "${YELLOW}⚠️  gen-iac-data.sh failed — proceeding with the committed infra/*.json${RESET}"
 
 # kleinbem-secrets scopes secrets per consumer, so several files are read.
@@ -181,7 +190,6 @@ diag '{count: (.result | length), success: .success, errors: .errors}' \
 echo -n "  • Authentik OIDC: "
 diag '{client: "cloudflare-access", secret_present: ((.results[0].client_secret // "") != "")}' \
   -H "Authorization: Bearer $AUTHENTIK_API_TOKEN" "https://auth.kleinbem.dev/api/v3/providers/oauth2/?client_id=cloudflare-access"
-
 
 # --- GitHub provider inputs (sourced from sops) ---
 # The GitHub App credentials (nix/shared.yaml) authenticate the github provider
@@ -492,7 +500,10 @@ if [ -n "$OIDC_SECRETS_JSON" ] && [ "$OIDC_SECRETS_JSON" != "{}" ] && [ "$OIDC_S
       find "$OIDC_WORK" -type f -exec shred -u {} \; 2>/dev/null
       rm -rf "$OIDC_WORK"
       OIDC_WORK=""
-      [ -f "$APP_YAML" ] || { echo -e "${RED}❌ Encrypting $APP_YAML failed${RESET}" >&2; exit 1; }
+      [ -f "$APP_YAML" ] || {
+        echo -e "${RED}❌ Encrypting $APP_YAML failed${RESET}" >&2
+        exit 1
+      }
       echo -e "🟢 Initialized and encrypted OIDC client secret in nix/per-container/${container_name}.yaml"
     else
       current_val=$(sops -d "$APP_YAML" 2>/dev/null | yq -r ".${key_name}" 2>/dev/null || echo "")
@@ -505,7 +516,6 @@ if [ -n "$OIDC_SECRETS_JSON" ] && [ "$OIDC_SECRETS_JSON" != "{}" ] && [ "$OIDC_S
     fi
   done
 fi
-
 
 # 4. Success
 echo -e "\n${BOLD}[4/4] OpenTofu Apply Complete!${RESET}"

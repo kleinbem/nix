@@ -30,11 +30,11 @@ done
 # The passphrase goes into an HCL string unescaped; escaping would change the
 # derived key for an existing state, so refuse characters HCL would interpret.
 case "$_pass" in
-  *\"* | *\\* | *\$\{* | *%\{*)
-    echo "❌ tofu_state_passphrase contains \", \\, \${ or %{, which TF_ENCRYPTION can't carry verbatim" >&2
-    # shellcheck disable=SC2317  # exit runs when executed; upstream: koalaman/shellcheck#2620
-    return 1 2>/dev/null || exit 1
-    ;;
+*\"* | *\\* | *\$\{* | *%\{*)
+  echo "❌ tofu_state_passphrase contains \", \\, \${ or %{, which TF_ENCRYPTION can't carry verbatim" >&2
+  # shellcheck disable=SC2317  # exit runs when executed; upstream: koalaman/shellcheck#2620
+  return 1 2>/dev/null || exit 1
+  ;;
 esac
 
 export TF_ENCRYPTION="key_provider \"pbkdf2\" \"state_key\" { passphrase = \"${_pass}\" }"
