@@ -8,8 +8,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-META_ROOT="$(dirname "$SCRIPT_DIR")"          # .../nix
-WORKSPACE_ROOT="$(dirname "$META_ROOT")"      # .../<workspace root>
+META_ROOT="$(dirname "$SCRIPT_DIR")"     # .../nix
+WORKSPACE_ROOT="$(dirname "$META_ROOT")" # .../<workspace root>
 NIX_CONFIG="$WORKSPACE_ROOT/nix-config"
 CONTACT_FILE="$WORKSPACE_ROOT/kleinbem-secrets/personas/contact.nix"
 DATA_NIX="$NIX_CONFIG/iac/data.nix"
@@ -93,6 +93,6 @@ emit_flake() { # <nix-config flake attr> <dest file>
 
 echo "✅ wrote $DEST/personas.json + $DEST/inventory.json"
 # The drift check only compares the two files above.
-[[ -n "${IAC_DATA_SKIP_FLAKE:-}" ]] && exit 0
+[[ -n ${IAC_DATA_SKIP_FLAKE:-} ]] && exit 0
 emit_flake heartbeats "$DEST/heartbeats.json"
 emit_flake backupHosts "$DEST/backup-hosts.json"

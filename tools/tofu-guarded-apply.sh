@@ -42,6 +42,9 @@ fi
 
 if [ "$auto" -eq 0 ]; then
   read -r -p "Apply this plan? [y/N] " answer
-  [[ "$answer" == [yY]* ]] || { echo "Not applied."; exit 1; }
+  [[ $answer == [yY]* ]] || {
+    echo "Not applied."
+    exit 1
+  }
 fi
 tofu apply -input=false "$work/plan"
