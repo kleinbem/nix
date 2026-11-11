@@ -4,9 +4,13 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
-# nix-presets/nix-devshells are flat siblings of nix/, not nested under it.
-cd "$(dirname "$REPO_ROOT")"
+# $0-relative: jj workspaces have no .git, so git rev-parse fails there.
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# nix-presets/nix-devshells are siblings of nix/; a workspace sits one level
+# deeper (nix.ws/<name>/).
+FLEET_ROOT="$(dirname "$REPO_ROOT")"
+case "$FLEET_ROOT" in *.ws) FLEET_ROOT="$(dirname "$FLEET_ROOT")" ;; esac
+cd "$FLEET_ROOT"
 
 PAIRS=(
   "nix-presets/files/scripts/android/launch-android-desktop.sh|nix-devshells/shells/scripts/launch-android-desktop.sh"
