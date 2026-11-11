@@ -20,7 +20,6 @@ while [ $# -gt 0 ]; do
   fi
   case "$1" in
   --plan-only | --plan) MODE="plan"; shift ;;
-  --migrate-tunnel) MODE="migrate-tunnel"; shift ;;
   --migrate-state) MODE="migrate-state"; shift ;;
   --state-rm)
     MODE="state-rm"
@@ -40,13 +39,12 @@ while [ $# -gt 0 ]; do
     ;;
   --) SAW_DDASH=1; shift ;;
   -h | --help)
-    echo "Usage: $0 [--plan-only | --state-rm <resource...> | --exec <tofu-cmd...> | --migrate-tunnel | --migrate-state] [-- <tofu-args>...]"
+    echo "Usage: $0 [--plan-only | --state-rm <resource...> | --exec <tofu-cmd...> | --migrate-state] [-- <tofu-args>...]"
     echo "  Default:          decrypt sops, plan, apply it unless it deletes or replaces anything"
     echo "                    (ALLOW_DESTROY=1 allows that), write back tunnel_id."
     echo "  --plan-only:      decrypt sops, run 'tofu plan', exit."
     echo "  --state-rm:       remove one or more resources from OpenTofu state."
     echo "  --exec:           run arbitrary tofu command with decrypted state & backend environment."
-    echo "  --migrate-tunnel: rebind tunnel state to the new resource address."
     echo "  --migrate-state:  one-shot copy of local terraform.tfstate into the R2 backend."
     echo "  -- <tofu-args>:   pass everything after -- to 'tofu plan' (-auto-approve: skip the prompt)."
     echo "                    Example: $0 -- -target='github_actions_secret.ci' -auto-approve"
@@ -228,8 +226,6 @@ NTFY_ALERT_TOPIC=$(echo "$SHARED_YAML" | yq '.ntfy_alert_topic')
 # runs with auth (nix-presets ntfy.secretsFile); empty means "no header".
 NTFY_CI_TOKEN=$(echo "$SHARED_YAML" | yq '.ntfy_ci_token')
 [ "$NTFY_CI_TOKEN" = "null" ] && NTFY_CI_TOKEN=""
-NTFY_CI_TOKEN=$(echo "$SHARED_YAML" | yq '.ntfy_ci_token')
-[ "$NTFY_CI_TOKEN" = "null" ] && NTFY_CI_TOKEN=""
 
 # --- Google Cloud (infra/google.tf) ---
 # Hand-made bootstrap service-account key (base64 JSON), see infra/google.tf.
@@ -375,39 +371,6 @@ if [ "$MODE" = "plan" ]; then
   echo -e "\n${BOLD}🔎 Running plan only (no changes will be applied)...${RESET}"
   tofu plan "${PASSTHROUGH[@]}"
   echo -e "\n${BOLD}${GREEN}✅ Plan complete. Re-run without --plan-only to apply.${RESET}"
-  exit 0
-fi
-
-if [ "$MODE" = "migrate-tunnel" ]; then
-  OLD_ADDR="cloudflare_tunnel.nixos_nvme"
-  NEW_ADDR="cloudflare_zero_trust_tunnel_cloudflared.nixos_nvme"
-
-  # Idempotency: if new address is already in state, nothing to do.
-  if tofu state list 2>/dev/null | grep -qx "$NEW_ADDR"; then
-    echo -e "${GREEN}🟢 ${NEW_ADDR} is already in state — nothing to do.${RESET}"
-    exit 0
-  fi
-
-  if ! tofu state list 2>/dev/null | grep -qx "$OLD_ADDR"; then
-    echo -e "${RED}❌ Neither ${OLD_ADDR} nor ${NEW_ADDR} is in state. Aborting — investigate manually.${RESET}"
-    exit 1
-  fi
-
-  # Extract the live tunnel ID from the old state entry before we remove it.
-  TUNNEL_ID=$(tofu state show "$OLD_ADDR" | awk '/^[[:space:]]*id[[:space:]]*=/{ gsub(/"/, "", $3); print $3; exit }')
-  if [ -z "$TUNNEL_ID" ]; then
-    echo -e "${RED}❌ Could not extract tunnel id from old state entry. Aborting.${RESET}"
-    exit 1
-  fi
-  echo -e "${YELLOW}👉 Extracted tunnel id: ${BOLD}${TUNNEL_ID}${RESET}"
-
-  echo -e "${YELLOW}Removing ${OLD_ADDR} from state (no Cloudflare-side change)...${RESET}"
-  tofu state rm "$OLD_ADDR"
-
-  echo -e "${YELLOW}Importing live tunnel as ${NEW_ADDR}...${RESET}"
-  tofu import "$NEW_ADDR" "${TF_VAR_cloudflare_account_id}/${TUNNEL_ID}"
-
-  echo -e "\n${BOLD}${GREEN}✅ Tunnel state migrated. Run \`$0 --plan-only\` to verify zero diff.${RESET}"
   exit 0
 fi
 
