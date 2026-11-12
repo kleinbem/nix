@@ -252,6 +252,8 @@ resource "authentik_application" "kleinbem_site" {
   slug              = "kleinbem-site"
   protocol_provider = authentik_provider_oauth2.kleinbem_site.id
   meta_description  = "kleinbem.dev visitor login"
+  meta_launch_url   = "https://kleinbem.dev"
+  meta_icon         = "https://kleinbem.dev/favicon.svg"
 }
 
 output "kleinbem_site_oidc_client_id" {
@@ -305,31 +307,37 @@ locals {
       name   = "code-server"
       domain = "code.kleinbem.dev"
       desc   = "Browser-based VS Code IDE"
+      icon   = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/visual-studio-code.svg"
     }
     syncthing = {
       name   = "Syncthing"
       domain = "syncthing.kleinbem.dev"
       desc   = "File sync"
+      icon   = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/syncthing.svg"
     }
     alertmanager = {
       name   = "Alertmanager"
       domain = "alertmanager.kleinbem.dev"
       desc   = "Prometheus alert routing"
+      icon   = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/prometheus.svg"
     }
     frigate = {
       name   = "Frigate"
       domain = "frigate.kleinbem.dev"
       desc   = "Camera NVR"
+      icon   = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/frigate.svg"
     }
     paperless = {
       name   = "Paperless"
       domain = "paperless.kleinbem.dev"
       desc   = "Document management"
+      icon   = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/paperless-ngx.svg"
     }
     n8n = {
       name   = "n8n"
       domain = "n8n.kleinbem.dev"
       desc   = "Workflow automation (UI only — /webhook* stays unauthenticated at the Caddy layer, see caddy/helpers.nix)"
+      icon   = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/n8n.svg"
     }
   }
 }
@@ -351,6 +359,7 @@ resource "authentik_application" "fleet" {
   protocol_provider = authentik_provider_proxy.fleet[each.key].id
   meta_description  = each.value.desc
   meta_launch_url   = "https://${each.value.domain}"
+  meta_icon         = each.value.icon
 }
 
 # Providers only serve once listed on an outpost; otherwise Caddy's
@@ -405,6 +414,7 @@ locals {
       redirect_uris = ["https://grafana.kleinbem.dev/login/generic_oauth"]
       desc          = "Fleet monitoring dashboard"
       launch_url    = "https://grafana.kleinbem.dev"
+      icon          = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/grafana.svg"
     }
     # Garage UI on nixos-nvme (nix-presets containers/garage-ui.nix). Members
     # of `staff` (the groups claim) are admins there; the binding below keeps
@@ -414,12 +424,14 @@ locals {
       redirect_uris = ["https://garage.kleinbem.dev/auth/oidc/callback"]
       desc          = "Garage S3 buckets, keys and layout"
       launch_url    = "https://garage.kleinbem.dev"
+      icon          = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/garage.svg"
     }
     open-webui = {
       name          = "Open WebUI"
       redirect_uris = ["https://chat.kleinbem.dev/oauth/oidc/callback"]
       desc          = "Fleet AI chat interface"
       launch_url    = "https://chat.kleinbem.dev"
+      icon          = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/open-webui.svg"
     }
     # Forgejo on mac-mini (nix-presets containers/forgejo.nix). The preset
     # names its login source "authentik", which sets the callback path.
@@ -428,6 +440,7 @@ locals {
       redirect_uris = ["https://git.kleinbem.dev/user/oauth2/authentik/callback"]
       desc          = "Self-hosted Git forge"
       launch_url    = "https://git.kleinbem.dev"
+      icon          = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/forgejo.svg"
     }
     # HA's auth_oidc component logs in with PKCE as a public client, so no
     # secret ships into the container. The second redirect URI is the LAN
@@ -441,6 +454,7 @@ locals {
       ]
       desc       = "Smart home (hass-pi)"
       launch_url = "https://hass.kleinbem.dev"
+      icon       = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/home-assistant.svg"
     }
     cloudflare-access = {
       name = "Cloudflare Access"
@@ -449,6 +463,7 @@ locals {
       ]
       desc       = "Cloudflare Zero Trust edge SSO (Passkey / WebAuthn)"
       launch_url = "https://home.kleinbem.dev"
+      icon       = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/cloudflare.svg"
     }
   }
 }
@@ -488,6 +503,7 @@ resource "authentik_application" "oidc" {
   protocol_provider = authentik_provider_oauth2.oidc[each.key].id
   meta_description  = each.value.desc
   meta_launch_url   = each.value.launch_url
+  meta_icon         = each.value.icon
 }
 
 # State migration: move existing Grafana resources cleanly without recreation
