@@ -21,9 +21,10 @@ TOPOLOGICAL_ORDER = [
     "nix-gantry",  # No local dependencies
     "nix-hardware",  # Depends on nix-devshells
     "nix-packages",  # Depends on nix-devshells
+    "nix-detour-fleet",  # Depends on nix-packages
     "nix-templates",  # Depends on nix-devshells
-    "nix-presets",  # Depends on nix-devshells, nix-packages, nix-gantry
-    "nix-config",  # Depends on presets, packages, hardware, devshells, secrets, gantry
+    "nix-presets",  # Depends on nix-devshells, nix-packages, nix-gantry, nix-detour-fleet
+    "nix-config",  # Depends on presets, packages, hardware, devshells, secrets, gantry, nix-detour-fleet
 ]
 
 # Input name -> on-disk/GitHub repo name, where they differ. A name in
