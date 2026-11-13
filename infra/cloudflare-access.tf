@@ -16,6 +16,10 @@ locals {
       name   = "Vaultwarden Admin"
       domain = "vault.kleinbem.dev/admin"
     }
+    "grafana" = {
+      name   = "Fleet Monitoring"
+      domain = "grafana.kleinbem.dev"
+    }
   }
 
   # Who may pass Access. Email one-time-PIN is delivered to these addresses.
