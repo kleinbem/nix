@@ -465,6 +465,13 @@ locals {
       launch_url = "https://home.kleinbem.dev"
       icon       = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/cloudflare.svg"
     }
+    miniflux = {
+      name          = "Miniflux"
+      redirect_uris = ["https://news.kleinbem.dev/oauth2/oidc/callback"]
+      desc          = "RSS / feed reader (nasbook)"
+      launch_url    = "https://news.kleinbem.dev"
+      icon          = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/miniflux.svg"
+    }
   }
 }
 
