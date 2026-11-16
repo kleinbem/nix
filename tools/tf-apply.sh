@@ -88,12 +88,13 @@ GUARDED_APPLY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/tofu-guarded-apply.
 TERRAFORM_FILE="$SECRETS_ROOT/infra/terraform.yaml"
 SHARED_FILE="$SECRETS_ROOT/nix/shared.yaml"
 COREPI_FILE="$SECRETS_ROOT/nix/per-host/core-pi.yaml"
+NVME_FILE="$SECRETS_ROOT/nix/per-host/nixos-nvme.yaml"
 ORIN_FILE="$SECRETS_ROOT/nix/per-host/orin-nano.yaml"
 # Read from their single source rather than copied into infra/terraform.yaml.
 AUTHENTIK_FILE="$SECRETS_ROOT/nix/per-container/authentik.yaml"
 # Holds the Google OAuth client Authentik uses (see infra/google.tf).
 KLEINBEM_AUTH_FILE="$SECRETS_ROOT/nix/per-container/kleinbem-auth.yaml"
-for f in "$TERRAFORM_FILE" "$SHARED_FILE" "$COREPI_FILE" "$ORIN_FILE" "$AUTHENTIK_FILE" "$KLEINBEM_AUTH_FILE"; do
+for f in "$TERRAFORM_FILE" "$SHARED_FILE" "$COREPI_FILE" "$NVME_FILE" "$ORIN_FILE" "$AUTHENTIK_FILE" "$KLEINBEM_AUTH_FILE"; do
   if [ ! -f "$f" ]; then
     echo -e "${RED}❌ Secrets file not found at $f.${RESET}"
     exit 1
@@ -101,10 +102,11 @@ for f in "$TERRAFORM_FILE" "$SHARED_FILE" "$COREPI_FILE" "$ORIN_FILE" "$AUTHENTI
 done
 
 echo -e "\n${BOLD}[1/4] Decrypting and checking secrets...${RESET}"
-echo -e "${YELLOW}👉 Touch your YubiKey if it flashes — up to 6 scoped files to decrypt...${RESET}"
+echo -e "${YELLOW}👉 Touch your YubiKey if it flashes — up to 7 scoped files to decrypt...${RESET}"
 DECRYPTED_YAML=$(sops -d "$TERRAFORM_FILE")
 SHARED_YAML=$(sops -d "$SHARED_FILE")
 COREPI_YAML=$(sops -d "$COREPI_FILE")
+NVME_YAML=$(sops -d "$NVME_FILE")
 ORIN_YAML=$(sops -d "$ORIN_FILE")
 AUTHENTIK_YAML=$(sops -d "$AUTHENTIK_FILE")
 KLEINBEM_AUTH_YAML=$(sops -d "$KLEINBEM_AUTH_FILE")
@@ -161,6 +163,43 @@ if [ "$SESSION_SECRET" = "null" ] || [ -z "$SESSION_SECRET" ]; then
   sops --set "[\"kleinbem_site_session_secret\"] \"$SESSION_SECRET\"" "$TERRAFORM_FILE"
   echo -e "🟢 Generated and saved kleinbem_site_session_secret to infra/terraform.yaml"
   DECRYPTED_YAML=$(sops -d "$TERRAFORM_FILE")
+fi
+
+# Generate Revue's webhook HMAC secret and API key in nixos-nvme.yaml if
+# missing; re-encrypts from RAM with public keys so no extra YubiKey touch is needed.
+REVUE_WEBHOOK_SECRET=$(echo "$NVME_YAML" | yq '.revue_webhook_secret')
+REVUE_API_KEY=$(echo "$NVME_YAML" | yq '.revue_api_key')
+[ "$REVUE_WEBHOOK_SECRET" = "null" ] && REVUE_WEBHOOK_SECRET=""
+[ "$REVUE_API_KEY" = "null" ] && REVUE_API_KEY=""
+if [ -z "$REVUE_WEBHOOK_SECRET" ] || [ -z "$REVUE_API_KEY" ]; then
+  if [ "$MODE" = "plan" ]; then
+    echo -e "${YELLOW}⚠️  revue_webhook_secret / revue_api_key missing in nix/per-host/nixos-nvme.yaml — apply will mint them.${RESET}"
+  else
+    [ -z "$REVUE_WEBHOOK_SECRET" ] && REVUE_WEBHOOK_SECRET=$(openssl rand -hex 32)
+    [ -z "$REVUE_API_KEY" ] && REVUE_API_KEY=$(openssl rand -hex 32)
+    REVUE_WORK="$(mktemp -d /dev/shm/tf-apply-revue-XXXXXX)"
+    REVUE_ENC=""
+    trap 'find "$REVUE_WORK" -type f -exec shred -u {} \; 2>/dev/null; rm -rf "$REVUE_WORK"; [ -n "$REVUE_ENC" ] && rm -f "$REVUE_ENC"' EXIT
+    printf '%s\n' "$NVME_YAML" >"$REVUE_WORK/nvme.yaml"
+    printf '%s' "$REVUE_WEBHOOK_SECRET" >"$REVUE_WORK/wh"
+    printf '%s' "$REVUE_API_KEY" >"$REVUE_WORK/api"
+    REVUE_ENC="$(mktemp "$NVME_FILE.XXXXXX")"
+    if WH_PATH="$REVUE_WORK/wh" API_PATH="$REVUE_WORK/api" yq -i \
+      '.revue_webhook_secret = load_str(strenv(WH_PATH)) | .revue_api_key = load_str(strenv(API_PATH))' \
+      "$REVUE_WORK/nvme.yaml" &&
+      sops --config "$SECRETS_ROOT/.sops.yaml" --filename-override "$NVME_FILE" \
+        -e "$REVUE_WORK/nvme.yaml" >"$REVUE_ENC"; then
+      mv "$REVUE_ENC" "$NVME_FILE"
+      REVUE_ENC=""
+    else
+      echo -e "${RED}❌ Encrypting $NVME_FILE failed${RESET}" >&2
+      exit 1
+    fi
+    find "$REVUE_WORK" -type f -exec shred -u {} \; 2>/dev/null
+    rm -rf "$REVUE_WORK"
+    trap - EXIT
+    echo -e "🟢 Provisioned revue_webhook_secret + revue_api_key in nix/per-host/nixos-nvme.yaml"
+  fi
 fi
 
 # Export variables for OpenTofu
@@ -281,6 +320,30 @@ if [ -z "$GOOGLE_SA_KEY" ]; then
   echo -e "${YELLOW}⚠️  google_service_account_key not set in $TERRAFORM_FILE — infra/google.tf resources will fail to authenticate.${RESET}"
 fi
 
+# github-webhooks.tf needs Repository permissions → Webhooks: Read and write
+# granted on Kleinbem-Bot and accepted on both installations. Skip only for
+# non-webhook -target runs so targeted applies (e.g. Authentik) still work first.
+passthrough_str="${PASSTHROUGH[*]:-}"
+if [ -n "$REVUE_WEBHOOK_SECRET" ] && [ "$MODE" != "state-rm" ] && [ "$MODE" != "migrate-state" ] && { [[ $passthrough_str != *-target* ]] || [[ $passthrough_str == *webhook* ]]; }; then
+  b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+  now_ts=$(date +%s)
+  jwt_hdr=$(printf '{"alg":"RS256","typ":"JWT"}' | b64url)
+  jwt_pay=$(jq -cn --arg iss "$GH_APP_ID" --argjson iat "$((now_ts - 30))" --argjson exp "$((now_ts + 120))" '{iat:$iat,exp:$exp,iss:$iss}' | b64url)
+  jwt_sig=$(printf '%s.%s' "$jwt_hdr" "$jwt_pay" | openssl dgst -sha256 -sign <(printf '%s\n' "$GH_APP_PRIVATE_KEY") | b64url)
+  for inst_id in "$GH_APP_INSTALLATION_ID" "$GH_APP_ORG_INSTALLATION_ID"; do
+    inst_json=$(curl -fsS --max-time 10 -H "Authorization: Bearer ${jwt_hdr}.${jwt_pay}.${jwt_sig}" -H "Accept: application/vnd.github+json" "https://api.github.com/app/installations/${inst_id}" 2>/dev/null) || inst_json=""
+    if [ -n "$inst_json" ]; then
+      wh_perm=$(printf '%s' "$inst_json" | jq -r '.permissions.repository_hooks // "none"')
+      inst_acct=$(printf '%s' "$inst_json" | jq -r '.account.login // "unknown"')
+      if [ "$wh_perm" != "write" ]; then
+        echo -e "${RED}❌ Kleinbem-Bot installation on '${inst_acct}' lacks 'Repository permissions → Webhooks: Read and write' (got: ${wh_perm}).${RESET}"
+        echo -e "Grant it at ${BOLD}https://github.com/settings/apps/kleinbem-bot/permissions${RESET} and accept the permission update on ${BOLD}${inst_acct}${RESET}, then re-run."
+        exit 1
+      fi
+    fi
+  done
+fi
+
 export TF_VAR_github_app_id="$GH_APP_ID"
 export TF_VAR_github_app_installation_id="$GH_APP_INSTALLATION_ID"
 export TF_VAR_github_app_org_installation_id="$GH_APP_ORG_INSTALLATION_ID"
@@ -304,6 +367,7 @@ export TF_VAR_ntfy_deploy_topic="$NTFY_DEPLOY_TOPIC"
 export TF_VAR_ntfy_alert_topic="$NTFY_ALERT_TOPIC"
 export TF_VAR_google_service_account_key="$GOOGLE_SA_KEY"
 export TF_VAR_healthchecks_api_key="$HEALTHCHECKS_API_KEY"
+export TF_VAR_revue_webhook_secret="$REVUE_WEBHOOK_SECRET"
 
 # 2. OpenTofu Init & Plan/Apply
 echo -e "\n${BOLD}[2/4] Initializing OpenTofu...${RESET}"

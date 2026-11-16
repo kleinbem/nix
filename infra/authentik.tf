@@ -339,6 +339,12 @@ locals {
       desc   = "Workflow automation (UI only — /webhook* stays unauthenticated at the Caddy layer, see caddy/helpers.nix)"
       icon   = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/n8n.svg"
     }
+    revue = {
+      name   = "Revue"
+      domain = "revue.kleinbem.dev"
+      desc   = "AI PR code review dashboard (/webhook and /health skip forward-auth)"
+      icon   = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/git.svg"
+    }
   }
 }
 
