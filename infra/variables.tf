@@ -220,3 +220,10 @@ variable "github_config_plan_r2_secret_access_key" {
   default     = ""
   description = "Read-only R2 secret access key on kleinbem-tofu-state, distributed as PLAN_R2_SECRET_ACCESS_KEY."
 }
+
+variable "revue_webhook_secret" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "HMAC-SHA256 secret for Revue's GitHub webhooks (kleinbem-secrets/nix/per-host/nixos-nvme.yaml, revue_webhook_secret). Empty = webhooks not provisioned."
+}
