@@ -333,7 +333,7 @@ if [ -n "$REVUE_WEBHOOK_SECRET" ] && [ "$MODE" != "state-rm" ] && [ "$MODE" != "
   for inst_id in "$GH_APP_INSTALLATION_ID" "$GH_APP_ORG_INSTALLATION_ID"; do
     inst_json=$(curl -fsS --max-time 10 -H "Authorization: Bearer ${jwt_hdr}.${jwt_pay}.${jwt_sig}" -H "Accept: application/vnd.github+json" "https://api.github.com/app/installations/${inst_id}" 2>/dev/null) || inst_json=""
     if [ -n "$inst_json" ]; then
-      wh_perm=$(printf '%s' "$inst_json" | jq -r '.permissions.webhooks // "none"')
+      wh_perm=$(printf '%s' "$inst_json" | jq -r '.permissions.repository_hooks // "none"')
       inst_acct=$(printf '%s' "$inst_json" | jq -r '.account.login // "unknown"')
       if [ "$wh_perm" != "write" ]; then
         echo -e "${RED}❌ Kleinbem-Bot installation on '${inst_acct}' lacks 'Repository permissions → Webhooks: Read and write' (got: ${wh_perm}).${RESET}"
