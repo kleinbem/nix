@@ -185,7 +185,7 @@ if [ -z "$REVUE_WEBHOOK_SECRET" ] || [ -z "$REVUE_API_KEY" ]; then
     printf '%s' "$REVUE_API_KEY" >"$REVUE_WORK/api"
     REVUE_ENC="$(mktemp "$NVME_FILE.XXXXXX")"
     if WH_PATH="$REVUE_WORK/wh" API_PATH="$REVUE_WORK/api" yq -i \
-      '.revue_webhook_secret = load_str(strenv(WH_PATH)) | .revue_api_key = load_str(strenv(API_PATH))' \
+      '.revue_webhook_secret = load_str(strenv(WH_PATH)) | .revue_api_key = load_str(strenv(API_PATH)) | sort_keys(.)' \
       "$REVUE_WORK/nvme.yaml" &&
       sops --config "$SECRETS_ROOT/.sops.yaml" --filename-override "$NVME_FILE" \
         -e "$REVUE_WORK/nvme.yaml" >"$REVUE_ENC"; then
