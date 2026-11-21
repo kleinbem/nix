@@ -15,6 +15,7 @@ locals {
     "nix-hardware"  = ["APP_ID", "APP_PRIVATE_KEY", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
     "nix-templates" = ["APP_ID", "APP_PRIVATE_KEY", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
     "nix-presets"   = ["APP_ID", "APP_PRIVATE_KEY", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
+    "nix-omarchy"   = ["APP_ID", "APP_PRIVATE_KEY", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
     # The fleet's own holds list: release PRs (App token), ntfy alert, and
     # Attic for the release checks of our own packages.
     "nix-detour-fleet" = ["APP_ID", "APP_PRIVATE_KEY", "NTFY_ALERT_TOPIC", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
