@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: kleinbem/actions/nix-setup@f1b4f5fc52ea31b1f9e53ca29170570fe4651c7d # v1.7.1
+      - uses: kleinbem/actions/nix-setup@d5aec5d8fbed30867e0b2c1d781992844240ee1e # v1.10.0
         with:
           nix-path: nixpkgs=channel:nixos-unstable
       - name: Infra and tools checks
@@ -43,7 +43,7 @@ jobs:
           repository: kleinbem/nix-config
           path: nix-config
           persist-credentials: false
-      - uses: kleinbem/actions/nix-setup@f1b4f5fc52ea31b1f9e53ca29170570fe4651c7d # v1.7.1
+      - uses: kleinbem/actions/nix-setup@d5aec5d8fbed30867e0b2c1d781992844240ee1e # v1.10.0
         with:
           nix-path: nixpkgs=channel:nixos-unstable
       - name: infra/inventory.json matches nix-config
