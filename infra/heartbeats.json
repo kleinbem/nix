@@ -49,6 +49,16 @@
       "kind": "alive",
       "timeout": 300
     },
+    "mac-mini-backup-bulk-gdrive": {
+      "grace": 21600,
+      "kind": "backup",
+      "timeout": 86400
+    },
+    "mac-mini-backup-bulk-r2": {
+      "grace": 21600,
+      "kind": "backup",
+      "timeout": 86400
+    },
     "mac-mini-backup-secure": {
       "grace": 21600,
       "kind": "backup",
@@ -83,6 +93,16 @@
       "grace": 1800,
       "kind": "alive",
       "timeout": 300
+    },
+    "orin-nano-backup-bulk-gdrive": {
+      "grace": 21600,
+      "kind": "backup",
+      "timeout": 86400
+    },
+    "orin-nano-backup-bulk-r2": {
+      "grace": 21600,
+      "kind": "backup",
+      "timeout": 86400
     },
     "orin-nano-backup-secure": {
       "grace": 21600,

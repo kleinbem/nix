@@ -135,6 +135,7 @@
     "hass.kleinbem.dev",
     "paperless.kleinbem.dev",
     "s3.kleinbem.dev",
+    "steward.kleinbem.dev",
     "syncthing.kleinbem.dev",
     "torrents.kleinbem.dev"
   ]

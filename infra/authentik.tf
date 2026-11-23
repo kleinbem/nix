@@ -345,6 +345,12 @@ locals {
       desc   = "AI PR code review dashboard (/webhook and /health skip forward-auth)"
       icon   = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/git.svg"
     }
+    coderabbit-steward = {
+      name   = "CodeRabbit Steward"
+      domain = "steward.kleinbem.dev"
+      desc   = "CodeRabbit OSS budget tracker, scheduler, and findings dashboard (/health skips forward-auth)"
+      icon   = "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/git.svg"
+    }
   }
 }
 
