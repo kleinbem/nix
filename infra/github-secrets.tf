@@ -48,9 +48,10 @@ locals {
   org_ci_secrets = {
     "nix-gantry" = ["APP_ID", "APP_PRIVATE_KEY", "ATTIC_PULL_TOKEN", "NETBIRD_SETUP_KEY_EPHEMERAL"]
     # maintain.yaml's nightly flake.lock PR.
-    "cadre"      = ["APP_ID", "APP_PRIVATE_KEY"]
-    "nix-detour" = ["APP_ID", "APP_PRIVATE_KEY"]
-    "revue"      = ["APP_ID", "APP_PRIVATE_KEY"]
+    "cadre"              = ["APP_ID", "APP_PRIVATE_KEY"]
+    "nix-detour"         = ["APP_ID", "APP_PRIVATE_KEY"]
+    "revue"              = ["APP_ID", "APP_PRIVATE_KEY"]
+    "coderabbit-steward" = ["APP_ID", "APP_PRIVATE_KEY"]
   }
 
   # Whether the token is set is not itself secret; for_each needs it plain.
@@ -175,7 +176,7 @@ locals {
   ]...)
   # The same for kleinbem-dev repos, written through the `org` provider.
   org_dependabot_secret_pairs = merge([
-    for repo in ["revue", "nix-detour"] : {
+    for repo in ["revue", "nix-detour", "coderabbit-steward"] : {
       for n in keys(local.dependabot_app_secrets) : "${repo}/${n}" => { repo = repo, secret = n }
     }
   ]...)
