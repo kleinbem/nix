@@ -176,7 +176,7 @@ locals {
   ]...)
   # The same for kleinbem-dev repos, written through the `org` provider.
   org_dependabot_secret_pairs = merge([
-    for repo in ["revue", "nix-detour"] : {
+    for repo in ["revue", "nix-detour", "coderabbit-steward"] : {
       for n in keys(local.dependabot_app_secrets) : "${repo}/${n}" => { repo = repo, secret = n }
     }
   ]...)
